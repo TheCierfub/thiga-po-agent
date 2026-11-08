@@ -4,6 +4,7 @@ import type { z } from "zod";
 import { loadPoDecisions } from "../data/load";
 import { EMPTY_PO_DECISIONS } from "../decisions/po-decisions";
 import { ReplayProvider } from "../llm/fixtures";
+import type { DecisionEngine } from "../llm/decisions";
 import type { LlmProvider, LlmRequest } from "../llm/provider";
 import { ROOT } from "../test/helpers";
 import { runBatch } from "./run";
@@ -80,5 +81,50 @@ describe("pipeline rejoué de bout en bout", async () => {
     expect(moscowOf(r).sso_contrat).toBe("À confirmer");
     expect(moscowOf(r).synchro_2_4).toBe("À confirmer");
     expect(r.state.allocation.mustPoints).toBe(0);
+  });
+
+  it("un moteur de décision prime sur la réponse du modèle de texte, et sa trace est conservée", async () => {
+    const noise = lundi.state.classifications.find((c) => c.type === "hors_sujet")!.feedbackId;
+    const known = new Map(lundi.state.classifications.map((c) => [c.feedbackId, c.type]));
+    const engine: DecisionEngine = {
+      name: "stub",
+      async decide(request) {
+        const id = request.key.split("--")[1]!;
+        const target = id === noise;
+        return {
+          engine: "stub",
+          fallbackUsed: target,
+          answers: {
+            type: { type: "choice", choice: target ? "eloge" : known.get(id)!, probabilities: null, confidence: null },
+            injection: { type: "noul", probability: target ? 0.93 : 0.01 },
+          },
+        };
+      },
+    };
+    const backlogEngine: DecisionEngine = {
+      name: "stub-backlog",
+      async decide() {
+        return { engine: "stub-backlog", fallbackUsed: false, answers: { issue: { type: "choice", choice: "aucune", probabilities: null, confidence: null }, relation: { type: "choice", choice: "lie", probabilities: null, confidence: null } } };
+      },
+    };
+    const r = await runBatch({
+      root: ROOT,
+      batch: "lundi",
+      provider: new ReplayProvider(path.join(ROOT, "fixtures/llm"), { allowStale: true }),
+      decider: { type: engine, injection: engine, backlog: backlogEngine },
+      reachMode: "comptes",
+      decisions,
+      previous: null,
+      draftStory: false,
+    });
+    const c = r.state.classifications.find((x) => x.feedbackId === noise)!;
+    expect(c.type).toBe("eloge");
+    expect(c.injection).toMatchObject({ llmSuspected: true, quarantined: true });
+    expect(c.decisions).toMatchObject({
+      type: { engine: "stub", answer: "eloge", fallbackUsed: true },
+      injection: { answer: "oui", probabilities: { oui: 0.93 } },
+    });
+    expect(r.state.themes.every((t) => t.backlogIssueId === null)).toBe(true);
+    expect(r.state.themes[0]!.backlogDecision).toMatchObject({ engine: "stub-backlog", answer: "aucune" });
   });
 });

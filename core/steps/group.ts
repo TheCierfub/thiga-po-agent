@@ -4,6 +4,7 @@ import type { LlmProvider } from "../llm/provider";
 import {
   GroupingLlmSchema,
   type BacklogIssue,
+  type DecisionTrace,
   type FeedbackClassification,
   type MaskedFeedback,
   type Quote,
@@ -48,6 +49,7 @@ export interface GroupedTheme {
   backlogRelation: "doublon" | "lie" | "aucun";
   quotes: Quote[];
   rejectedQuotes: Quote[];
+  backlogDecision?: DecisionTrace;
 }
 
 export interface GroupingResult {

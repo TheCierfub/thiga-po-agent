@@ -29,6 +29,8 @@ import { classifyAll, isRelatedSignal, isThemeEligible, needsInvestigation } fro
 import { draftStory } from "../steps/draft-story";
 import { groupThemes, type GroupedTheme } from "../steps/group";
 import { draftInvestigation } from "../steps/investigate";
+import { decideBacklog } from "../steps/decide";
+import type { DecisionPlan } from "../llm/profiles";
 import type { RunState } from "./state";
 
 export interface RunOptions {
@@ -40,6 +42,8 @@ export interface RunOptions {
   previous: RunState | null;
   /** Rédiger la story du premier élément retenu (défaut : oui). */
   draftStory?: boolean;
+  /** Étapes de décision confiées à un moteur dédié. Absentes : décidées dans les réponses de texte. */
+  decider?: DecisionPlan;
 }
 
 export interface ThemeChange {
@@ -115,6 +119,7 @@ function buildTheme(
     ),
     hasCriticalBug: members.some((c) => c.type === "bug" && c.severity === "critique"),
     firstSeenBatch,
+    ...(grouped.backlogDecision ? { backlogDecision: grouped.backlogDecision } : {}),
   };
 }
 
@@ -132,6 +137,7 @@ function mergeThemes(previous: Theme[], grouped: GroupedTheme[]): { merged: Grou
         backlogRelation: t.backlogRelation,
         quotes: [...t.quotes],
         rejectedQuotes: [...t.rejectedQuotes],
+        ...(t.backlogDecision ? { backlogDecision: t.backlogDecision } : {}),
       },
     ]),
   );
@@ -175,7 +181,8 @@ export async function runBatch(options: RunOptions): Promise<RunResult> {
   }
 
   // 2. Classification des seuls nouveaux feedbacks.
-  const freshClassifications = await classifyAll(fresh, provider, decisions.releasedFromQuarantine);
+  const decider = options.decider ?? {};
+  const freshClassifications = await classifyAll(fresh, provider, decisions.releasedFromQuarantine, decider);
   for (const c of freshClassifications) {
     if (c.rejectedQuotes.length > 0) warnings.push(`${c.feedbackId} : ${c.rejectedQuotes.length} citation(s) rejetée(s).`);
   }
@@ -216,6 +223,19 @@ export async function runBatch(options: RunOptions): Promise<RunResult> {
         )
       : { themes: [], unassigned: [], warnings: [] };
   warnings.push(...grouping.warnings);
+
+  // Rattachement au backlog par un moteur dédié : seulement pour les thèmes nouveaux,
+  // un thème déjà ouvert garde son rattachement.
+  if (decider.backlog) {
+    const known = new Set((previous?.themes ?? []).map((t) => t.key));
+    for (const g of grouping.themes.filter((t) => !known.has(t.key))) {
+      const excerpts = [...g.feedbackIds, ...g.relatedSignalIds].slice(0, 8).map((id) => feedbacks.get(id)!.maskedText.slice(0, 600));
+      const d = await decideBacklog({ batch, key: g.key, title: g.title, problem: g.problem, excerpts }, backlog, decider.backlog);
+      g.backlogIssueId = d.backlogIssueId;
+      g.backlogRelation = d.backlogRelation;
+      g.backlogDecision = d.trace;
+    }
+  }
 
   const { merged, firstSeen } = mergeThemes(previous?.themes ?? [], grouping.themes);
   const themes = merged

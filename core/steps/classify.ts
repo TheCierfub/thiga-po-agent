@@ -1,9 +1,11 @@
 import { checkQuotes, isExactQuote } from "../evidence/quotes";
 import { COMPANY_CONTEXT, DATA_BOUNDARY_RULES, frameData } from "../llm/prompts";
+import type { DecisionPlan } from "../llm/profiles";
 import type { LlmProvider } from "../llm/provider";
 import { ClassificationLlmSchema, type FeedbackClassification, type MaskedFeedback } from "../schemas";
 import { screenForInjection } from "../security/injection";
 import { hashOf } from "../util/hash";
+import { decideForFeedback } from "./decide";
 
 const SYSTEM = `${COMPANY_CONTEXT}
 
@@ -34,6 +36,7 @@ export async function classifyFeedback(
   feedback: MaskedFeedback,
   provider: LlmProvider,
   releasedFromQuarantine: readonly string[] = [],
+  decider: DecisionPlan = {},
 ): Promise<FeedbackClassification> {
   const screen = screenForInjection(feedback.maskedText);
   const prompt = [
@@ -55,18 +58,24 @@ export async function classifyFeedback(
     out.quotes.map((text) => ({ feedbackId: feedback.id, text })),
     texts,
   );
+  const decided = await decideForFeedback(feedback, decider);
+  const type = decided.type ?? out.type;
+  const modelSuspected = decided.injectionSuspected ?? out.injection.suspected;
+  const severity = decided.severity !== undefined ? decided.severity : out.severity;
+
   const excerptOk = out.injection.excerpt !== null && isExactQuote(out.injection.excerpt, feedback.maskedText);
-  const suspected = out.injection.suspected || screen.signals.length > 0;
+  const suspected = modelSuspected || screen.signals.length > 0;
   const released = releasedFromQuarantine.includes(feedback.id);
 
   return {
     feedbackId: feedback.id,
-    type: out.type,
-    severity: out.type === "bug" ? out.severity : null,
+    type,
+    severity: type === "bug" ? severity : null,
     underlyingProblem: out.underlyingProblem,
     actionable: out.actionable,
+    ...(Object.keys(decided.traces).length > 0 ? { decisions: decided.traces } : {}),
     injection: {
-      llmSuspected: out.injection.suspected,
+      llmSuspected: modelSuspected,
       heuristicSignals: screen.signals,
       quarantined: suspected && !released,
       releasedByPo: suspected && released,
@@ -84,6 +93,7 @@ export async function classifyAll(
   feedbacks: MaskedFeedback[],
   provider: LlmProvider,
   released: readonly string[],
+  decider: DecisionPlan = {},
   concurrency = 4,
 ): Promise<FeedbackClassification[]> {
   const results: FeedbackClassification[] = new Array(feedbacks.length);
@@ -91,7 +101,7 @@ export async function classifyAll(
   const worker = async () => {
     while (next < feedbacks.length) {
       const i = next++;
-      results[i] = await classifyFeedback(feedbacks[i]!, provider, released);
+      results[i] = await classifyFeedback(feedbacks[i]!, provider, released, decider);
     }
   };
   await Promise.all(Array.from({ length: Math.min(concurrency, feedbacks.length) }, worker));
