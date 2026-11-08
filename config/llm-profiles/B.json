@@ -1,0 +1,18 @@
+{
+  "name": "B",
+  "description": "Jev (modèle de décision TypeSafe, API Decisions) pour le type, l'injection, la gravité d'un bug et le rattachement au backlog ; Claude Sonnet 5.5 pour le texte et en repli.",
+  "steps": {
+    "classify": "anthropic/claude-sonnet-5.5",
+    "group": "anthropic/claude-sonnet-5.5",
+    "assess": "anthropic/claude-sonnet-5.5",
+    "story": "anthropic/claude-sonnet-5.5",
+    "investigate": "anthropic/claude-sonnet-5.5"
+  },
+  "decisions": {
+    "type": { "engine": "decisions", "model": "typesafe/jev-1.14", "fallback": "anthropic/claude-sonnet-5.5" },
+    "injection": { "engine": "decisions", "model": "typesafe/jev-1.14", "fallback": "anthropic/claude-sonnet-5.5" },
+    "critical": { "engine": "decisions", "model": "typesafe/jev-1.14", "fallback": "anthropic/claude-sonnet-5.5" },
+    "backlog": { "engine": "decisions", "model": "typesafe/jev-1.14", "fallback": "anthropic/claude-sonnet-5.5" }
+  },
+  "request": { "temperature": 0, "maxTokens": 4000, "requireParameters": false }
+}

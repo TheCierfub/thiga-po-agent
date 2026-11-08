@@ -47,6 +47,21 @@ export type ClassificationLlm = z.infer<typeof ClassificationLlmSchema>;
 export const QuoteSchema = z.object({ feedbackId: z.string(), text: z.string() });
 export type Quote = z.infer<typeof QuoteSchema>;
 
+export const DECISION_STEPS = ["type", "injection", "critical", "backlog"] as const;
+export const DecisionStepSchema = z.enum(DECISION_STEPS);
+export type DecisionStep = z.infer<typeof DecisionStepSchema>;
+
+/** Trace d'une décision prise hors de l'étape de texte (modèle de décision ou appel LLM dédié). */
+export const DecisionTraceSchema = z.object({
+  engine: z.string(),
+  answer: z.string(),
+  /** Probabilités renvoyées par le moteur, null s'il n'en donne pas (un LLM génératif). */
+  probabilities: z.record(z.string(), z.number()).nullable(),
+  confidence: z.number().nullable(),
+  fallbackUsed: z.boolean(),
+});
+export type DecisionTrace = z.infer<typeof DecisionTraceSchema>;
+
 export const FeedbackClassificationSchema = z.object({
   feedbackId: z.string(),
   type: FeedbackTypeSchema,
@@ -61,6 +76,7 @@ export const FeedbackClassificationSchema = z.object({
   }),
   quotes: z.array(QuoteSchema),
   rejectedQuotes: z.array(z.string()),
+  decisions: z.partialRecord(DecisionStepSchema, DecisionTraceSchema).optional(),
 });
 export type FeedbackClassification = z.infer<typeof FeedbackClassificationSchema>;
 
@@ -109,6 +125,7 @@ export const ThemeSchema = z.object({
   trend: TrendSchema,
   hasCriticalBug: z.boolean(),
   firstSeenBatch: z.string(),
+  backlogDecision: DecisionTraceSchema.optional(),
 });
 export type Theme = z.infer<typeof ThemeSchema>;
 

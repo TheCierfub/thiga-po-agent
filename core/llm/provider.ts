@@ -1,6 +1,6 @@
 import type { z } from "zod";
 
-export const LLM_TASKS = ["classify", "group", "assess", "story", "investigate"] as const;
+export const LLM_TASKS = ["classify", "group", "assess", "story", "investigate", "decide"] as const;
 export type LlmTask = (typeof LLM_TASKS)[number];
 
 /**
