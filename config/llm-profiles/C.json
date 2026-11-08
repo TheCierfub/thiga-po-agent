@@ -14,5 +14,5 @@
     "critical": { "engine": "inline" },
     "backlog": { "engine": "inline" }
   },
-  "request": { "temperature": 0, "maxTokens": 4000, "requireParameters": false }
+  "request": { "temperature": 0, "maxTokens": 16000, "requireParameters": false }
 }
