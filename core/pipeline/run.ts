@@ -83,8 +83,9 @@ const CLASS_RANK: Record<MoscowClass, number> = {
   "Won't": 5,
 };
 
+/** Le nom et le pseudo public restent : les brouillons de réponse s'adressent à l'auteur. */
 function stripPii(feedback: MaskedFeedback): MaskedFeedback {
-  return { ...feedback, text: feedback.maskedText };
+  return { ...feedback, text: feedback.maskedText, author: { ...feedback.author, email: null } };
 }
 
 function buildTheme(

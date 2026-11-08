@@ -19,7 +19,7 @@ export const RunStateSchema = z.object({
   batch: z.string(),
   referenceDate: z.iso.date(),
   reachMode: ReachModeSchema,
-  /** Texte d'origine remplacé par le texte masqué : l'état local ne conserve aucune donnée personnelle. */
+  /** Texte remplacé par le texte masqué et e-mail d'auteur retiré. Restent le nom et le pseudo public de l'auteur. */
   feedbacks: z.array(MaskedFeedbackSchema),
   matches: z.array(AuthorMatchSchema),
   classifications: z.array(FeedbackClassificationSchema),
