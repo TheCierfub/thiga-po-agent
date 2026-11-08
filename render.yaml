@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: etai-agent-po
+    runtime: node
+    plan: free
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm exec next start --port $PORT
+    healthCheckPath: /lundi
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: LINEAR_API_KEY
+        sync: false
+      - key: LINEAR_TEAM_ID
+        sync: false

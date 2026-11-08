@@ -59,6 +59,12 @@ L'interface (Next.js, shadcn/ui, thème sombre) s'ouvre sur le brief du lundi. L
 
 **Mode Linear.** Avec `LINEAR_API_KEY` et `LINEAR_TEAM_ID` dans l'environnement ou dans `.env`, le même bouton crée ou met à jour l'issue Linear, en tenant compte des arbitrages faits dans l'écran Priorisation. Redémarrer `pnpm dev` suffit, sans rebuild.
 
+## Déployer sur Render
+
+`render.yaml` décrit le service web : build `pnpm build`, démarrage `next start` sur le port fourni par Render, contrôle de santé sur `/lundi`, redéploiement à chaque commit sur `main`. Dans Render : *New → Blueprint*, puis choisir ce dépôt. `LINEAR_API_KEY` et `LINEAR_TEAM_ID` sont demandées à la création ; vides, l'instance reste en mode démo. Les liens vers les feedbacks utilisent l'URL publique du service (`RENDER_EXTERNAL_URL`), sauf si `ETAI_PUBLIC_URL` est défini.
+
+Sur l'offre gratuite, le service s'endort après une période sans visite : le premier affichage prend alors quelques dizaines de secondes. Le dossier `out/` n'y est pas conservé entre deux déploiements.
+
 ## Brancher Linear
 
 1. Clé : dans Linear, *Settings → Account → Security & access → Personal API keys → New API key*. Elle doit pouvoir écrire dans l'équipe.

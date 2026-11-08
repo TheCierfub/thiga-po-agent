@@ -20,6 +20,6 @@ export async function replayDemo(root: string): Promise<{ lundi: RunResult; jeud
 }
 
 export function feedbackUrlFor(batch: string, env: Partial<Record<string, string>> = process.env): (feedbackId: string) => string {
-  const base = (env.ETAI_PUBLIC_URL ?? "http://localhost:43217").replace(/\/$/, "");
+  const base = (env.ETAI_PUBLIC_URL ?? env.RENDER_EXTERNAL_URL ?? "http://localhost:43217").replace(/\/$/, "");
   return (id) => `${base}/${batch}/feedbacks#${id}`;
 }
