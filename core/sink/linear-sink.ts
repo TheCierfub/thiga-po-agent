@@ -10,7 +10,15 @@ export interface LinearIssueRef {
   labelIds: string[];
 }
 
+export interface LinearTeam {
+  id: string;
+  key: string;
+  name: string;
+}
+
 export interface LinearApi {
+  /** Équipe par UUID ou par clé (`THI`) ; null si elle n'existe pas. Absent : l'identifiant est pris tel quel. */
+  resolveTeam?(idOrKey: string): Promise<LinearTeam | null>;
   /** Issue de l'équipe dont la description contient ce marqueur. */
   findIssueByMarker(teamId: string, marker: string): Promise<LinearIssueRef | null>;
   /** Issue par identifiant (`LIN-41`) ou UUID ; null si elle n'existe pas. */
@@ -71,16 +79,27 @@ function isEstimateError(error: unknown): boolean {
 export class LinearSink implements BacklogSink {
   readonly name = "linear";
   private readonly labelIds = new Map<string, string>();
+  private teamId: Promise<string> | null = null;
 
   constructor(
     private readonly api: LinearApi,
     private readonly options: LinearSinkOptions,
   ) {}
 
+  private team(): Promise<string> {
+    this.teamId ??= (async () => {
+      if (!this.api.resolveTeam) return this.options.teamId;
+      const team = await this.api.resolveTeam(this.options.teamId);
+      if (!team) throw new Error(`Équipe Linear « ${this.options.teamId} » introuvable : vérifiez LINEAR_TEAM_ID (UUID ou clé d'équipe).`);
+      return team.id;
+    })();
+    return this.teamId;
+  }
+
   private async label(moscow: keyof typeof MOSCOW_LABEL_COLORS): Promise<string> {
     let id = this.labelIds.get(moscow);
     if (!id) {
-      id = await this.api.ensureLabel(this.options.teamId, moscowLabelName(moscow), MOSCOW_LABEL_COLORS[moscow]);
+      id = await this.api.ensureLabel(await this.team(), moscowLabelName(moscow), MOSCOW_LABEL_COLORS[moscow]);
       this.labelIds.set(moscow, id);
     }
     return id;
@@ -113,7 +132,7 @@ export class LinearSink implements BacklogSink {
       issue = await this.api.getIssue(item.existingIssueId);
       if (!issue) notes.push(`${item.existingIssueId} introuvable dans cet espace Linear : recherche par clé stable.`);
     }
-    issue ??= await this.api.findIssueByMarker(this.options.teamId, item.stableKey);
+    issue ??= await this.api.findIssueByMarker(await this.team(), item.stableKey);
 
     let action: SinkResult["action"];
     if (issue) {
@@ -130,7 +149,7 @@ export class LinearSink implements BacklogSink {
       }
     } else {
       const input = {
-        teamId: this.options.teamId,
+        teamId: await this.team(),
         title: item.title,
         description: mergeSection("", item.stableKey, item.body),
         estimate: item.details.points,

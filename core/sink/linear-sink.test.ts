@@ -8,6 +8,7 @@ import { runBatch } from "../pipeline/run";
 import { ROOT } from "../test/helpers";
 import { buildBacklogItems, type BacklogItem } from "./backlog-sink";
 import { exportTarget } from "./export-target";
+import { DryRunLinearApi } from "./linear-dry-run";
 import { LinearSink, mergeSection, moscowLabelName, type LinearApi, type LinearIssueRef } from "./linear-sink";
 
 /** Linear en mémoire : on vérifie les appels, aucun ne sort de la machine. */
@@ -45,11 +46,23 @@ class FakeLinear implements LinearApi {
     Object.assign(issue, input);
     return issue;
   }
+  async resolveTeam(idOrKey: string) {
+    this.calls.push(`team:${idOrKey}`);
+    return idOrKey === "team" || idOrKey === "ETA" ? { id: "team", key: "ETA", name: "Étai produit" } : null;
+  }
+  async findLabel(_teamId: string, name: string) {
+    return this.labels.get(name) ?? null;
+  }
+  async findCustomer(externalId: string) {
+    return this.customers.get(externalId)?.id ?? null;
+  }
   async ensureLabel(_teamId: string, name: string) {
+    this.calls.push(`label:${name}`);
     if (!this.labels.has(name)) this.labels.set(name, `label-${this.labels.size + 1}`);
     return this.labels.get(name)!;
   }
   async ensureCustomer(externalId: string, name: string) {
+    this.calls.push(`customer:${externalId}`);
     if (this.failCustomers) throw new Error("Customers are not enabled for this workspace");
     if (!this.customers.has(externalId)) this.customers.set(externalId, { id: `cust-${this.customers.size + 1}`, name });
     return this.customers.get(externalId)!.id;
@@ -58,6 +71,7 @@ class FakeLinear implements LinearApi {
     return this.needs.some((n) => n.issueId === issueId && n.customerId === customerId);
   }
   async createCustomerNeed(input: { issueId: string; customerId: string; body: string; attachmentUrl?: string }) {
+    this.calls.push("need");
     this.needs.push(input);
   }
 }
@@ -198,5 +212,39 @@ describe("cible d'export", () => {
 
   it("équipe manquante : reste en local", () => {
     expect(exportTarget({ root: ROOT, env: { LINEAR_API_KEY: "x" } }).reason).toMatch(/^LINEAR_TEAM_ID absent :/);
+  });
+});
+
+describe("équipe Linear et export à blanc", () => {
+  it("accepte la clé d'équipe (THI, ETA…) à la place de l'UUID et refuse une équipe inconnue", async () => {
+    const api = new FakeLinear();
+    const [ok] = await new LinearSink(api, { teamId: "ETA" }).push([itemFor("partage_client")]);
+    expect(ok!.action).toBe("cree");
+    expect(api.issues.at(-1)!.teamId).toBe("team");
+    await expect(new LinearSink(new FakeLinear(), { teamId: "XYZ" }).push([itemFor("partage_client")])).rejects.toThrow(/introuvable : vérifiez LINEAR_TEAM_ID/);
+  });
+
+  it("--dry-run lit Linear mais n'écrit rien, et décrit chaque écriture", async () => {
+    const api = new FakeLinear();
+    api.seed("LIN-41", "Texte écrit par l'équipe.");
+    const before = JSON.stringify({ issues: api.issues, labels: [...api.labels], customers: [...api.customers], needs: api.needs });
+    const dry = new DryRunLinearApi(api);
+    const results = await new LinearSink(dry, { teamId: "ETA", feedbackUrl: url }).push(items());
+
+    expect(JSON.stringify({ issues: api.issues, labels: [...api.labels], customers: [...api.customers], needs: api.needs })).toBe(before);
+    expect(api.calls.filter((c) => /^(create|update|label|customer|need)/.test(c))).toEqual([]);
+    expect(results.find((r) => r.stableKey === "etai:partage_client")).toMatchObject({ action: "mis_a_jour", target: "LIN-41" });
+    expect(results.find((r) => r.stableKey === "etai:sso_contrat")!.action).toBe("cree");
+    expect(dry.operations).toContain("Créerait le label « MoSCoW : Must ».");
+    expect(dry.operations.some((o) => o.startsWith("Mettrait à jour LIN-41"))).toBe(true);
+    expect(dry.operations.some((o) => o.startsWith("Créerait l'issue « SSO"))).toBe(true);
+    expect(dry.operations.some((o) => /^Ajouterait une demande client de .+ sur LIN-41/.test(o))).toBe(true);
+  });
+
+  it("export à blanc hors ligne (sans clé) : tout est supposé à créer, rien n'est lu", async () => {
+    const dry = new DryRunLinearApi(null);
+    const results = await new LinearSink(dry, { teamId: "THI" }).push(items(jeudi));
+    expect(results.filter((r) => r.action === "bloque").map((r) => r.stableKey).sort()).toEqual(["etai:sso_contrat", "etai:synchro_2_4"]);
+    expect(results.filter((r) => r.action !== "bloque").every((r) => r.action === "cree")).toBe(true);
   });
 });

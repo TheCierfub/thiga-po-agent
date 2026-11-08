@@ -1,6 +1,8 @@
 import { LinearClient, type Issue } from "@linear/sdk";
 import type { LinearApi, LinearIssueRef } from "./linear-sink";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function toRef(issue: Issue): Promise<LinearIssueRef> {
   return {
     id: issue.id,
@@ -17,6 +19,12 @@ export class SdkLinearApi implements LinearApi {
 
   static fromKey(apiKey: string): SdkLinearApi {
     return new SdkLinearApi(new LinearClient({ apiKey }));
+  }
+
+  async resolveTeam(idOrKey: string) {
+    const filter = UUID.test(idOrKey) ? { id: { eq: idOrKey } } : { key: { eqIgnoreCase: idOrKey } };
+    const team = (await this.client.teams({ first: 1, filter })).nodes[0];
+    return team ? { id: team.id, key: team.key, name: team.name } : null;
   }
 
   async findIssueByMarker(teamId: string, marker: string) {
@@ -50,21 +58,31 @@ export class SdkLinearApi implements LinearApi {
     return toRef(issue);
   }
 
-  async ensureLabel(teamId: string, name: string, color: string) {
+  async findLabel(teamId: string, name: string) {
     const found = await this.client.issueLabels({
       first: 1,
       filter: { name: { eq: name }, or: [{ team: { id: { eq: teamId } } }, { team: { null: true } }] },
     });
-    if (found.nodes[0]) return found.nodes[0].id;
+    return found.nodes[0]?.id ?? null;
+  }
+
+  async ensureLabel(teamId: string, name: string, color: string) {
+    const found = await this.findLabel(teamId, name);
+    if (found) return found;
     const payload = await this.client.createIssueLabel({ name, color, teamId });
     const label = await payload.issueLabel;
     if (!label) throw new Error(`Linear n'a pas créé le label « ${name} ».`);
     return label.id;
   }
 
-  async ensureCustomer(externalId: string, name: string) {
+  async findCustomer(externalId: string) {
     const found = await this.client.customers({ first: 1, filter: { externalIds: { some: { eq: externalId } } } });
-    if (found.nodes[0]) return found.nodes[0].id;
+    return found.nodes[0]?.id ?? null;
+  }
+
+  async ensureCustomer(externalId: string, name: string) {
+    const found = await this.findCustomer(externalId);
+    if (found) return found;
     const payload = await this.client.createCustomer({ name, externalIds: [externalId] });
     if (!payload.success || !payload.customerId) throw new Error(`Linear n'a pas créé le client « ${name} ».`);
     return payload.customerId;
