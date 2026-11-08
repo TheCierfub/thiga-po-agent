@@ -72,3 +72,9 @@ Recherche : le format de l'API Decisions et la nature de `typesafe/jev-router` v
 - le premier `summary.md` réel, seul résultat qui comparera des modèles.
 
 Aucun incident à signaler.
+
+## 2026-11-08 — Incident : JSON tronqué au premier passage réel
+
+Constaté par Valentin au premier `pnpm eval:compare`, sur sa machine : la réponse de regroupement de Sonnet 5.5 était coupée avant la fin du JSON. Cause : le plafond de 4 000 jetons de sortie, choisi par le modèle qui a écrit la phase 1bis sans tenir compte des jetons de raisonnement (environ 2 500 pour Sonnet 5.5). Les tests contre le faux serveur ne pouvaient pas le voir : ils renvoient des réponses complètes quel que soit le plafond.
+
+Correctif fourni par Valentin sous forme de diff, commité tel quel : `maxTokens` à 16 000 dans les profils A, B et C. Voir le correctif de l'ADR-014.

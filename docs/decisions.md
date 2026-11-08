@@ -300,3 +300,10 @@ La porte « Confidence 100 % pour un Should » et la suspension des Could au-del
 - Budget : un compteur global vérifie le plafond avant chaque requête, et un compteur par profil mesure appels, coût, latences et erreurs. Le coût vient de `usage.cost`, sinon de `GET /api/v1/generation?id=`. Un dépassement arrête le profil en cours sans repli ; les appels déjà partis (jusqu'à 4 en parallèle) peuvent faire dépasser le plafond de quelques centimes.
 - Enregistrement : `--record-fixtures <profil>` écrit lundi et jeudi dans un dossier temporaire, n'installe les fixtures que si le profil va au bout et qu'aucun fichier ne contient la clé ou un en-tête d'autorisation, puis écrit un manifeste. Le mode rejoué lit ce manifeste pour rejouer aussi les décisions enregistrées.
 - Tests : tout le câblage est exercé contre un faux serveur HTTP local qui rejoue les fixtures. Aucun appel réel n'a été fait.
+
+### ADR-014, correctif du 2026-11-08 — plafond de jetons de sortie
+
+- Le plafond `request.maxTokens` des profils A, B et C passe de 4 000 à 16 000.
+- Cause, constatée au premier passage réel (lancé par Valentin, hors de ce dépôt) : Sonnet 5.5 consacre environ 2 500 jetons à raisonner avant de répondre ; avec 4 000, le JSON du regroupement, la réponse la plus longue, était tronqué et rejeté comme hors schéma.
+- Le plafond couvre raisonnement et réponse. 16 000 laisse la marge sans changer le coût d'une réponse courte : seuls les jetons produits sont facturés.
+- Les valeurs par défaut du code (`ProfileSchema`, `OpenRouterChatProvider`) restent à 4 000 : un profil écrit à la main doit fixer `request.maxTokens`.
