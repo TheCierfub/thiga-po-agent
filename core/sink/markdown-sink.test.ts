@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { stableKey, type BacklogItem } from "./backlog-sink";
-import { LinearSink, NotImplementedInPhase1Error } from "./linear-sink";
 import { MarkdownSink } from "./markdown-sink";
 
 const item = (themeKey: string, body: string, blocked: string | null = null): BacklogItem => ({
@@ -14,6 +13,7 @@ const item = (themeKey: string, body: string, blocked: string | null = null): Ba
   existingIssueId: null,
   body,
   blocked,
+  details: { size: "S", points: 2, hasStory: false, feedbackIds: [], quotes: [], customers: [] },
 });
 
 describe("MarkdownSink", () => {
@@ -40,11 +40,5 @@ describe("MarkdownSink", () => {
     const [result] = await sink.push([item("synchro", "nouvelle version", "à reconfirmer")]);
     expect(result!.action).toBe("bloque");
     expect(readFileSync(path.join(dir, "synchro.md"), "utf8")).toBe("confirmé");
-  });
-});
-
-describe("LinearSink", () => {
-  it("refuse toute écriture en phase 1", async () => {
-    await expect(new LinearSink().push([item("x", "y")])).rejects.toBeInstanceOf(NotImplementedInPhase1Error);
   });
 });

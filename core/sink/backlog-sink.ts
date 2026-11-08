@@ -1,5 +1,5 @@
 import type { RunResult } from "../pipeline/run";
-import type { MoscowClass } from "../schemas";
+import type { MoscowClass, Quote, Size } from "../schemas";
 import { num, pct, reachLabel } from "../report/format";
 
 /** Clé stable d'un élément exporté : elle ne dépend que du thème, jamais du lot ni de l'heure. */
@@ -16,6 +16,26 @@ export interface BacklogItem {
   body: string;
   /** Raison du blocage : l'élément n'est pas exporté tant que le PO n'a pas tranché. */
   blocked: string | null;
+  /** Données structurées pour les outils qui en ont l'usage (estimation, demandes clients). */
+  details: BacklogItemDetails;
+}
+
+export interface BacklogItemDetails {
+  /** Taille de la story si elle existe, sinon taille retenue pour le RICE. */
+  size: Size;
+  points: number;
+  hasStory: boolean;
+  feedbackIds: string[];
+  quotes: Quote[];
+  /** Comptes qui portent le thème, avec leurs propres feedbacks et citations. */
+  customers: { accountId: string; name: string; feedbackIds: string[]; quotes: string[] }[];
+}
+
+export interface BuildOptions {
+  /** Lien vers un feedback, ajouté à la description quand il est fourni. */
+  feedbackUrl?: (feedbackId: string) => string;
+  /** Limite l'export à ces thèmes. */
+  themeKeys?: readonly string[];
 }
 
 export type SinkAction = "cree" | "mis_a_jour" | "inchange" | "bloque";
@@ -25,6 +45,8 @@ export interface SinkResult {
   action: SinkAction;
   target: string | null;
   reason?: string;
+  url?: string;
+  notes?: string[];
 }
 
 export interface BacklogSink {
@@ -35,14 +57,17 @@ export interface BacklogSink {
 const EXPORTED: MoscowClass[] = ["Must", "Should", "Could"];
 
 /** Contenu déterministe, sans horodatage : deux exécutions identiques produisent le même texte. */
-export function buildBacklogItems(result: RunResult): BacklogItem[] {
+export function buildBacklogItems(result: Pick<RunResult, "state" | "accounts" | "strategy">, options: BuildOptions = {}): BacklogItem[] {
   const { state } = result;
   const themes = new Map(state.themes.map((t) => [t.key, t]));
   const rice = new Map(state.rice.map((r) => [r.themeKey, r]));
   const stories = new Map(state.stories.filter((s) => s.status === "brouillon").map((s) => [s.themeKey, s]));
+  const accountOf = new Map(state.matches.map((m) => [m.feedbackId, m.accountId]));
+  const link = (id: string) => (options.feedbackUrl ? `[${id}](${options.feedbackUrl(id)})` : id);
 
   return state.allocation.decisions
     .filter((d) => EXPORTED.includes(d.moscow))
+    .filter((d) => !options.themeKeys || options.themeKeys.includes(d.themeKey))
     .sort((a, b) => a.themeKey.localeCompare(b.themeKey))
     .map((d) => {
       const t = themes.get(d.themeKey)!;
@@ -75,9 +100,19 @@ export function buildBacklogItems(result: RunResult): BacklogItem[] {
               "",
             ]
           : []),
-        `Feedbacks : ${t.feedbackIds.join(", ")}.`,
+        `Feedbacks : ${t.feedbackIds.map(link).join(", ")}.`,
         "",
       ].join("\n");
+      const size = story?.size ?? r.effort.size;
+      const customers = r.reach.accounts.map((accountId) => {
+        const feedbackIds = t.feedbackIds.filter((id) => accountOf.get(id) === accountId);
+        return {
+          accountId,
+          name: result.accounts.get(accountId)?.nom ?? accountId,
+          feedbackIds,
+          quotes: t.quotes.filter((q) => feedbackIds.includes(q.feedbackId)).map((q) => q.text),
+        };
+      });
       return {
         stableKey: stableKey(d.themeKey),
         themeKey: d.themeKey,
@@ -88,6 +123,14 @@ export function buildBacklogItems(result: RunResult): BacklogItem[] {
         blocked: d.constraint?.confirmationStale
           ? "Confirmation du PO donnée sur des preuves qui ont changé : à reconfirmer avant export."
           : null,
+        details: {
+          size,
+          points: result.strategy.sizePoints[size],
+          hasStory: story !== undefined,
+          feedbackIds: t.feedbackIds,
+          quotes: t.quotes,
+          customers,
+        },
       };
     });
 }
