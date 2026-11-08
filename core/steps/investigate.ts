@@ -40,7 +40,7 @@ Tâche : le feedback est trop flou pour écrire une story. Propose deux ou trois
 
 ${DATA_BOUNDARY_RULES}`;
 
-function recipientOf(feedback: MaskedFeedback): string {
+export function recipientOf(feedback: MaskedFeedback): string {
   if (feedback.author.anonymous) return "auteur anonyme";
   return feedback.author.name ?? feedback.author.handle ?? "auteur inconnu";
 }

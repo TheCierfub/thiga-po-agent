@@ -37,6 +37,43 @@ const CONSTRAINT_LABEL: Record<ConstraintKind, string> = {
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace(".", ","));
 const pct = (ratio: number) => `${Math.round(ratio * 100)} %`;
 
+function mustAlerts(mustPoints: number, capacity: number, mustAlertRatio: number): Allocation["alerts"] {
+  const alerts: Allocation["alerts"] = [];
+  if (mustPoints > mustAlertRatio * capacity) {
+    alerts.push({
+      code: "MUST_AU_DELA_DE_60",
+      message: `Les Must prennent ${fmt(mustPoints)} points sur ${fmt(capacity)} (${pct(mustPoints / capacity)}), au-delà du repère de ${pct(mustAlertRatio)}. Il reste peu de marge pour absorber un imprévu.`,
+    });
+  }
+  if (mustPoints > capacity) {
+    alerts.push({
+      code: "MUST_AU_DELA_DE_LA_CAPACITE",
+      message: `Les Must dépassent la capacité arbitrable (${fmt(mustPoints)} > ${fmt(capacity)}). Le cycle ne tient pas sans arbitrage.`,
+    });
+  }
+  return alerts;
+}
+
+function shouldAlerts(mustAndShouldPoints: number, capacity: number, shouldLineRatio: number): Allocation["alerts"] {
+  return mustAndShouldPoints > shouldLineRatio * capacity
+    ? [
+        {
+          code: "SHOULD_AU_DELA_DE_80",
+          message: `Must + Should = ${fmt(mustAndShouldPoints)} points sur ${fmt(capacity)} (${pct(mustAndShouldPoints / capacity)}), au-delà du repère d'environ ${pct(shouldLineRatio)}. Arbitrage du PO : accepter le dépassement ou sortir un Should.`,
+        },
+      ]
+    : [];
+}
+
+/** Alertes de capacité sur des totaux déjà connus, avec les mêmes seuils et messages que l'allocation. */
+export function capacityAlerts(totals: { must: number; should: number }, strategy: Strategy): Allocation["alerts"] {
+  const capacity = arbitrablePoints(strategy);
+  return [
+    ...mustAlerts(totals.must, capacity, strategy.capacity.mustAlertRatio),
+    ...shouldAlerts(totals.must + totals.should, capacity, strategy.capacity.shouldLineRatio),
+  ];
+}
+
 function byPriority(a: AllocationItem, b: AllocationItem): number {
   return b.rice - a.rice || b.arr - a.arr || a.themeKey.localeCompare(b.themeKey);
 }
@@ -104,18 +141,7 @@ export function allocateMoscow(items: AllocationItem[], strategy: Strategy): All
     decide(item, "Must", `${CONSTRAINT_LABEL[item.constraint!.kind]}, confirmé par le PO.${stale}`, true);
   }
   const mustPoints = cumul;
-  if (mustPoints > mustAlertRatio * capacity) {
-    alerts.push({
-      code: "MUST_AU_DELA_DE_60",
-      message: `Les Must prennent ${fmt(mustPoints)} points sur ${fmt(capacity)} (${pct(mustPoints / capacity)}), au-delà du repère de ${pct(mustAlertRatio)}. Il reste peu de marge pour absorber un imprévu.`,
-    });
-  }
-  if (mustPoints > capacity) {
-    alerts.push({
-      code: "MUST_AU_DELA_DE_LA_CAPACITE",
-      message: `Les Must dépassent la capacité arbitrable (${fmt(mustPoints)} > ${fmt(capacity)}). Le cycle ne tient pas sans arbitrage.`,
-    });
-  }
+  alerts.push(...mustAlerts(mustPoints, capacity, mustAlertRatio));
 
   const rest = pending.filter((i) => !musts.includes(i));
   const shouldCandidates: AllocationItem[] = [];
@@ -139,12 +165,7 @@ export function allocateMoscow(items: AllocationItem[], strategy: Strategy): All
       decide(item, "Won't", `Capacité atteinte : ${fmt(cumul)} + ${fmt(item.points)} > ${fmt(capacity)} points.`, false);
     }
   }
-  if (cumul > shouldLine) {
-    alerts.push({
-      code: "SHOULD_AU_DELA_DE_80",
-      message: `Must + Should = ${fmt(cumul)} points sur ${fmt(capacity)} (${pct(cumul / capacity)}), au-delà du repère d'environ ${pct(shouldLineRatio)}. Arbitrage du PO : accepter le dépassement ou sortir un Should.`,
-    });
-  }
+  alerts.push(...shouldAlerts(cumul, capacity, shouldLineRatio));
 
   let couldPoints = 0;
   const contingencyEaten = cumul > shouldLine;
