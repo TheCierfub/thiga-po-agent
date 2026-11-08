@@ -78,3 +78,32 @@ Aucun incident à signaler.
 Constaté par Valentin au premier `pnpm eval:compare`, sur sa machine : la réponse de regroupement de Sonnet 5.5 était coupée avant la fin du JSON. Cause : le plafond de 4 000 jetons de sortie, choisi par le modèle qui a écrit la phase 1bis sans tenir compte des jetons de raisonnement (environ 2 500 pour Sonnet 5.5). Les tests contre le faux serveur ne pouvaient pas le voir : ils renvoient des réponses complètes quel que soit le plafond.
 
 Correctif fourni par Valentin sous forme de diff, commité tel quel : `maxTokens` à 16 000 dans les profils A, B et C. Voir le correctif de l'ADR-014.
+
+## 2026-11-08 — Phase 2 : interface et export Linear
+
+Modèle : Claude Opus 5.5, en agent dans Cursor. Aucun appel LLM payant : l'interface et les tests tournent sur les fixtures rejouées.
+
+Généré par le modèle :
+
+- l'interface Next.js (`app/`, `components/etai/`, `lib/etai/`), avec les composants shadcn/ui et le skill `emil-design-eng` installé par `npx skills add emilkowalski/skills` ;
+- `core/scoring/overrides.ts` (arbitrages du PO), `core/outbox/recontact.ts` (brouillons et boîte de test) ;
+- `LinearSink`, son adaptateur SDK, l'export à blanc et `pnpm export:linear`, avec leurs tests sur un faux Linear ;
+- l'ADR-015, la mise à jour du README et de `.env.example`.
+
+Vérifié par le modèle : les quatre écrans parcourus sur lundi et jeudi dans un Chrome sans interface, à 1440 × 900 et en largeur mobile, captures relues ; export Markdown et dépôt dans la boîte de test déclenchés depuis le navigateur.
+
+Défauts trouvés à cette vérification et corrigés :
+
+- page jamais hydratée quand l'application est ouverte par `127.0.0.1` : Next 16 bloque alors ses scripts de développement. Rien n'était cliquable. Corrigé par `allowedDevOrigins` ;
+- remplacement de couleurs par expression régulière trop large au passage au thème sombre (`bg-amber-500` devenu une classe inexistante, pastille du badge d'export invisible). Corrigé ;
+- titres de thèmes tronqués dans la colonne de gauche, table des tailles qui passait à la ligne.
+
+Recherche : la création des demandes clients (`customerNeedCreate`, `customerCreate`) vient de la documentation de l'API Linear (ADR-015).
+
+À relire par Valentin :
+
+- le premier `pnpm export:linear --batch lundi --dry-run` sur l'équipe THI, puis l'export réel ;
+- le comportement de la catégorie forcée (points réservés avant l'allocation des autres thèmes) ;
+- le ton des brouillons de demande d'identifiant de compte.
+
+Aucun incident à signaler.

@@ -40,6 +40,47 @@ Le lot jeudi reprend l'état de lundi (et lance lundi d'abord s'il n'existe pas)
 
 Options : `--reach comptes|volume|arr`, `--decisions <fichier>`, `--out <dossier>`, `--allow-stale-fixtures`. Aide : `pnpm agent --help`.
 
+## Interface
+
+```bash
+pnpm dev   # http://localhost:43217
+```
+
+L'interface (Next.js, shadcn/ui, thème sombre) s'ouvre sur le brief du lundi. Le sélecteur **Lundi / Jeudi** garde l'écran courant ; jeudi affiche ce qui a changé depuis lundi.
+
+| Écran | Contenu |
+| --- | --- |
+| Brief de la semaine | thèmes et tendances, alertes de capacité, signaux de churn, bugs critiques routés, quarantaine avec la raison, changements depuis lundi |
+| Priorisation | tableau RICE et MoSCoW ; une ligne dépliée montre le calcul (comptes du Reach, règle de Confidence, table des tailles). Le PO modifie l'effort ou force une catégorie avec un motif : recalcul immédiat, arbitrages gardés dans le navigateur |
+| Thèmes et stories | feedbacks sources avec citations vérifiées surlignées, user story, critères, complexité relative, bouton « Valider et exporter vers Linear », bloqué si le thème est « à revoir » |
+| Recontact | brouillons modifiables (questions d'investigation, demande d'identifiant de compte). « Envoyer » dépose le message dans `out/outbox/` : rien n'est jamais envoyé |
+
+**Mode démo (par défaut, sans clé).** L'interface rejoue lundi puis jeudi depuis `fixtures/llm/`, avec le même pipeline que la CLI : aucun appel LLM, aucun réseau. Le bouton d'export écrit en Markdown dans `out/linear-export/`, et l'interface l'indique (badge en haut à droite, encadré sous le bouton).
+
+**Mode Linear.** Avec `LINEAR_API_KEY` et `LINEAR_TEAM_ID` dans l'environnement ou dans `.env`, le même bouton crée ou met à jour l'issue Linear, en tenant compte des arbitrages faits dans l'écran Priorisation. Redémarrer `pnpm dev` suffit, sans rebuild.
+
+## Brancher Linear
+
+1. Clé : dans Linear, *Settings → Account → Security & access → Personal API keys → New API key*. Elle doit pouvoir écrire dans l'équipe.
+2. Équipe : `LINEAR_TEAM_ID` accepte l'UUID de l'équipe ou sa clé, celle qui préfixe les identifiants d'issues (`THI` pour `THI-12`).
+3. Mettre les deux dans `.env` (voir `.env.example`), jamais commité, ou les passer dans l'environnement.
+
+```bash
+pnpm export:linear --batch lundi --dry-run   # lit Linear, affiche ce qui serait créé ou mis à jour, n'écrit rien
+pnpm export:linear --batch lundi             # export réel
+pnpm export:linear --batch jeudi --theme partage_client --dry-run
+```
+
+L'export à blanc vérifie l'équipe, cherche chaque issue (LIN-xx rattachée, puis clé stable), les labels et les clients, puis liste les écritures qu'il aurait faites. Sans `LINEAR_API_KEY`, il simule hors ligne. L'export réel exige les deux variables.
+
+Ce qui est écrit, pour chaque thème Must, Should ou Could non bloqué :
+
+- une issue : titre, description (problème, score détaillé, citations, story et critères s'il y en a, liens vers les feedbacks), estimation dérivée de la taille (XS 1, S 2, M 4, L 6, XL 10), label `MoSCoW : <classe>` ;
+- si le thème est rattaché à une issue du backlog qui existe dans l'équipe, cette issue est mise à jour au lieu d'en créer une autre. Seule la section Étai de la description change (entre deux marqueurs) ; le texte écrit à la main et l'estimation de l'équipe restent ;
+- une demande client (Customer Request) par compte qui porte le thème, avec ses citations. Si la fonction Customers n'est pas activée dans l'espace, l'issue est exportée quand même et une note le signale. `LINEAR_CUSTOMER_REQUESTS=0` les désactive.
+
+Relancer l'export ne crée pas de doublon. La CLI exporte le classement de l'agent et `data/po-decisions.json` ; les arbitrages faits dans l'interface n'existent que dans le navigateur, et partent avec le bouton de l'interface. Les liens vers les feedbacks pointent sur `http://localhost:43217` ; `ETAI_PUBLIC_URL` les redirige vers une instance publiée.
+
 ## Tests et évaluation
 
 ```bash
@@ -98,7 +139,7 @@ flowchart TD
   G --> H[RICE en code<br/>Reach, Confidence, fenêtre 28 j]
   H --> M[MoSCoW DSDM en code<br/>capacité, alertes 60 / 80 %]
   M --> S[Story LLM du premier retenu]
-  M --> K[BacklogSink<br/>MarkdownSink, LinearSink en phase 2]
+  M --> K[BacklogSink<br/>MarkdownSink, LinearSink]
   P[(Décisions du PO)] --> M
   X[(État du lot précédent)] --> V[Invalidation<br/>preuves, hypothèses, confirmations]
   V --> G
@@ -109,16 +150,18 @@ Les cases « LLM » passent par une interface `LlmProvider` sans aucun outil : l
 
 ## Démarche et choix techniques
 
-L'énoncé reformulé est dans [`docs/brief.md`](docs/brief.md). Le journal de décisions est dans [`docs/decisions.md`](docs/decisions.md) : ADR-002 à 007 pour l'architecture, ADR-008 à 013 pour les choix de la phase 1 (seuils, allocation, sécurité, fixtures, invalidation), ADR-014 pour le passage réel sur OpenRouter.
+L'énoncé reformulé est dans [`docs/brief.md`](docs/brief.md). Le journal de décisions est dans [`docs/decisions.md`](docs/decisions.md) : ADR-002 à 007 pour l'architecture, ADR-008 à 013 pour les choix de la phase 1 (seuils, allocation, sécurité, fixtures, invalidation), ADR-014 pour le passage réel sur OpenRouter, ADR-015 pour l'interface et l'export Linear.
 
 ## Ce qui a été délégué à l'IA vs vérifié manuellement
 
-Le journal est [`AI_USAGE.md`](AI_USAGE.md). Le code et les fixtures de la phase 1 ont été écrits par Claude Opus 5.5. Les seuils et la règle d'allocation restent à valider par Valentin.
+Le journal est [`AI_USAGE.md`](AI_USAGE.md). Le code et les fixtures des phases 1 et 2 ont été écrits par Claude Opus 5.5. Les seuils et la règle d'allocation restent à valider par Valentin.
 
 ## Limites et prochaines étapes
 
-- Pas encore d'interface : `app/` est un placeholder (phase 2). `pnpm dev` le sert sur le port 43217.
-- `LinearSink` est un bouchon documenté : aucune écriture externe en phase 1.
+- `LinearSink` est testé contre un faux Linear en mémoire, jamais contre l'API réelle. Premier essai prévu sur l'équipe THI, en commençant par `--dry-run`.
+- Les identifiants LIN-xx du jeu de données sont fictifs : dans un vrai espace, ils sont introuvables et l'issue est créée (une note le dit).
+- L'interface tourne en mode démo uniquement : elle ne lance pas de vrai modèle, elle rejoue les fixtures.
+- Les arbitrages du PO dans l'interface vivent dans le navigateur (localStorage), pas dans `data/po-decisions.json`. Reconfirmer une contrainte « à revoir » se fait encore dans ce fichier.
 - Les fixtures sont rédigées, pas enregistrées. Elles sont à remplacer par `pnpm eval:compare --record-fixtures <profil>` dès qu'une clé est disponible.
 - Le câblage OpenRouter est testé contre un faux serveur local, jamais contre l'API réelle : aucun résultat de modèle réel n'existe encore dans ce dépôt.
 - Une fixture est liée à l'empreinte de ses données : modifier un feedback rend le mode rejoué strict en erreur, jusqu'à réenregistrement.
@@ -144,9 +187,13 @@ core/llm/openrouter/        client, chat, API Decisions (Jev), compteur de coût
 config/llm-profiles/        profils A, B, C : un modèle par étape
 core/steps/                 classification, thèmes, évaluation, story, investigation
 core/pipeline/              orchestration et état
-core/report/, core/sink/    rendus markdown, BacklogSink
-core/cli/, core/eval/       pnpm agent, pnpm eval, pnpm eval:compare
+core/report/, core/sink/    rendus markdown, BacklogSink (Markdown, Linear, export à blanc)
+core/outbox/                brouillons de recontact, boîte de test
+core/cli/, core/eval/       pnpm agent, pnpm export:linear, pnpm eval, pnpm eval:compare
 fixtures/llm/               réponses rejouées
 scripts/author-fixtures.ts  rédaction des fixtures (pnpm fixtures:author)
-app/                        Next.js, placeholder de la phase 2
+app/                        Next.js : écrans par lot, actions serveur (export, boîte de test)
+components/etai/            composants des écrans ; components/ui/ : shadcn/ui
+lib/etai/                   données du mode démo, arbitrages du PO, libellés
+.agents/skills/             skill emil-design-eng (animations, finitions)
 ```

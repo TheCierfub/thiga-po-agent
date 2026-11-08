@@ -307,3 +307,42 @@ La porte « Confidence 100 % pour un Should » et la suspension des Could au-del
 - Cause, constatée au premier passage réel (lancé par Valentin, hors de ce dépôt) : Sonnet 5.5 consacre environ 2 500 jetons à raisonner avant de répondre ; avec 4 000, le JSON du regroupement, la réponse la plus longue, était tronqué et rejeté comme hors schéma.
 - Le plafond couvre raisonnement et réponse. 16 000 laisse la marge sans changer le coût d'une réponse courte : seuls les jetons produits sont facturés.
 - Les valeurs par défaut du code (`ProfileSchema`, `OpenRouterChatProvider`) restent à 4 000 : un profil écrit à la main doit fixer `request.maxTokens`.
+
+## ADR-015 — Interface du PO et export Linear
+
+- **Statut :** acceptée pour l'interface ; proposée pour Linear, à confirmer par le premier export réel (équipe THI)
+- **Date :** 2026-11-08
+
+### Interface
+
+- Next.js (App Router, Cache Components), shadcn/ui sur Base UI, thème sombre. Finitions selon le skill `emil-design-eng` : courbe `ease-out` unique, appui des boutons à 0,97, transitions de 150 à 300 ms limitées à ce qui informe (bascule de lot, dépliage du calcul, valeur recalculée), `prefers-reduced-motion` respecté.
+- L'interface consomme `core/` sans le réécrire. Le mode démo rejoue lundi puis jeudi par `core/pipeline/replay-demo.ts`, le même code que `pnpm export:linear` ; le résultat est mis en cache (`'use cache'`) et les pages sont prérendues pour les deux lots.
+- Les arbitrages du PO (effort, MoSCoW forcé avec motif obligatoire) passent par `core/scoring/overrides.ts` : RICE recalculé avec la nouvelle taille ; une catégorie forcée réserve ses points avant l'allocation des autres thèmes ; les alertes de capacité portent sur la capacité entière. Ils sont gardés dans le navigateur, par lot, et envoyés avec la demande d'export. Ils ne touchent ni aux preuves ni aux évaluations du LLM.
+- Un thème « à revoir » (confirmation donnée sur des preuves modifiées, ADR-013) ne s'exporte pas : bouton verrouillé côté interface, refus côté sink.
+- Recontact : brouillons d'investigation et demandes d'identifiant de compte, construits par `core/outbox/recontact.ts`. Une réponse publique (G2, Capterra) ne demande jamais d'identifiant. « Envoyer » écrit dans `out/outbox/` après confirmation ; aucun envoi n'existe dans le code.
+- L'export et la boîte de test sont des actions serveur ; le navigateur ne voit jamais la clé Linear. Le mode d'export est lu à la requête : brancher Linear ne demande qu'un redémarrage.
+
+### LinearSink
+
+- Le sink dépend d'un port `LinearApi` ; `core/sink/linear-api.ts` est le seul fichier qui appelle `@linear/sdk`.
+- Création : titre, description, estimation (les points de `strategy.sizePoints`), label `MoSCoW : <classe>` créé au besoin. Si l'équipe refuse l'estimation (échelle différente), l'issue est recréée sans estimation, avec une note.
+- Pas de doublon : le thème rattaché à une issue existante (LIN-xx) la met à jour ; sinon l'issue est cherchée par sa clé stable `etai:<thème>`, écrite entre deux marqueurs HTML dans la description. Seule cette section est réécrite ; le texte manuel et l'estimation de l'équipe restent. Contenu et labels identiques : rien n'est envoyé.
+- `LINEAR_TEAM_ID` accepte l'UUID ou la clé d'équipe ; une équipe introuvable arrête l'export avec un message explicite.
+- Sans `LINEAR_API_KEY` ou `LINEAR_TEAM_ID`, l'interface bascule sur `MarkdownSink` (`out/linear-export/`) et le dit.
+- Export à blanc (`--dry-run`) : `DryRunLinearApi` fait les lectures sur Linear et remplace chaque écriture par une ligne décrite. Les tests vérifient qu'aucune écriture n'atteint le faux Linear.
+
+### Customer Requests : ce que permet l'API
+
+Vérifié dans la documentation de l'API GraphQL de Linear avant d'écrire le code :
+
+- une demande client se crée par `customerNeedCreate` : `issueId` (UUID ou identifiant comme `THI-12`), `customerId` ou `customerExternalId`, `body`, `attachmentUrl` facultatif, `priority` ;
+- un client se crée par `customerCreate { name, externalIds }`. On lui donne l'identifiant externe `etai:<compte>`, ce qui permet de le retrouver sans doublon ;
+- la fonction Customers doit être activée dans l'espace Linear. Si elle ne l'est pas, ou si la clé n'a pas les droits, l'appel échoue : l'issue reste exportée et la raison apparaît dans les notes de l'export.
+
+Une demande par compte qui porte le thème, avec ses citations et un lien vers son premier feedback. Une demande déjà présente pour ce client sur cette issue n'est pas recréée.
+
+### Limites
+
+- Aucun appel réel à Linear n'a été fait : tout est testé contre un faux Linear en mémoire.
+- Les LIN-xx du jeu de données sont fictifs et seront introuvables dans l'équipe THI : le premier export créera les issues.
+- Les liens vers les feedbacks visent `http://localhost:43217` tant que `ETAI_PUBLIC_URL` n'est pas défini.
