@@ -12,7 +12,10 @@ const USAGE = `Usage : pnpm agent run --batch lundi|jeudi [options]
 Options :
   --provider replay|real     replay (défaut) : réponses enregistrées, sans clé ni réseau.
                              real : appel au fournisseur défini dans .env (LLM_PROVIDER, LLM_MODEL).
-  --record                   avec --provider real, enregistre les réponses dans fixtures/llm.
+  --profile A|B|C|<fichier>  avec --provider real : OpenRouter, un modèle par étape (config/llm-profiles).
+                             Sans profil : fournisseur unique défini par LLM_PROVIDER et LLM_MODEL.
+  --budget <dollars>         Plafond de dépense OpenRouter (défaut : 5).
+  --record                   avec --provider real sans profil, enregistre les réponses dans fixtures/llm.
   --reach comptes|volume|arr Mode de calcul du Reach (défaut : comptes).
   --decisions <fichier>      Décisions du PO (défaut : data/po-decisions.json).
   --out <dossier>            Dossier de sortie (défaut : out).
@@ -76,6 +79,8 @@ async function main() {
       batch: { type: "string" },
       provider: { type: "string", default: "replay" },
       record: { type: "boolean", default: false },
+      profile: { type: "string" },
+      budget: { type: "string", default: "5" },
       reach: { type: "string", default: "comptes" },
       decisions: { type: "string", default: "data/po-decisions.json" },
       out: { type: "string", default: "out" },
@@ -92,6 +97,9 @@ async function main() {
   if (values.batch !== "lundi" && values.batch !== "jeudi") fail("--batch doit valoir lundi ou jeudi.");
   if (values.provider !== "replay" && values.provider !== "real") fail("--provider doit valoir replay ou real.");
   if (values.record && values.provider !== "real") fail("--record n'a de sens qu'avec --provider real.");
+  if (values.profile && values.provider !== "real") fail("--profile n'a de sens qu'avec --provider real.");
+  const budgetUsd = Number(values.budget);
+  if (!(budgetUsd > 0)) fail("--budget doit être un nombre positif.");
   if (!REACH_MODES.includes(values.reach as ReachMode)) fail(`--reach doit valoir ${REACH_MODES.join(", ")}.`);
 
   const envFile = path.join(ROOT, ".env");
@@ -109,6 +117,8 @@ async function main() {
     decisionsFile,
     outDir: path.resolve(ROOT, values.out),
     allowStaleFixtures: values["allow-stale-fixtures"],
+    profile: values.profile ?? null,
+    budgetUsd,
     log: (line) => console.log(line),
   });
   for (const o of outputs) printSummary(o);

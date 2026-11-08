@@ -4,7 +4,10 @@ import { loadPoDecisions, type BatchName } from "../data/load";
 import { EMPTY_PO_DECISIONS } from "../decisions/po-decisions";
 import { RecordingProvider, ReplayProvider } from "../llm/fixtures";
 import type { LlmProvider } from "../llm/provider";
+import { Meter } from "../llm/openrouter/meter";
+import { buildProfileRuntime, loadProfile, type DecisionPlan } from "../llm/profiles";
 import { RealProvider, readRealProviderConfig } from "../llm/real";
+import { FIXTURES_DIR, openRouterClientFromEnv, replayRuntime } from "../llm/runtime";
 import { runBatch, type RunResult } from "../pipeline/run";
 import { loadState, saveState, type RunState } from "../pipeline/state";
 import { renderBrief, renderChanges, renderInvestigation, renderPrioritization, renderStory } from "../report/markdown";
@@ -26,6 +29,8 @@ export interface RunCommandOptions {
   decisionsFile: string | null;
   outDir: string;
   allowStaleFixtures: boolean;
+  profile?: string | null;
+  budgetUsd?: number;
   log: (line: string) => void;
 }
 
@@ -36,20 +41,42 @@ export interface BatchOutput {
   fixtureNotes: string[];
 }
 
-export function createProvider(options: Pick<RunCommandOptions, "root" | "provider" | "record" | "allowStaleFixtures">): {
+export interface ProviderSetup {
   provider: LlmProvider;
   replay: ReplayProvider | null;
-} {
-  const fixtures = path.join(options.root, "fixtures/llm");
+  decider: DecisionPlan;
+  meter: Meter | null;
+}
+
+/**
+ * replay : fixtures, sans réseau. real + profil : OpenRouter, un modèle par étape (config/llm-profiles).
+ * real sans profil : fournisseur unique défini par LLM_PROVIDER et LLM_MODEL.
+ */
+export function createProvider(
+  options: Pick<RunCommandOptions, "root" | "provider" | "record" | "allowStaleFixtures"> & {
+    profile?: string | null;
+    budgetUsd?: number;
+  },
+): ProviderSetup {
+  const fixtures = path.join(options.root, FIXTURES_DIR);
   if (options.provider === "replay") {
-    const replay = new ReplayProvider(fixtures, { allowStale: options.allowStaleFixtures });
-    return { provider: replay, replay };
+    const { replay, decider } = replayRuntime(options.root, { allowStale: options.allowStaleFixtures });
+    return { provider: replay, replay, decider, meter: null };
+  }
+  if (options.profile) {
+    if (options.record) throw new Error("Pour enregistrer les fixtures d'un profil : pnpm eval:compare --record-fixtures <profil>.");
+    const meter = new Meter({ budgetUsd: options.budgetUsd ?? 5 });
+    const client = openRouterClientFromEnv({ meter, rawLogFile: path.join(options.root, "out/llm-raw.jsonl") });
+    const runtime = buildProfileRuntime(loadProfile(options.root, options.profile), client);
+    return { provider: runtime.provider, replay: null, decider: runtime.decider, meter };
   }
   const config = readRealProviderConfig();
   const real = new RealProvider(config);
   return {
     provider: options.record ? new RecordingProvider(real, fixtures, "enregistree", real.name) : real,
     replay: null,
+    decider: {},
+    meter: null,
   };
 }
 
@@ -57,10 +84,18 @@ async function runOne(
   options: RunCommandOptions,
   batch: CliBatch,
   previous: RunState | null,
-  provider: LlmProvider,
+  setup: ProviderSetup,
 ): Promise<BatchOutput> {
   const decisions = options.decisionsFile ? loadPoDecisions(options.root, options.decisionsFile) : EMPTY_PO_DECISIONS;
-  const result = await runBatch({ root: options.root, batch, provider, reachMode: options.reachMode, decisions, previous });
+  const result = await runBatch({
+    root: options.root,
+    batch,
+    provider: setup.provider,
+    decider: setup.decider,
+    reachMode: options.reachMode,
+    decisions,
+    previous,
+  });
   saveState(options.outDir, result.state);
 
   const dir = path.join(options.outDir, batch);
@@ -87,7 +122,8 @@ async function runOne(
 
 /** Lance le lot demandé. Si son lot précédent n'a jamais tourné, il est lancé d'abord. */
 export async function runCommand(options: RunCommandOptions): Promise<BatchOutput[]> {
-  const { provider, replay } = createProvider(options);
+  const setup = createProvider(options);
+  const { replay } = setup;
   const outputs: BatchOutput[] = [];
   const previousBatch = PREVIOUS_BATCH[options.batch];
   let previous: RunState | null = null;
@@ -95,14 +131,14 @@ export async function runCommand(options: RunCommandOptions): Promise<BatchOutpu
     previous = loadState(options.outDir, previousBatch);
     if (!previous) {
       options.log(`Aucun état pour le lot ${previousBatch} : il est lancé d'abord.`);
-      const first = await runOne(options, previousBatch, null, provider);
+      const first = await runOne(options, previousBatch, null, setup);
       outputs.push(first);
       previous = first.result.state;
     } else {
       options.log(`Décisions du lot ${previousBatch} reprises depuis ${path.relative(options.root, path.join(options.outDir, "state", `${previousBatch}.json`))}.`);
     }
   }
-  outputs.push(await runOne(options, options.batch, previous, provider));
+  outputs.push(await runOne(options, options.batch, previous, setup));
 
   if (replay) {
     const origins = new Set(replay.origins.values());
@@ -113,6 +149,12 @@ export async function runCommand(options: RunCommandOptions): Promise<BatchOutpu
     if (replay.staleKeys.length > 0) {
       outputs.at(-1)!.fixtureNotes.push(`Fixtures obsolètes utilisées quand même : ${replay.staleKeys.join(", ")}.`);
     }
+  }
+  if (setup.meter) {
+    const s = setup.meter.stats();
+    outputs.at(-1)!.fixtureNotes.push(
+      `OpenRouter : ${s.calls} appels, ${s.costUsd.toFixed(4)} $${s.costUnknownCalls ? ` (${s.costUnknownCalls} sans coût connu)` : ""}, ${s.schemaErrors} réponse(s) hors schéma.`,
+    );
   }
   return outputs;
 }
