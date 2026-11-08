@@ -41,6 +41,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .next/
+next-env.d.ts
+.vercel/
 out/
 .nuxt/
 .svelte-kit/
