@@ -30,3 +30,26 @@ Le jeu synthétique (contexte Étai, comptes, backlog, lots lundi, jeudi et hold
 Valentin relit et valide avant de figer les seuils comme oracle de test, en particulier la capacité arbitrable, la table de tailles, et les classes MoSCoW du scénario d'intention.
 
 Aucun incident à signaler.
+
+## 2026-11-08 — Phase 1 : cœur de l'agent
+
+Modèle : Claude Opus 5.5, en agent dans Cursor.
+
+Généré par le modèle :
+
+- tout le code de `core/` (schémas, étapes, règles de scoring, pipeline, CLI, évaluation) et ses tests ;
+- l'initialisation Next.js et la configuration (TypeScript strict, Vitest, ESLint) ;
+- `data/context/strategy.json`, copie structurée de `strategy.md` ;
+- `data/po-decisions.json` ;
+- les réponses LLM de `fixtures/llm/`, rédigées à la main par le même modèle, après lecture de la clé de réponses. Aucune clé d'API n'était disponible : aucune réponse n'a été produite par un modèle appelé en direct ;
+- les ADR 008 à 013 et ce README.
+
+À relire par Valentin :
+
+- les seuils de l'ADR-009 (fenêtre, Confidence, tendance) et la règle d'allocation de l'ADR-010, calibrée pour reproduire le scénario de la clé ;
+- l'écart sur fb-lundi-26 (quarantaine plutôt que thème Won't, ADR-011) ;
+- les prompts de `core/steps/`, jamais confrontés à un vrai modèle ;
+- la concordance entre `strategy.json` et `strategy.md` ;
+- un premier passage `pnpm eval --provider real`, seul résultat qui mesurera un modèle.
+
+Aucun incident à signaler.

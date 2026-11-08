@@ -191,3 +191,99 @@ Si une source, un regroupement ou une hypothèse change, les scores, les stories
 
 - Un serveur MCP branché sur l'agent Linear.
 - Floorplan (carte du code, lancée via Claude Code) pour la partie architecture.
+
+## ADR-008 — Mise en œuvre de la stack (phase 1)
+
+- **Statut :** acceptée, à relire par Valentin
+- **Date :** 2026-11-08
+
+### Décision
+
+- Next.js (App Router) est initialisé, mais `app/` n'est qu'un placeholder. Tout le métier vit dans `core/`, sans import React ni Next (un test le vérifie).
+- Zod 4 pour tous les schémas, y compris chaque sortie LLM. Une sortie non conforme est une erreur, pas une donnée.
+- Vercel AI SDK 7 : `generateText` avec `Output.object` (`generateObject` est déprécié dans cette version), température 0, aucun outil. Fournisseurs : OpenAI, Anthropic, OpenRouter, choisis par `LLM_PROVIDER`.
+- Pas de LangChain ni LangGraph : le pipeline est une suite de fonctions.
+- pnpm, Vitest, tsx pour la CLI.
+
+## ADR-009 — Seuils déterministes
+
+- **Statut :** acceptée, seuils à valider par Valentin
+- **Date :** 2026-11-08
+
+### Fenêtre
+
+Fenêtre glissante de 28 jours, terminée à la date de fin du lot (`fenetre.fin`). Un compte qui n'a plus de message dans la fenêtre sort du Reach, et le rapport du jeudi le dit (Kervel sur le partage client).
+
+### Reach
+
+- Mode `comptes` (défaut) : comptes distincts. Seuls les auteurs rapprochés avec certitude (e-mail ou pseudo déjà détenus) apportent un compte. Un rapprochement « probable » (même domaine) n'est pas compté tant qu'il n'est pas confirmé.
+- Mode `volume` : messages dans la fenêtre.
+- Mode `arr` : ARR cumulé des comptes, en k€.
+
+### Confidence
+
+| Valeur | Règle |
+| --- | --- |
+| 100 % | au moins 3 comptes distincts certains et au moins 2 canaux |
+| 80 % | au moins 2 comptes distincts certains |
+| 50 % | sinon |
+
+### Tendance ou récurrent
+
+Quatre semaines de 7 jours. **Tendance** si la dernière semaine compte au moins 4 messages et au moins 2 fois la moyenne des 3 précédentes. **Récurrent** si le thème est présent au moins 3 semaines sur 4. Sinon **ponctuel**.
+
+### RICE
+
+RICE = Reach × Impact × Confidence ÷ points d'effort (XS 1, S 2, M 4, L 6, XL 10), arrondi à 3 décimales. Impact et taille viennent du LLM ou d'une surcharge du PO, affichée comme telle.
+
+## ADR-010 — Allocation MoSCoW
+
+- **Statut :** acceptée, à valider par Valentin
+- **Date :** 2026-11-08
+
+Capacité arbitrable = 20 points bruts − 4 points engagés (LIN-12, LIN-52) = 16.
+
+1. **Hors arbitrage** : thème rattaché à une issue déjà engagée ou en cours. Il ne consomme pas la capacité arbitrable.
+2. **Must** : contrainte (contrat, sécurité, cœur cassé) confirmée par le PO. Une contrainte vient soit du LLM avec une citation vérifiée, soit d'une règle (bug critique dans le thème → cœur cassé). Non confirmée, elle reste **À confirmer** et ne prend pas de capacité. Alerte au-delà de 60 %.
+3. **Won't** immédiat pour un thème qui relève d'un non-objectif.
+4. **Should** : candidats à Confidence 100 %, par RICE décroissant, tant que le cumul tient dans la capacité. Alerte si Must + Should dépassent environ 80 %.
+5. **Could** : autres candidats, dans un budget d'environ 20 %, et seulement si Must + Should restent sous 80 % (sinon la contingence est déjà entamée).
+6. Le reste est **Won't** pour ce cycle, avec la raison.
+
+Départage : RICE, puis ARR, puis clé du thème.
+
+La porte « Confidence 100 % pour un Should » et la suspension des Could au-delà de 80 % sont des choix de conception. Ils reproduisent le scénario de la clé (notifications Could lundi, Should jeudi quand Rivage arrive ; épingle Won't). Ils ont été calibrés sur ce scénario : c'est à valider, pas une loi.
+
+## ADR-011 — Sécurité et données personnelles
+
+- **Statut :** acceptée
+- **Date :** 2026-11-08
+
+- Masquage avant tout appel LLM : e-mails, téléphones français, adresses postales, remplacés par `[EMAIL]`, `[TÉLÉPHONE]`, `[ADRESSE]`. Les citations sont vérifiées sur le texte masqué.
+- Chaque feedback est encadré dans le prompt par `<donnees …>` ; une balise fermante dans le texte est neutralisée.
+- Quarantaine si le LLM signale une injection **ou** si l'heuristique de `core/security/injection.ts` en détecte une. Un feedback en quarantaine est classé mais sort du regroupement, du scoring et de l'investigation, jusqu'à libération par le PO (`releasedFromQuarantine`). Écart assumé avec la clé, qui garde la friction de fb-lundi-26 comme thème Won't : on préfère qu'un humain relise avant qu'un message piégé pèse dans un score.
+- L'état local (`out/state/`) ne garde ni le texte brut ni l'e-mail des auteurs. Le nom et le pseudo public restent, pour adresser les brouillons de réponse.
+- Aucune écriture externe en phase 1 : investigations en brouillon, `LinearSink` en bouchon.
+
+## ADR-012 — Fournisseurs LLM et fixtures
+
+- **Statut :** acceptée
+- **Date :** 2026-11-08
+
+- Une interface `LlmProvider` ; trois implémentations : réelle, rejouée, scriptée (tests).
+- Chaque requête porte une clé stable (`classify/<feedback>`, `group/<lot>`, `assess/<lot>--<thème>`, `story/<lot>--<thème>`, `investigate/<feedback>`) et l'empreinte de ses données d'entrée. Le mode rejoué refuse une fixture dont l'empreinte ne correspond plus, sauf `--allow-stale-fixtures`.
+- Chaque fixture déclare son origine : `redigee` (écrite à la main) ou `enregistree` (sortie d'un modèle, avec son nom).
+- Faute de clé pendant la phase 1, toutes les fixtures actuelles sont `redigee`, par `scripts/author-fixtures.ts`, qui passe les réponses dans le vrai pipeline (schémas, citations, empreintes). Elles ont été écrites après lecture de la clé de réponses : elles ne mesurent pas un modèle.
+- Le holdout n'a pas de fixture. Ses couches LLM ne sont évaluées qu'avec `--provider real`.
+
+## ADR-013 — Invalidation et export idempotent
+
+- **Statut :** acceptée
+- **Date :** 2026-11-08
+
+- Chaque thème a une empreinte de preuves (feedbacks, signaux liés, issue du backlog) et une empreinte d'hypothèses (surcharge du PO, mode de Reach, capacité, tailles).
+- Au lot suivant, seuls les nouveaux feedbacks sont classés, et seuls les thèmes nouveaux ou modifiés sont réévalués par le LLM. Les scores et l'allocation sont toujours recalculés.
+- Une story dont les preuves ont changé devient obsolète et est réécrite si le thème reste le premier retenu.
+- Une confirmation du PO donnée sur un lot antérieur devient « à revoir » si les preuves ont changé : le thème garde sa classe, mais son export est bloqué.
+- `MarkdownSink` écrit `out/backlog/<thème>.md` et un manifeste clé stable (`etai:<thème>`) → fichier et empreinte du contenu. Relancer un lot ne recrée rien et ne réécrit rien ; un élément bloqué laisse la version précédente intacte. Le contenu ne porte aucun horodatage.
+- `LinearSink` suivra le même contrat en phase 2 : clé stable dans la description de l'issue, recherche avant création, mise à jour de l'issue existante quand le thème y est rattaché.

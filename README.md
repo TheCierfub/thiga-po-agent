@@ -10,38 +10,89 @@ Nadia Ferri est Product Owner d'**Étai**, un SaaS de pilotage de chantier pour 
 
 Le cas fictif, les OKR et la capacité du cycle sont dans [`data/context/strategy.md`](data/context/strategy.md).
 
-## Démo
+## Démarrage
 
-_À compléter quand l'agent tourne._
+Node 22 et pnpm 10.
 
-Deux temps de données sont prêts : la pile du lundi 2 novembre 2026 ([`data/feedbacks/batch-lundi.json`](data/feedbacks/batch-lundi.json)) et le delta du jeudi 5 novembre ([`data/feedbacks/batch-jeudi.json`](data/feedbacks/batch-jeudi.json)). Le fichier [`data/feedbacks/holdout.json`](data/feedbacks/holdout.json) reste hors démo.
+```bash
+pnpm install
+pnpm agent run --batch lundi
+pnpm agent run --batch jeudi
+```
 
-## Architecture (à venir)
+Aucune clé n'est nécessaire : par défaut, l'agent rejoue des réponses LLM déjà écrites (`fixtures/llm/`), sans réseau. Ces réponses ont été **rédigées à la main**, pas produites par un modèle : le mode rejoué démontre le pipeline, pas la qualité d'un LLM.
 
-Décidée, pas encore codée. L'agent est une couche de décision : preuves traçables, score modifiable, arbitrage capacité / stratégie. Linear est la destination, via `LinearSink`. `MarkdownSink` couvre le dry-run et le secours de démo.
+Pour un vrai modèle : copier `.env.example` vers `.env`, renseigner `LLM_PROVIDER`, `LLM_MODEL` et la clé, puis `pnpm agent run --batch lundi --provider real`. Ajouter `--record` pour remplacer les fixtures par des réponses enregistrées.
 
-Stack retenue : TypeScript, Next.js, shadcn/ui, Zod, Vitest, SDK Linear. Détail et écarts : [`docs/decisions.md`](docs/decisions.md).
+Ce que produit chaque lot, dans `out/` (ignoré par git) :
+
+| Fichier | Contenu |
+| --- | --- |
+| `out/<lot>/brief.md` | Brief de la semaine : à décider, tendances, quarantaine, churn, cas flous |
+| `out/<lot>/priorisation.md` | Tableau RICE et MoSCoW, alertes de capacité, détail du Reach |
+| `out/<lot>/story-<thème>.md` | User story du premier élément retenu (Given/When/Then, taille, INVEST, questions) |
+| `out/lundi/investigation-fb-lundi-12.md` | Questions et brouillon de réponse pour le cas flou, non envoyé |
+| `out/jeudi/changements.md` | Ce qui a bougé depuis lundi, et pourquoi |
+| `out/backlog/` | Export local idempotent (`MarkdownSink`), une entrée par clé stable |
+| `out/state/<lot>.json` | État repris par le lot suivant, sans texte brut ni e-mail |
+
+Le lot jeudi reprend l'état de lundi (et lance lundi d'abord s'il n'existe pas). Les décisions du PO (contraintes confirmées, surcharges d'impact ou de taille, libération de quarantaine) sont dans [`data/po-decisions.json`](data/po-decisions.json).
+
+Options : `--reach comptes|volume|arr`, `--decisions <fichier>`, `--out <dossier>`, `--allow-stale-fixtures`. Aide : `pnpm agent --help`.
+
+## Tests et évaluation
+
+```bash
+pnpm test        # tests unitaires et pipeline rejoué de bout en bout
+pnpm eval        # comparaison à data/answer-key.json, rapport dans out/eval/rapport.md
+pnpm typecheck
+pnpm lint
+```
+
+`pnpm eval` en mode rejoué évalue lundi et jeudi contre la clé, et le holdout sur les seules couches déterministes (rapprochement, heuristique d'injection). Les fixtures ayant été écrites après lecture de la clé, les scores de type et de thème en mode rejoué ne mesurent pas un modèle. `pnpm eval --provider real` classe aussi le holdout avec le vrai modèle.
+
+## Pipeline
+
+```mermaid
+flowchart TD
+  A[Connecteurs par canal<br/>fichiers data/feedbacks] --> B[Normalisation]
+  B --> C[Masquage e-mail, téléphone, adresse]
+  C --> D[Rapprochement auteur-compte<br/>certaine, probable, faible, anonyme]
+  C --> E[Classification LLM<br/>+ heuristique d'injection]
+  E -->|injection| Q[Quarantaine<br/>hors scoring]
+  E -->|trop flou| I[Brouillon d'investigation LLM]
+  E --> F[Regroupement en thèmes LLM<br/>+ rapprochement backlog]
+  F --> G[Évaluation LLM<br/>impact, taille, contrainte citée]
+  D --> H
+  G --> H[RICE en code<br/>Reach, Confidence, fenêtre 28 j]
+  H --> M[MoSCoW DSDM en code<br/>capacité, alertes 60 / 80 %]
+  M --> S[Story LLM du premier retenu]
+  M --> K[BacklogSink<br/>MarkdownSink, LinearSink en phase 2]
+  P[(Décisions du PO)] --> M
+  X[(État du lot précédent)] --> V[Invalidation<br/>preuves, hypothèses, confirmations]
+  V --> G
+  V --> M
+```
+
+Les cases « LLM » passent par une interface `LlmProvider` sans aucun outil : le modèle ne peut que renvoyer un objet validé par Zod. Tout ce qui décide (Reach, Confidence, RICE, MoSCoW, tendance, citations exactes, invalidation) est du code testé.
 
 ## Démarche et choix techniques
 
-L'énoncé reformulé est dans [`docs/brief.md`](docs/brief.md). Le journal de décisions est dans [`docs/decisions.md`](docs/decisions.md).
+L'énoncé reformulé est dans [`docs/brief.md`](docs/brief.md). Le journal de décisions est dans [`docs/decisions.md`](docs/decisions.md) : ADR-002 à 007 pour l'architecture, ADR-008 à 013 pour les choix de la phase 1 (seuils, allocation, sécurité, fixtures, invalidation).
 
 ## Ce qui a été délégué à l'IA vs vérifié manuellement
 
-Le journal est [`AI_USAGE.md`](AI_USAGE.md). Le jeu de données a été rédigé par un modèle différent de celui qui codera l'agent. La relecture des seuils (capacité, tailles, classes) reste à Valentin. Le code, lui, n'est pas encore écrit.
+Le journal est [`AI_USAGE.md`](AI_USAGE.md). Le code et les fixtures de la phase 1 ont été écrits par Claude Opus 5.5. Les seuils et la règle d'allocation restent à valider par Valentin.
 
 ## Limites et prochaines étapes
 
-- Pas d'application dans ce dépôt : ni `src/`, ni `package.json`.
-- Les connecteurs de canaux sont des fichiers. L'architecture de production est décrite, pas branchée.
-- `data/feedbacks/holdout.json` ne sert pas à régler les seuils.
-- Le scénario de points dans la clé de réponses est une intention, pas un oracle figé.
-
-## Lancer le projet
-
-_À compléter quand l'application Next.js sera ajoutée._
-
-Rien ne s'exécute encore. Les données se lisent sans installation.
+- Pas encore d'interface : `app/` est un placeholder (phase 2). `pnpm dev` le sert sur le port 43217.
+- `LinearSink` est un bouchon documenté : aucune écriture externe en phase 1.
+- Les fixtures sont rédigées, pas enregistrées. Elles sont à remplacer par `--provider real --record` dès qu'une clé est disponible.
+- Une fixture est liée à l'empreinte de ses données : modifier un feedback rend le mode rejoué strict en erreur, jusqu'à réenregistrement.
+- Un feedback en quarantaine sort du scoring jusqu'à ce que le PO le libère. Conséquence visible dans l'éval : le thème « nom du PDF exporté » de la clé n'apparaît pas.
+- Les connecteurs sont des fichiers. L'architecture de production est décrite (ADR-007), pas branchée.
+- `data/feedbacks/holdout.json` ne sert pas à régler les seuils, et n'est pas accepté par `pnpm agent`.
 
 ## Arborescence
 
@@ -49,10 +100,19 @@ Rien ne s'exécute encore. Les données se lisent sans installation.
 AI_USAGE.md                 journal d'usage des IA
 docs/brief.md               énoncé reformulé
 docs/decisions.md           ADR
-data/context/strategy.md    vision, OKR, capacité, stories de référence
-data/context/accounts.json  15 comptes fictifs
-data/context/backlog.json   10 issues Linear ouvertes
+data/context/               stratégie (md + json), comptes, backlog
 data/feedbacks/             lots lundi, jeudi, holdout
-data/answer-key.md          intention de conception
-data/answer-key.json        même clé, pour la machine
+data/answer-key.{md,json}   intention de conception
+data/po-decisions.json      décisions du PO rejouées par la CLI
+core/schemas/               schémas Zod
+core/ingest, privacy, identity, security, evidence
+core/scoring/               fenêtre, tendance, RICE, MoSCoW
+core/llm/                   interface fournisseur, réel, rejoué, prompts
+core/steps/                 classification, thèmes, évaluation, story, investigation
+core/pipeline/              orchestration et état
+core/report/, core/sink/    rendus markdown, BacklogSink
+core/cli/, core/eval/       pnpm agent, pnpm eval
+fixtures/llm/               réponses rejouées
+scripts/author-fixtures.ts  rédaction des fixtures (pnpm fixtures:author)
+app/                        Next.js, placeholder de la phase 2
 ```
