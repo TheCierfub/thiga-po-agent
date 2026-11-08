@@ -5,6 +5,8 @@
   "origin": "redigee",
   "model": null,
   "response": {
+    "category": "amelioration",
+    "categoryRationale": "Habillage de l'interface existante, sans nouvelle capacité.",
     "impact": 0.25,
     "impactRationale": "Confort d'affichage pour deux comptes gratuits. Un message de plus, même compte.",
     "okrId": null,

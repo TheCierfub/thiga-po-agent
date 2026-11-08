@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowLeftIcon, CheckIcon, XIcon } from "lucide-react";
-import { Empty, FeedbackRef, Section, TrendBars } from "@/components/etai/bits";
+import { CategoryBadge, Empty, FeedbackRef, Section, TrendBars } from "@/components/etai/bits";
 import { ExportPanel, ExportPanelSkeleton } from "@/components/etai/export-panel";
 import { ThemeMoscow, ThemeNav } from "@/components/etai/theme-nav";
 import { DEMO_BATCHES, isDemoBatch } from "@/lib/etai/batches";
@@ -66,6 +66,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
   const classes = new Map(view.state.classifications.map((c) => [c.feedbackId, c]));
   const verified = [...theme.quotes, ...(story?.evidence ?? [])];
   const sources = [...theme.feedbackIds, ...theme.relatedSignalIds.filter((id) => !theme.feedbackIds.includes(id))];
+  const assessment = view.state.assessments.find((a) => a.themeKey === key);
   const ref = story ? view.strategy.referenceStories.find((r) => r.id === story.referenceStoryId) : undefined;
 
   return (
@@ -76,6 +77,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <ThemeMoscow themeKey={key} />
+              {assessment ? <CategoryBadge value={assessment.category} rationale={assessment.categoryRationale} /> : null}
               <TrendBars trend={theme.trend} />
               {issue ? (
                 <span className="text-xs text-muted-foreground">

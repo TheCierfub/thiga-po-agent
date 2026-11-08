@@ -20,7 +20,7 @@ import type { BatchView } from "@/lib/etai/view";
 import { cn } from "@/lib/utils";
 import type { Channel } from "@/core/schemas";
 import { CapacityBar } from "./capacity-bar";
-import { FeedbackRef, MoscowBadge, TrendBars } from "./bits";
+import { CategoryBadge, FeedbackRef, MoscowBadge, TrendBars } from "./bits";
 
 export function PrioritizationBoard() {
   const { overrides, active, reset, view } = useOverrides();
@@ -132,9 +132,12 @@ function ThemeRow({
     <Collapsible render={<li />} className="group/row">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_5.5rem_4.5rem_6rem_6.5rem_5rem_8.5rem_2rem]">
         <div className="min-w-0">
-          <Link href={`/${batch}/themes/${theme.key}`} className="text-sm font-medium hover:underline">
-            {theme.title}
-          </Link>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <Link href={`/${batch}/themes/${theme.key}`} className="text-sm font-medium hover:underline">
+              {theme.title}
+            </Link>
+            {assessment ? <CategoryBadge value={assessment.category} rationale={assessment.categoryRationale} short /> : null}
+          </div>
           <p className={cn("mt-0.5 text-xs text-muted-foreground", decision.moscow === "Won't" && "text-foreground/70")}>
             {decision.moscow === "Won't" ? <span className="font-medium">Pourquoi Won&apos;t : </span> : null}
             {decision.reason}

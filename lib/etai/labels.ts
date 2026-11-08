@@ -1,6 +1,13 @@
-import type { Channel, ConstraintKind, FeedbackType, IdentityConfidence, MoscowClass, MoscowDecision } from "@/core/schemas";
+import type { Channel, ConstraintKind, FeedbackType, IdentityConfidence, MoscowClass, MoscowDecision, ThemeCategory } from "@/core/schemas";
 
-export { num, pct } from "@/core/report/format";
+export { CATEGORY_LABEL, num, pct } from "@/core/report/format";
+
+/** Version courte pour les listes ; le libellé complet reste dans l'infobulle. */
+export const CATEGORY_SHORT_LABEL: Record<ThemeCategory, string> = {
+  bug: "Bug",
+  amelioration: "Amélioration",
+  nouvelle_fonctionnalite: "Nouveauté",
+};
 
 export const MOSCOW_ORDER: MoscowClass[] = ["Must", "Should", "Could", "À confirmer", "Hors arbitrage", "Won't"];
 

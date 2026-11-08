@@ -56,7 +56,7 @@ export class DryRunLinearApi implements LinearApi {
     const name = issue?.identifier ?? id;
     const changes = [
       issue && issue.description !== input.description ? "section Étai de la description" : null,
-      issue && issue.labelIds.join() !== input.labelIds.join() ? "label MoSCoW" : null,
+      issue && issue.labelIds.join() !== input.labelIds.join() ? "labels" : null,
     ].filter(Boolean);
     this.operations.push(`Mettrait à jour ${name} (${changes.join(", ") || "description et labels"}). Estimation et texte manuel conservés.`);
     return { id, identifier: name, url: issue?.url ?? "", description: input.description, labelIds: input.labelIds };

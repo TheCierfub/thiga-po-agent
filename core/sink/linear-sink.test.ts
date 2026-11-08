@@ -9,7 +9,7 @@ import { ROOT } from "../test/helpers";
 import { buildBacklogItems, type BacklogItem } from "./backlog-sink";
 import { exportTarget } from "./export-target";
 import { DryRunLinearApi } from "./linear-dry-run";
-import { LinearSink, mergeSection, moscowLabelName, type LinearApi, type LinearIssueRef } from "./linear-sink";
+import { CATEGORY_LABELS, LinearSink, mergeSection, moscowLabelName, type LinearApi, type LinearIssueRef } from "./linear-sink";
 
 /** Linear en mémoire : on vérifie les appels, aucun ne sort de la machine. */
 class FakeLinear implements LinearApi {
@@ -85,7 +85,7 @@ const items = (r = lundi) => buildBacklogItems(r, { feedbackUrl: url });
 const itemFor = (key: string, r = lundi): BacklogItem => items(r).find((i) => i.themeKey === key)!;
 
 describe("LinearSink", () => {
-  it("crée une issue par story validée : story, critères, citations, liens, estimation, label MoSCoW, demandes clients", async () => {
+  it("crée une issue par story validée : story, critères, citations, liens, estimation, labels MoSCoW et catégorie, demandes clients", async () => {
     const api = new FakeLinear();
     const sink = new LinearSink(api, { teamId: "team", feedbackUrl: url });
     const [result] = await sink.push([itemFor("sso_contrat")]);
@@ -94,7 +94,8 @@ describe("LinearSink", () => {
     const issue = api.issues[0]!;
     expect(issue.title).toBe(lundi.state.themes.find((t) => t.key === "sso_contrat")!.title);
     expect(issue.estimate).toBe(6);
-    expect(issue.labelIds).toEqual([api.labels.get(moscowLabelName("Must"))]);
+    expect(issue.labelIds).toEqual([api.labels.get(moscowLabelName("Must")), api.labels.get("Feature")]);
+    expect(issue.description).toContain("Catégorie : **Nouvelle fonctionnalité**");
     expect(issue.description).toContain("## Story");
     expect(issue.description).toContain("Étant donné");
     expect(issue.description).toMatch(/« .+ »/);
@@ -128,7 +129,7 @@ describe("LinearSink", () => {
     expect(issue.description.startsWith("Texte écrit par l'équipe.")).toBe(true);
     expect(issue.description).toContain("etai:partage_client");
     expect(issue.estimate).toBeUndefined();
-    expect(issue.labelIds).toEqual(["label-equipe", api.labels.get(moscowLabelName("Should"))]);
+    expect(issue.labelIds).toEqual(["label-equipe", api.labels.get(moscowLabelName("Should")), api.labels.get("Feature")]);
 
     const [jeudiResult] = await sink.push([itemFor("partage_client", jeudi)]);
     expect(jeudiResult).toMatchObject({ action: "mis_a_jour", target: "LIN-41" });
@@ -137,6 +138,16 @@ describe("LinearSink", () => {
     expect(again!.action).toBe("inchange");
     const [notif] = await sink.push([itemFor("notifications", jeudi)]);
     expect(notif!.action).toBe("cree");
+  });
+
+  it("catégorie déjà posée par l'équipe sur une issue existante : on ne la remplace pas", async () => {
+    const api = new FakeLinear();
+    const improvement = await api.ensureLabel("team", CATEGORY_LABELS.amelioration.name);
+    api.seed("LIN-41", "Texte écrit par l'équipe.", [improvement]);
+    await new LinearSink(api, { teamId: "team" }).push([itemFor("partage_client")]);
+    const issue = api.issues[0]!;
+    expect(issue.labelIds).toContain(improvement);
+    expect(issue.labelIds).not.toContain(api.labels.get("Feature"));
   });
 
   it("LIN-xx absente de l'espace Linear : création, avec une note, sans doublon au second export", async () => {

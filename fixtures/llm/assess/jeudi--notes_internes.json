@@ -5,6 +5,8 @@
   "origin": "redigee",
   "model": null,
   "response": {
+    "category": "amelioration",
+    "categoryRationale": "Les notes internes existent ; il s'agit de les masquer dans la vue partagée.",
     "impact": 2,
     "impactRationale": "Sans masquage, le partage client expose des notes internes.",
     "okrId": "OKR1",

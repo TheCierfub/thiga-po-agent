@@ -143,7 +143,15 @@ export const CONSTRAINT_KINDS = ["contrat", "securite", "coeur_casse"] as const;
 export const ConstraintKindSchema = z.enum(CONSTRAINT_KINDS);
 export type ConstraintKind = z.infer<typeof ConstraintKindSchema>;
 
+export const THEME_CATEGORIES = ["bug", "amelioration", "nouvelle_fonctionnalite"] as const;
+export const ThemeCategorySchema = z.enum(THEME_CATEGORIES);
+export type ThemeCategory = z.infer<typeof ThemeCategorySchema>;
+
 export const AssessmentLlmSchema = z.object({
+  category: ThemeCategorySchema.describe(
+    "bug : ce qui existe ne marche pas comme prévu. amelioration : rendre meilleure une fonction qui existe déjà. nouvelle_fonctionnalite : une capacité que le produit n'a pas aujourd'hui.",
+  ),
+  categoryRationale: z.string().min(3),
   impact: ImpactSchema,
   impactRationale: z.string().min(3),
   okrId: z.string().nullable(),
@@ -164,6 +172,8 @@ export type AssessmentLlm = z.infer<typeof AssessmentLlmSchema>;
 
 export const ThemeAssessmentSchema = AssessmentLlmSchema.extend({
   themeKey: z.string(),
+  /** « regle » : thème composé uniquement de bugs, catégorie imposée par le code. */
+  categorySource: z.enum(["llm", "regle"]),
   constraintQuoteVerified: z.boolean(),
 });
 export type ThemeAssessment = z.infer<typeof ThemeAssessmentSchema>;

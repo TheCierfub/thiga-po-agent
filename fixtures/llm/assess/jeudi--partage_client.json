@@ -5,6 +5,8 @@
   "origin": "redigee",
   "model": null,
   "response": {
+    "category": "nouvelle_fonctionnalite",
+    "categoryRationale": "Le client n'a aucun accès aujourd'hui : le lien de lecture seule est à créer (LIN-41).",
     "impact": 2,
     "impactRationale": "Sert directement l'OKR 1 et pèse dans deux signaux de churn. Un doublon de LIN-41 et une date de coupure chez Dune s'ajoutent.",
     "okrId": "OKR1",

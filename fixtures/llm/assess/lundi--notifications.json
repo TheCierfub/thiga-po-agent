@@ -5,6 +5,8 @@
   "origin": "redigee",
   "model": null,
   "response": {
+    "category": "amelioration",
+    "categoryRationale": "Les notifications existent ; il s'agit d'en régler la fréquence par rôle.",
     "impact": 1,
     "impactRationale": "Gêne quotidienne réelle, avec deux besoins opposés à concilier par un réglage.",
     "okrId": null,

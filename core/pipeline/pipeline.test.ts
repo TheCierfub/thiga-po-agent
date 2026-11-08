@@ -70,6 +70,19 @@ describe("pipeline rejoué de bout en bout", async () => {
     expect(jeudi.changes!.plan.staleConfirmations.sort()).toEqual(["sso_contrat", "synchro_2_4"]);
   });
 
+  it("chaque thème a une catégorie ; un thème fait uniquement de bugs est classé Bug par règle", () => {
+    const category = Object.fromEntries(jeudi.state.assessments.map((a) => [a.themeKey, `${a.category}/${a.categorySource}`]));
+    expect(category).toEqual({
+      synchro_2_4: "bug/regle",
+      sso_contrat: "nouvelle_fonctionnalite/llm",
+      partage_client: "nouvelle_fonctionnalite/llm",
+      notifications: "amelioration/llm",
+      epingle_photo: "amelioration/llm",
+      theme_sombre: "amelioration/llm",
+      notes_internes: "amelioration/llm",
+    });
+  });
+
   it("l'état conservé ne contient ni texte brut ni e-mail d'auteur", () => {
     const f28 = jeudi.state.feedbacks.find((f) => f.id === "fb-lundi-28")!;
     expect(f28.text).toBe(f28.maskedText);

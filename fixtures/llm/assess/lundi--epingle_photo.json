@@ -5,6 +5,8 @@
   "origin": "redigee",
   "model": null,
   "response": {
+    "category": "amelioration",
+    "categoryRationale": "Les photos de réserve existent ; il s'agit d'y situer précisément la réserve.",
     "impact": 1,
     "impactRationale": "Évite des allers-retours sur la localisation des réserves.",
     "okrId": null,

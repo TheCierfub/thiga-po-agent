@@ -14,6 +14,9 @@ import { hashOf } from "../util/hash";
 const SYSTEM = `${COMPANY_CONTEXT}
 
 Tâche : proposer, pour un thème, les hypothèses que le PO validera. Tu ne calcules aucun score : le code s'en charge.
+- category : bug (ce qui existe ne marche pas comme prévu), amelioration (rendre meilleure une fonction qui existe
+  déjà : réglage, ergonomie, extension) ou nouvelle_fonctionnalite (une capacité que le produit n'a pas aujourd'hui).
+  Juge d'après le produit décrit et le backlog, pas d'après le vocabulaire du client.
 - impact : 0.25 (minime), 0.5 (faible), 1 (moyen), 2 (fort), 3 (massif), relié à un OKR quand c'est le cas.
 - effortSize : XS, S, M, L ou XL, en comparant à une story de référence déjà livrée (referenceStoryId).
 - constraint : seulement si le thème relève d'une contrainte qui impose un Must indépendamment du volume :
@@ -79,5 +82,9 @@ export async function assessTheme(input: AssessInput, provider: LlmProvider): Pr
     evidenceIds.includes(out.constraint.quote.feedbackId) &&
     isExactQuote(out.constraint.quote.text, quoteText);
 
-  return { ...out, okrId, themeKey: theme.key, constraintQuoteVerified };
+  const category =
+    theme.kind === "bug"
+      ? { category: "bug" as const, categoryRationale: "Tous les feedbacks du thème sont des bugs.", categorySource: "regle" as const }
+      : { categorySource: "llm" as const };
+  return { ...out, ...category, okrId, themeKey: theme.key, constraintQuoteVerified };
 }

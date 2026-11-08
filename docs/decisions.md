@@ -325,7 +325,7 @@ La porte « Confidence 100 % pour un Should » et la suspension des Could au-del
 ### LinearSink
 
 - Le sink dépend d'un port `LinearApi` ; `core/sink/linear-api.ts` est le seul fichier qui appelle `@linear/sdk`.
-- Création : titre, description, estimation (les points de `strategy.sizePoints`), label `MoSCoW : <classe>` créé au besoin. Si l'équipe refuse l'estimation (échelle différente), l'issue est recréée sans estimation, avec une note.
+- Création : titre, description, estimation (les points de `strategy.sizePoints`), label `MoSCoW : <classe>` créé au besoin, et label de catégorie (`Bug`, `Improvement`, `Feature` : les noms par défaut de Linear, pour réutiliser ceux de l'espace). Sur une issue existante, la catégorie n'est ajoutée que si l'équipe n'en a pas déjà posé une. Si l'équipe refuse l'estimation (échelle différente), l'issue est recréée sans estimation, avec une note.
 - Pas de doublon : le thème rattaché à une issue existante (LIN-xx) la met à jour ; sinon l'issue est cherchée par sa clé stable `etai:<thème>`, écrite entre deux marqueurs HTML dans la description. Seule cette section est réécrite ; le texte manuel et l'estimation de l'équipe restent. Contenu et labels identiques : rien n'est envoyé.
 - `LINEAR_TEAM_ID` accepte l'UUID ou la clé d'équipe ; une équipe introuvable arrête l'export avec un message explicite.
 - Sans `LINEAR_API_KEY` ou `LINEAR_TEAM_ID`, l'interface bascule sur `MarkdownSink` (`out/linear-export/`) et le dit.
@@ -346,3 +346,12 @@ Une demande par compte qui porte le thème, avec ses citations et un lien vers s
 - Aucun appel réel à Linear n'a été fait : tout est testé contre un faux Linear en mémoire.
 - Les LIN-xx du jeu de données sont fictifs et seront introuvables dans l'équipe THI : le premier export créera les issues.
 - Les liens vers les feedbacks visent `http://localhost:43217` tant que `ETAI_PUBLIC_URL` n'est pas défini.
+
+## Catégorie de thème : Bug, Amélioration, Nouvelle fonctionnalité
+
+Chaque thème porte une catégorie, affichée dans le brief, la priorisation, la page du thème, les rapports Markdown et l'export.
+
+- Proposée par l'étape d'évaluation (même appel LLM que l'impact et l'effort, pas d'appel en plus), avec une justification courte.
+- Règle prioritaire : un thème dont tous les feedbacks sont des bugs est classé Bug par le code (`categorySource: "regle"`).
+- Les types par feedback (demande, friction) ne suffisent pas à séparer amélioration et nouveauté : « partage client » et « notifications » ont chacun environ moitié de frictions, alors que l'un est une capacité absente et l'autre un réglage d'une fonction existante. D'où une décision du LLM, qui voit le produit et l'issue liée.
+- La catégorie n'entre ni dans le RICE ni dans le MoSCoW.

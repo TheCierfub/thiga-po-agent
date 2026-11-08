@@ -1,6 +1,6 @@
 import type { RunResult } from "../pipeline/run";
-import type { MoscowClass, Quote, Size } from "../schemas";
-import { num, pct, reachLabel } from "../report/format";
+import type { MoscowClass, Quote, Size, ThemeCategory } from "../schemas";
+import { CATEGORY_LABEL, num, pct, reachLabel } from "../report/format";
 
 /** Clé stable d'un élément exporté : elle ne dépend que du thème, jamais du lot ni de l'heure. */
 export function stableKey(themeKey: string): string {
@@ -12,6 +12,7 @@ export interface BacklogItem {
   themeKey: string;
   title: string;
   moscow: MoscowClass;
+  category: ThemeCategory;
   existingIssueId: string | null;
   body: string;
   /** Raison du blocage : l'élément n'est pas exporté tant que le PO n'a pas tranché. */
@@ -61,6 +62,7 @@ export function buildBacklogItems(result: Pick<RunResult, "state" | "accounts" |
   const { state } = result;
   const themes = new Map(state.themes.map((t) => [t.key, t]));
   const rice = new Map(state.rice.map((r) => [r.themeKey, r]));
+  const categories = new Map(state.assessments.map((a) => [a.themeKey, a.category]));
   const stories = new Map(state.stories.filter((s) => s.status === "brouillon").map((s) => [s.themeKey, s]));
   const accountOf = new Map(state.matches.map((m) => [m.feedbackId, m.accountId]));
   const link = (id: string) => (options.feedbackUrl ? `[${id}](${options.feedbackUrl(id)})` : id);
@@ -73,10 +75,11 @@ export function buildBacklogItems(result: Pick<RunResult, "state" | "accounts" |
       const t = themes.get(d.themeKey)!;
       const r = rice.get(d.themeKey)!;
       const story = stories.get(d.themeKey);
+      const category = categories.get(d.themeKey)!;
       const body = [
         `# ${t.title}`,
         "",
-        `MoSCoW : **${d.moscow}**. ${d.reason}`,
+        `Catégorie : **${CATEGORY_LABEL[category]}**. MoSCoW : **${d.moscow}**. ${d.reason}`,
         "",
         "## Problème",
         "",
@@ -118,6 +121,7 @@ export function buildBacklogItems(result: Pick<RunResult, "state" | "accounts" |
         themeKey: d.themeKey,
         title: t.title,
         moscow: d.moscow,
+        category,
         existingIssueId: t.backlogIssueId,
         body,
         blocked: d.constraint?.confirmationStale

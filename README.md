@@ -75,7 +75,7 @@ L'export à blanc vérifie l'équipe, cherche chaque issue (LIN-xx rattachée, p
 
 Ce qui est écrit, pour chaque thème Must, Should ou Could non bloqué :
 
-- une issue : titre, description (problème, score détaillé, citations, story et critères s'il y en a, liens vers les feedbacks), estimation dérivée de la taille (XS 1, S 2, M 4, L 6, XL 10), label `MoSCoW : <classe>` ;
+- une issue : titre, description (problème, score détaillé, citations, story et critères s'il y en a, liens vers les feedbacks), estimation dérivée de la taille (XS 1, S 2, M 4, L 6, XL 10), label `MoSCoW : <classe>` et label de catégorie (`Bug`, `Improvement` ou `Feature`, les labels par défaut de Linear, réutilisés s'ils existent) ;
 - si le thème est rattaché à une issue du backlog qui existe dans l'équipe, cette issue est mise à jour au lieu d'en créer une autre. Seule la section Étai de la description change (entre deux marqueurs) ; le texte écrit à la main et l'estimation de l'équipe restent ;
 - une demande client (Customer Request) par compte qui porte le thème, avec ses citations. Si la fonction Customers n'est pas activée dans l'espace, l'issue est exportée quand même et une note le signale. `LINEAR_CUSTOMER_REQUESTS=0` les désactive.
 

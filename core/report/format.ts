@@ -1,4 +1,10 @@
-import type { Account, RiceScore, Trend } from "../schemas";
+import type { Account, RiceScore, ThemeCategory, Trend } from "../schemas";
+
+export const CATEGORY_LABEL: Record<ThemeCategory, string> = {
+  bug: "Bug",
+  amelioration: "Amélioration",
+  nouvelle_fonctionnalite: "Nouvelle fonctionnalité",
+};
 
 export function num(value: number, digits = 2): string {
   return Number(value.toFixed(digits)).toLocaleString("fr-FR");

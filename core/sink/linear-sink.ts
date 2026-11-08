@@ -1,4 +1,4 @@
-import type { MoscowClass } from "../schemas";
+import type { MoscowClass, ThemeCategory } from "../schemas";
 import type { BacklogItem, BacklogSink, SinkResult } from "./backlog-sink";
 
 /** Ce dont LinearSink a besoin de Linear. L'implémentation réelle est dans `linear-api.ts`. */
@@ -47,6 +47,13 @@ export const MOSCOW_LABEL_COLORS: Record<"Must" | "Should" | "Could" | "Won't", 
 
 export const moscowLabelName = (moscow: MoscowClass) => `MoSCoW : ${moscow}`;
 
+/** Noms et couleurs des labels par défaut d'un espace Linear : on réutilise ceux qui existent déjà. */
+export const CATEGORY_LABELS: Record<ThemeCategory, { name: string; color: string }> = {
+  bug: { name: "Bug", color: "#eb5757" },
+  amelioration: { name: "Improvement", color: "#4ea7fc" },
+  nouvelle_fonctionnalite: { name: "Feature", color: "#bb87fc" },
+};
+
 const startMarker = (key: string) => `<!-- ${key} début -->`;
 const endMarker = (key: string) => `<!-- ${key} fin -->`;
 
@@ -72,8 +79,8 @@ function isEstimateError(error: unknown): boolean {
  * Export vers Linear, après validation du PO dans l'interface. Le LLM n'a jamais accès à cet outil.
  * - Thème rattaché à une issue existante (LIN-xx) : on la met à jour, on n'en crée pas d'autre.
  * - Sinon, on cherche l'issue par sa clé stable avant de créer : relancer l'export ne crée pas de doublon.
- * - Une issue créée porte l'estimation dérivée de la taille et un label MoSCoW. Une issue existante garde
- *   son estimation : elle appartient à l'équipe.
+ * - Une issue créée porte l'estimation dérivée de la taille, un label MoSCoW et un label de catégorie.
+ *   Une issue existante garde son estimation, et sa catégorie si l'équipe en a déjà posé une.
  * - Un élément bloqué (« à revoir ») n'est jamais poussé.
  */
 export class LinearSink implements BacklogSink {
@@ -96,19 +103,30 @@ export class LinearSink implements BacklogSink {
     return this.teamId;
   }
 
-  private async label(moscow: keyof typeof MOSCOW_LABEL_COLORS): Promise<string> {
-    let id = this.labelIds.get(moscow);
+  private async label(name: string, color: string): Promise<string> {
+    let id = this.labelIds.get(name);
     if (!id) {
-      id = await this.api.ensureLabel(await this.team(), moscowLabelName(moscow), MOSCOW_LABEL_COLORS[moscow]);
-      this.labelIds.set(moscow, id);
+      id = await this.api.ensureLabel(await this.team(), name, color);
+      this.labelIds.set(name, id);
     }
     return id;
   }
 
   private async moscowLabels(moscow: MoscowClass): Promise<{ keep: string; drop: string[] } | null> {
     if (!(moscow in MOSCOW_LABEL_COLORS)) return null;
-    const all = await Promise.all((Object.keys(MOSCOW_LABEL_COLORS) as (keyof typeof MOSCOW_LABEL_COLORS)[]).map(async (m) => [m, await this.label(m)] as const));
+    const all = await Promise.all(
+      (Object.keys(MOSCOW_LABEL_COLORS) as (keyof typeof MOSCOW_LABEL_COLORS)[]).map(
+        async (m) => [m, await this.label(moscowLabelName(m), MOSCOW_LABEL_COLORS[m])] as const,
+      ),
+    );
     return { keep: all.find(([m]) => m === moscow)![1], drop: all.filter(([m]) => m !== moscow).map(([, id]) => id) };
+  }
+
+  private async categoryLabels(category: ThemeCategory): Promise<{ keep: string; all: string[] }> {
+    const all = await Promise.all(
+      (Object.keys(CATEGORY_LABELS) as ThemeCategory[]).map(async (c) => [c, await this.label(CATEGORY_LABELS[c].name, CATEGORY_LABELS[c].color)] as const),
+    );
+    return { keep: all.find(([c]) => c === category)![1], all: all.map(([, id]) => id) };
   }
 
   async push(items: BacklogItem[]): Promise<SinkResult[]> {
@@ -126,6 +144,7 @@ export class LinearSink implements BacklogSink {
   private async pushOne(item: BacklogItem): Promise<SinkResult> {
     const notes: string[] = [];
     const labels = await this.moscowLabels(item.moscow);
+    const category = await this.categoryLabels(item.category);
 
     let issue: LinearIssueRef | null = null;
     if (item.existingIssueId) {
@@ -137,9 +156,9 @@ export class LinearSink implements BacklogSink {
     let action: SinkResult["action"];
     if (issue) {
       const description = mergeSection(issue.description, item.stableKey, item.body);
-      const labelIds = labels
-        ? [...new Set([...issue.labelIds.filter((id) => !labels.drop.includes(id)), labels.keep])]
-        : issue.labelIds;
+      const kept = labels ? [...issue.labelIds.filter((id) => !labels.drop.includes(id)), labels.keep] : issue.labelIds;
+      const hasCategory = issue.labelIds.some((id) => category.all.includes(id));
+      const labelIds = [...new Set(hasCategory ? kept : [...kept, category.keep])];
       const sameLabels = labelIds.length === issue.labelIds.length && labelIds.every((id) => issue!.labelIds.includes(id));
       if (description === issue.description && sameLabels) {
         action = "inchange";
@@ -153,7 +172,7 @@ export class LinearSink implements BacklogSink {
         title: item.title,
         description: mergeSection("", item.stableKey, item.body),
         estimate: item.details.points,
-        labelIds: labels ? [labels.keep] : [],
+        labelIds: labels ? [labels.keep, category.keep] : [category.keep],
       };
       try {
         issue = await this.api.createIssue(input);

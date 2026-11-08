@@ -10,6 +10,7 @@ const item = (themeKey: string, body: string, blocked: string | null = null): Ba
   themeKey,
   title: themeKey,
   moscow: "Should",
+  category: "amelioration",
   existingIssueId: null,
   body,
   blocked,

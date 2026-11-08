@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type { MoscowClass, Trend } from "@/core/schemas";
-import { TREND_LABEL } from "@/lib/etai/labels";
+import { BugIcon, SparklesIcon, WrenchIcon } from "lucide-react";
+import type { MoscowClass, ThemeCategory, Trend } from "@/core/schemas";
+import { CATEGORY_LABEL, CATEGORY_SHORT_LABEL, TREND_LABEL } from "@/lib/etai/labels";
 import { cn } from "@/lib/utils";
 
 const MOSCOW_STYLE: Record<MoscowClass, string> = {
@@ -24,6 +25,35 @@ export function MoscowBadge({ value, forced, className }: { value: MoscowClass; 
     >
       {value}
       {forced ? <span className="font-normal opacity-75">· PO</span> : null}
+    </span>
+  );
+}
+
+const CATEGORY_ICON = { bug: BugIcon, amelioration: WrenchIcon, nouvelle_fonctionnalite: SparklesIcon } as const;
+
+export function CategoryBadge({
+  value,
+  rationale,
+  short,
+  className,
+}: {
+  value: ThemeCategory;
+  rationale?: string;
+  short?: boolean;
+  className?: string;
+}) {
+  const Icon = CATEGORY_ICON[value];
+  return (
+    <span
+      title={rationale ? `${CATEGORY_LABEL[value]} : ${rationale}` : CATEGORY_LABEL[value]}
+      className={cn(
+        "inline-flex h-5 shrink-0 items-center gap-1 rounded-md px-1.5 text-xs whitespace-nowrap text-muted-foreground ring-1 ring-border ring-inset",
+        value === "bug" && "text-foreground/80",
+        className,
+      )}
+    >
+      <Icon aria-hidden className={cn("size-3", value === "bug" && "text-(--moscow-must)")} />
+      {short ? CATEGORY_SHORT_LABEL[value] : CATEGORY_LABEL[value]}
     </span>
   );
 }

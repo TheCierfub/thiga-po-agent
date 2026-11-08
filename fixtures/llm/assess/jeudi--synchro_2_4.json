@@ -5,6 +5,8 @@
   "origin": "redigee",
   "model": null,
   "response": {
+    "category": "bug",
+    "categoryRationale": "La synchronisation existait et fonctionnait avant la 2.4.",
     "impact": 3,
     "impactRationale": "Perte de saisies sur la version courante : l'OKR 2 est directement touché. Le signal continue après le 2 novembre.",
     "okrId": "OKR2",

@@ -5,6 +5,8 @@
   "origin": "redigee",
   "model": null,
   "response": {
+    "category": "nouvelle_fonctionnalite",
+    "categoryRationale": "Étai ne propose pas de connexion SSO SAML aujourd'hui.",
     "impact": 2,
     "impactRationale": "Débloque le déploiement d'un compte Enterprise sur deux agences.",
     "okrId": null,

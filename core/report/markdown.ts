@@ -1,6 +1,6 @@
 import type { RunResult } from "../pipeline/run";
 import type { InvestigationDraft, MoscowClass, UserStoryDraft } from "../schemas";
-import { accountNames, cell, num, pct, reachLabel, trendLabel } from "./format";
+import { CATEGORY_LABEL, accountNames, cell, num, pct, reachLabel, trendLabel } from "./format";
 
 const MOSCOW_ORDER: MoscowClass[] = ["Must", "Should", "Could", "À confirmer", "Hors arbitrage", "Won't"];
 
@@ -25,6 +25,7 @@ export function renderPrioritization(result: RunResult): string {
   const { state, accounts } = result;
   const themes = new Map(state.themes.map((t) => [t.key, t]));
   const rice = new Map(state.rice.map((r) => [r.themeKey, r]));
+  const categories = new Map(state.assessments.map((a) => [a.themeKey, a.category]));
   const { allocation } = state;
   const lines = [
     `# Priorisation RICE et MoSCoW · lot ${state.batch}`,
@@ -32,15 +33,15 @@ export function renderPrioritization(result: RunResult): string {
     `Capacité arbitrable : ${num(allocation.arbitrablePoints)} points. Must ${num(allocation.mustPoints)} (${pct(allocation.mustPoints / allocation.arbitrablePoints)}), Should ${num(allocation.shouldPoints)}, Could ${num(allocation.couldPoints)}.`,
     `Reach compté en mode « ${state.reachMode} », sur la fenêtre du ${state.rice[0]?.reach.window.start ?? "?"} au ${state.referenceDate}.`,
     "",
-    "| Thème | MoSCoW | RICE | Reach | Impact | Confidence | Effort | Tendance | Backlog | Raison |",
-    "| --- | --- | ---: | --- | ---: | ---: | --- | --- | --- | --- |",
+    "| Thème | Catégorie | MoSCoW | RICE | Reach | Impact | Confidence | Effort | Tendance | Backlog | Raison |",
+    "| --- | --- | --- | ---: | --- | ---: | ---: | --- | --- | --- | --- |",
   ];
   for (const d of sortedDecisions(result)) {
     const t = themes.get(d.themeKey)!;
     const r = rice.get(d.themeKey)!;
     const backlog = t.backlogIssueId ? `${t.backlogIssueId} (${t.backlogRelation})` : "—";
     lines.push(
-      `| ${cell(t.title)} | ${d.moscow} | ${num(r.score, 3)} | ${reachLabel(r.reach)} | ${num(r.impact.value)}${r.impact.source === "po" ? " (PO)" : ""} | ${pct(r.confidence.value)} | ${r.effort.size} · ${num(r.effort.points)} pt${r.effort.source === "po" ? " (PO)" : ""} | ${trendLabel(t.trend)} | ${backlog} | ${cell(d.reason)} |`,
+      `| ${cell(t.title)} | ${CATEGORY_LABEL[categories.get(d.themeKey)!]} | ${d.moscow} | ${num(r.score, 3)} | ${reachLabel(r.reach)} | ${num(r.impact.value)}${r.impact.source === "po" ? " (PO)" : ""} | ${pct(r.confidence.value)} | ${r.effort.size} · ${num(r.effort.points)} pt${r.effort.source === "po" ? " (PO)" : ""} | ${trendLabel(t.trend)} | ${backlog} | ${cell(d.reason)} |`,
     );
   }
   lines.push("", "## Alertes", "");
@@ -66,6 +67,7 @@ export function renderPrioritization(result: RunResult): string {
 export function renderBrief(result: RunResult): string {
   const { state, accounts } = result;
   const themes = new Map(state.themes.map((t) => [t.key, t]));
+  const categories = new Map(state.assessments.map((a) => [a.themeKey, a.category]));
   const fresh = new Set(result.newFeedbackIds);
   const freshFeedbacks = state.feedbacks.filter((f) => fresh.has(f.id));
   const classes = state.classifications.filter((c) => fresh.has(c.feedbackId));
@@ -99,7 +101,7 @@ export function renderBrief(result: RunResult): string {
           : "non confirmée";
       suffix = ` Contrainte ${CONSTRAINT_LABEL[d.constraint.kind]} (${d.constraint.source === "regle" ? "règle" : "proposée par le LLM"}), ${status}.`;
     }
-    lines.push(`- **${d.moscow} · ${t.title}** : ${d.reason}${suffix}`);
+    lines.push(`- **${d.moscow} · ${t.title}** (${CATEGORY_LABEL[categories.get(d.themeKey)!]}) : ${d.reason}${suffix}`);
   }
   for (const a of state.allocation.alerts) lines.push(`- Alerte : ${a.message}`);
 
