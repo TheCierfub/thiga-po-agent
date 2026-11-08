@@ -1,0 +1,41 @@
+{
+  "company": "Étai",
+  "product": "SaaS de pilotage de chantier pour les PME du bâtiment",
+  "currentRelease": { "version": "2.4.0", "releasedOn": "2026-10-27" },
+  "okrs": [
+    {
+      "id": "OKR1",
+      "title": "Montrer l'avancement au client sans le recopier",
+      "keyResult": "40 % des chantiers Pro et Enterprise ont un partage client ouvert au moins une fois dans la semaine, d'ici le 31 décembre 2026."
+    },
+    {
+      "id": "OKR2",
+      "title": "Fiabiliser la saisie en conditions de chantier",
+      "keyResult": "Plus aucune perte de saisie signalée sur la version courante, et une réserve ouverte en moins de 20 secondes quand le réseau tient."
+    }
+  ],
+  "nonGoals": [
+    "Facturation, situations de travaux, comptabilité",
+    "BIM, maquette IFC, plans techniques avancés",
+    "Majors du BTP et leurs directions méthodes",
+    "Thème sombre et autre personnalisation d'écran",
+    "Annuaire ou marketplace de sous-traitants"
+  ],
+  "capacity": {
+    "cycle": { "start": "2026-11-09", "end": "2026-11-20" },
+    "grossPoints": 20,
+    "committedIssueIds": ["LIN-12", "LIN-52"],
+    "committedPoints": 4,
+    "mustAlertRatio": 0.6,
+    "shouldLineRatio": 0.8,
+    "couldBudgetRatio": 0.2
+  },
+  "sizePoints": { "XS": 1, "S": 2, "M": 4, "L": 6, "XL": 10 },
+  "referenceStories": [
+    { "id": "LIN-091", "title": "Filtrer la liste des réserves par lot", "size": "XS" },
+    { "id": "LIN-104", "title": "Ajouter une photo à une réserve depuis le téléphone", "size": "S" },
+    { "id": "LIN-088", "title": "Exporter le registre des réserves en CSV", "size": "M" },
+    { "id": "LIN-076", "title": "Prévenir le conducteur par e-mail quand une réserve est bloquante", "size": "M" },
+    { "id": "LIN-063", "title": "Inviter un sous-traitant avec un accès limité à un seul chantier", "size": "L" }
+  ]
+}
