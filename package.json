@@ -12,6 +12,7 @@
     "test": "vitest run",
     "agent": "tsx core/cli/main.ts",
     "eval": "tsx core/eval/main.ts",
+    "eval:compare": "tsx core/eval/compare-main.ts",
     "fixtures:author": "tsx scripts/author-fixtures.ts"
   },
   "dependencies": {
