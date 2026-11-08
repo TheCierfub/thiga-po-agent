@@ -50,14 +50,14 @@ export function ExportPanel({
         Valider et exporter vers Linear
       </Button>
       {block ? (
-        <p className={cn("mt-3 text-xs", block.tone === "review" ? "font-medium text-amber-700" : "text-muted-foreground")}>{block.message}</p>
+        <p className={cn("mt-3 text-xs", block.tone === "review" ? "font-medium text-warn-fg" : "text-muted-foreground")}>{block.message}</p>
       ) : (
         <p className="mt-3 text-xs text-muted-foreground">
           {existingIssueId ? `Met à jour ${existingIssueId} si l'issue existe, sans doublon.` : "Crée une issue, ou met à jour celle déjà exportée."}{" "}
           {hasStory ? "Story, critères, citations, liens vers les feedbacks, estimation et label MoSCoW." : "Problème, score, citations, liens, estimation et label MoSCoW."}
         </p>
       )}
-      <div className={cn("mt-3 flex gap-2 rounded-lg px-2.5 py-2 text-xs", linear ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-900")}>
+      <div className={cn("mt-3 flex gap-2 rounded-lg px-2.5 py-2 text-xs", linear ? "bg-ok-bg text-ok-fg" : "bg-warn-bg text-warn-fg")}>
         {linear ? <CheckCircle2Icon className="mt-px size-3.5 shrink-0" /> : <FileTextIcon className="mt-px size-3.5 shrink-0" />}
         <span>
           {linear

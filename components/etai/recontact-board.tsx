@@ -61,7 +61,7 @@ export function RecontactBoard() {
             >
               <span className="flex items-center gap-2 text-sm font-medium">
                 <span className="min-w-0 flex-1 truncate">{d.recipient}</span>
-                {sent[d.feedbackId] ? <InboxIcon className="size-3.5 text-emerald-600" aria-label="Déposé" /> : null}
+                {sent[d.feedbackId] ? <InboxIcon className="size-3.5 text-ok-fg" aria-label="Déposé" /> : null}
               </span>
               <span className="mt-0.5 block text-xs text-muted-foreground">
                 {d.kind === "investigation" ? "Investigation" : "Identifiant de compte"} · {CHANNEL_LABEL[d.channel as Channel] ?? d.channel}

@@ -50,7 +50,7 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
                 <span>{CHANNEL_LABEL[f.channel]}</span>
                 <span>{new Date(f.receivedAt).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" })}</span>
                 {c ? <span>{TYPE_LABEL[c.type]}</span> : null}
-                {c?.injection.quarantined ? <span className="font-medium text-amber-700">quarantaine</span> : null}
+                {c?.injection.quarantined ? <span className="font-medium text-warn-fg">quarantaine</span> : null}
                 {changes && fresh.has(f.id) ? <span className="font-medium text-(--moscow-must)">nouveau</span> : null}
                 {theme ? (
                   <Link href={`/${batch}/themes/${theme.key}`} className="ml-auto hover:text-foreground hover:underline">

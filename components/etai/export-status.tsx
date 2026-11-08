@@ -11,7 +11,7 @@ export async function ExportStatus() {
           <span className="inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs text-muted-foreground" />
         }
       >
-        <span className={linear ? "size-1.5 rounded-full bg-emerald-500" : "size-1.5 rounded-full bg-amber-500"} />
+        <span className={linear ? "size-1.5 rounded-full bg-ok-fg" : "size-1.5 rounded-full bg-warn-fg"} />
         {linear ? "Export : Linear" : "Export : Markdown local"}
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-72 leading-relaxed">

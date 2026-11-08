@@ -6,6 +6,13 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-border: var(--warn-border);
+  --color-warn-fg: var(--warn-fg);
+  --color-warn-chip: var(--warn-chip);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-fg: var(--ok-fg);
+  --color-mark: var(--mark);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -79,6 +86,13 @@
   --moscow-should: oklch(0.55 0.15 250);
   --moscow-could: oklch(0.6 0.12 160);
   --moscow-wont: oklch(0.6 0 0);
+  --warn-bg: oklch(0.987 0.022 95);
+  --warn-border: oklch(0.924 0.12 95.746);
+  --warn-fg: oklch(0.414 0.112 45.904);
+  --warn-chip: oklch(0.962 0.059 95.617);
+  --ok-bg: oklch(0.979 0.021 166.113);
+  --ok-fg: oklch(0.432 0.095 166.913);
+  --mark: oklch(0.945 0.08 95);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -90,6 +104,18 @@
 }
 
 .dark {
+  color-scheme: dark;
+  --moscow-must: oklch(0.72 0.17 25);
+  --moscow-should: oklch(0.74 0.13 250);
+  --moscow-could: oklch(0.76 0.12 160);
+  --moscow-wont: oklch(0.6 0 0);
+  --warn-bg: oklch(0.32 0.06 70 / 35%);
+  --warn-border: oklch(0.55 0.11 75 / 45%);
+  --warn-fg: oklch(0.86 0.12 85);
+  --warn-chip: oklch(0.45 0.09 75 / 45%);
+  --ok-bg: oklch(0.35 0.06 165 / 35%);
+  --ok-fg: oklch(0.8 0.13 165);
+  --mark: oklch(0.55 0.11 85 / 45%);
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

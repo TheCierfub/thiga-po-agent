@@ -44,7 +44,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
 
   if (!theme) {
     return (
-      <div className="grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <div className="grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
         {nav}
         <div className="space-y-3">
           <Empty>
@@ -69,7 +69,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
   const ref = story ? view.strategy.referenceStories.find((r) => r.id === story.referenceStoryId) : undefined;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)]">
+    <div className="grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
       {nav}
       <div className="min-w-0 space-y-8">
         <div className="flex flex-col gap-4 animate-enter xl:flex-row xl:items-start xl:justify-between">
@@ -141,7 +141,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
                         title={story.invest[k].note}
                         className={cn(
                           "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs ring-1 ring-inset",
-                          story.invest[k].ok ? "text-foreground/80 ring-border" : "bg-amber-50 text-amber-800 ring-amber-200",
+                          story.invest[k].ok ? "text-foreground/80 ring-border" : "bg-warn-bg text-warn-fg ring-warn-border",
                         )}
                       >
                         {story.invest[k].ok ? <CheckIcon className="size-3" /> : <XIcon className="size-3" />}
@@ -209,7 +209,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
                   <p className="mt-2 text-sm leading-relaxed whitespace-pre-line">
                     {highlightQuotes(f.maskedText, quotes).map((part, i) =>
                       part.quote ? (
-                        <mark key={i} className="rounded-sm bg-amber-100 px-0.5 text-foreground">
+                        <mark key={i} className="rounded-sm bg-mark px-0.5 text-foreground">
                           {part.text}
                         </mark>
                       ) : (

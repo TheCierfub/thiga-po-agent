@@ -9,7 +9,7 @@ const MOSCOW_STYLE: Record<MoscowClass, string> = {
   Should: "bg-[color-mix(in_oklch,var(--moscow-should)_12%,transparent)] text-(--moscow-should) ring-(--moscow-should)/25",
   Could: "bg-[color-mix(in_oklch,var(--moscow-could)_14%,transparent)] text-(--moscow-could) ring-(--moscow-could)/25",
   "Won't": "bg-muted text-muted-foreground ring-border",
-  "À confirmer": "bg-amber-50 text-amber-700 ring-amber-200",
+  "À confirmer": "bg-warn-bg text-warn-fg ring-warn-border",
   "Hors arbitrage": "bg-muted text-muted-foreground ring-border",
 };
 

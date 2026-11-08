@@ -131,7 +131,7 @@ async function BriefPageContent({ params }: Pick<PageProps<"/[batch]">, "params"
         index={6}
         title={
           <span className="inline-flex items-center gap-1.5">
-            <ShieldAlertIcon className="size-4 text-amber-600" /> Quarantaine
+            <ShieldAlertIcon className="size-4 text-warn-fg" /> Quarantaine
           </span>
         }
         description="Feedbacks qui contiennent une consigne adressée à l'agent. Ils sont exclus du scoring ; aucune consigne n'a été suivie. Le texte est affiché comme donnée, pour relecture."
@@ -144,19 +144,19 @@ async function BriefPageContent({ params }: Pick<PageProps<"/[batch]">, "params"
               const f = feedback.get(c.feedbackId)!;
               const reasons = [...c.injection.heuristicSignals.map((s) => SIGNAL_LABEL[s] ?? s), ...(c.injection.llmSuspected ? ["signalé aussi par le LLM"] : [])];
               return (
-                <li key={f.id} className="rounded-xl border border-amber-200/70 bg-amber-50/40 p-4">
+                <li key={f.id} className="rounded-xl border border-warn-border bg-warn-bg/60 p-4">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-medium">{CHANNEL_LABEL[f.channel]}</span>
                     <FeedbackRef batch={batch} id={f.id} className="ml-auto" />
                   </div>
                   <ul className="mt-2 flex flex-wrap gap-1.5">
                     {reasons.map((r) => (
-                      <li key={r} className="rounded-md bg-amber-100/80 px-1.5 py-0.5 text-xs text-amber-900">
+                      <li key={r} className="rounded-md bg-warn-chip px-1.5 py-0.5 text-xs text-warn-fg">
                         {r}
                       </li>
                     ))}
                   </ul>
-                  <blockquote className="mt-3 line-clamp-4 border-l-2 border-amber-300 pl-3 font-mono text-xs leading-relaxed text-muted-foreground">
+                  <blockquote className="mt-3 line-clamp-4 border-l-2 border-warn-border pl-3 font-mono text-xs leading-relaxed text-muted-foreground">
                     {f.maskedText}
                   </blockquote>
                   <p className="mt-2 text-xs text-muted-foreground">Faux positif ? Libérez-le dans data/po-decisions.json après relecture.</p>

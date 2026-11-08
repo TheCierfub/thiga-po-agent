@@ -18,7 +18,7 @@ export function ChangesPanel({ batch, changes, accounts }: { batch: string; chan
   return (
     <div className="space-y-3">
       {changes.plan.staleConfirmations.length > 0 ? (
-        <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm text-amber-900">
+        <div className="flex gap-2 rounded-xl border border-warn-border bg-warn-bg px-4 py-3 text-sm text-warn-fg">
           <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
           <p>
             {changes.plan.staleConfirmations.length} confirmation(s) du PO à revoir : les preuves ont changé depuis.{" "}

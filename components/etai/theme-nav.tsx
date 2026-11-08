@@ -28,7 +28,7 @@ export function ThemeNav({ current }: { current: string }) {
                 t.key === current ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
               )}
             >
-              <span className="min-w-0 flex-1 truncate">{t.title}</span>
+              <span className="min-w-0 flex-1 truncate lg:line-clamp-2 lg:whitespace-normal">{t.title}</span>
               {stories.has(t.key) ? <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">story</span> : null}
               <MoscowBadge value={decisionByKey.get(t.key)!.moscow} forced={Boolean(overrides.forced[t.key])} />
             </Link>

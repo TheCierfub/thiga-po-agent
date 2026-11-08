@@ -42,7 +42,7 @@ export function PrioritizationBoard() {
         <CapacityBar allocation={allocation} strategy={view.strategy} />
       </div>
       {allocation.alerts.map((a) => (
-        <div key={a.code} className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm text-amber-900 animate-enter">
+        <div key={a.code} className="flex gap-2 rounded-xl border border-warn-border bg-warn-bg px-4 py-3 text-sm text-warn-fg animate-enter">
           <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
           <p>{a.message}</p>
         </div>
@@ -325,7 +325,7 @@ function Detail({
             {SIZES.map((s) => (
               <tr key={s} className={cn(s === rice.effort.size ? "font-medium text-foreground" : "text-muted-foreground")}>
                 <td className="py-0.5 pr-2 font-mono">{s}</td>
-                <td className="py-0.5 pr-2 font-mono tabular-nums">{view.strategy.sizePoints[s]} pt</td>
+                <td className="py-0.5 pr-2 font-mono whitespace-nowrap tabular-nums">{view.strategy.sizePoints[s]} pt</td>
                 <td className="py-0.5">{view.strategy.referenceStories.filter((r) => r.size === s).map((r) => r.title).join(", ")}</td>
               </tr>
             ))}
@@ -347,7 +347,7 @@ function Detail({
           <p className="text-xs">
             Contrainte {CONSTRAINT_LABEL[decision.constraint.kind].toLowerCase()} ·{" "}
             {decision.constraint.confirmationStale ? (
-              <span className="font-medium text-amber-700">à revoir</span>
+              <span className="font-medium text-warn-fg">à revoir</span>
             ) : decision.constraint.confirmed ? (
               "confirmée par le PO"
             ) : (
