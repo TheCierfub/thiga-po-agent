@@ -1,0 +1,21 @@
+{
+  "task": "classify",
+  "key": "fb-jeudi-07",
+  "inputHash": "b5a19925e85b6424",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "friction",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Les notes internes apparaissent dans ce qui part au maître d'ouvrage.",
+    "actionable": true,
+    "quotes": [
+      "apparaissent dans le PDF",
+      "je ne peux pas utiliser l'export en mission"
+    ]
+  }
+}

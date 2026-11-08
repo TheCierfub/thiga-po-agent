@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-32",
+  "inputHash": "50250cf0d408d3aa",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "majeure",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "J'ai tué l'appli, rien ne change."
+    ]
+  }
+}

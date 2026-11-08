@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-18",
+  "inputHash": "48dc8369bd6dac77",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "friction",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Le client du chantier ne voit pas l'avancement sans que l'équipe recopie un document.",
+    "actionable": true,
+    "quotes": [
+      "Je n'ai rien à lui montrer sans lui donner un accès complet"
+    ]
+  }
+}

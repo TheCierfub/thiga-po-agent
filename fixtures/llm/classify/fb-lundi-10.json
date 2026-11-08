@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-10",
+  "inputHash": "472d50018081061c",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Le client du chantier ne voit pas l'avancement sans que l'équipe recopie un document.",
+    "actionable": true,
+    "quotes": [
+      "il nous faut une page à nos couleurs, avec notre logo"
+    ]
+  }
+}

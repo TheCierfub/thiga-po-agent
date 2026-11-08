@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-03",
+  "inputHash": "b4059b73808010fb",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "hors_sujet",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Demande de tarif pour un groupe, sans retour produit.",
+    "actionable": true,
+    "quotes": [
+      "Vous faites un tarif cadre ?"
+    ]
+  }
+}

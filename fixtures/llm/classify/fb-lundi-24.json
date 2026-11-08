@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-24",
+  "inputHash": "2677e7647e0ed657",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Le client du chantier ne voit pas l'avancement sans que l'équipe recopie un document.",
+    "actionable": true,
+    "quotes": [
+      "un lien qu'il ouvre depuis son téléphone me va aussi"
+    ]
+  }
+}

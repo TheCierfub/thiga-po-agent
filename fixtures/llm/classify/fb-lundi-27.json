@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-27",
+  "inputHash": "506c3e331869c5e7",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Le questionnaire sécurité d'Helia bloque sans SSO SAML.",
+    "actionable": true,
+    "quotes": [
+      "close the vendor review for the Nantes branch"
+    ]
+  }
+}

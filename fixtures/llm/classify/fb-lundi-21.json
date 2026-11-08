@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-21",
+  "inputHash": "a30f79629c31fa9c",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "friction",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Une réserve décrite en texte est mal localisée par le client.",
+    "actionable": true,
+    "quotes": [
+      "Épingler la réserve sur la photo réglerait le débat."
+    ]
+  }
+}

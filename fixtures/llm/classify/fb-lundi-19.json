@@ -1,0 +1,21 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-19",
+  "inputHash": "f680189a914c1d63",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "signal_churn",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Risque de non-renouvellement lié au compte-rendu client.",
+    "actionable": true,
+    "quotes": [
+      "On regarde Vertuoza.",
+      "je ne renouvelle pas en décembre"
+    ]
+  }
+}

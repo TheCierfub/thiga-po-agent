@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-jeudi-10",
+  "inputHash": "cbfcfb64af25efec",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "signal_churn",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Coupure annoncée au 30 novembre, motif : partage client.",
+    "actionable": true,
+    "quotes": [
+      "on coupe Étai au 30 novembre"
+    ]
+  }
+}

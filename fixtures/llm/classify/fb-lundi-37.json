@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-37",
+  "inputHash": "6af327e36e28acaf",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "friction",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Le client du chantier ne voit pas l'avancement sans que l'équipe recopie un document.",
+    "actionable": true,
+    "quotes": [
+      "soit je l'ajoute (il voit les notes internes, mauvais) soit je lui envoie un zip"
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-04",
+  "inputHash": "1ba86fe1801a1354",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Le client du chantier ne voit pas l'avancement sans que l'équipe recopie un document.",
+    "actionable": true,
+    "quotes": [
+      "il ne modifie rien, et il n'a pas à créer un compte"
+    ]
+  }
+}

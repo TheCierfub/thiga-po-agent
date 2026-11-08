@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-12",
+  "inputHash": "f40c307e927c6d79",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "friction",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Un problème d'usage sur le terrain, sans détail exploitable.",
+    "actionable": false,
+    "quotes": [
+      "Sur le terrain c'est pas ça."
+    ]
+  }
+}

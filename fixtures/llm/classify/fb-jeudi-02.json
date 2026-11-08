@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-jeudi-02",
+  "inputHash": "6f1a372664776def",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Le comité SI d'Helia attend une date de livraison du SSO.",
+    "actionable": true,
+    "quotes": [
+      "le comité SI du 12 novembre attend une date de livraison pour le SSO"
+    ]
+  }
+}

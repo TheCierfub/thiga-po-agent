@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-jeudi-01",
+  "inputHash": "0141aa8b4267847f",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Les notifications ne correspondent pas au rôle : trop de mails pour les uns, pas assez vite pour les autres.",
+    "actionable": true,
+    "quotes": [
+      "Il nous faut un réglage par rôle avant d'élargir"
+    ]
+  }
+}

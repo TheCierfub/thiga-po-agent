@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-11",
+  "inputHash": "92eb0641130c6263",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "L'écran blanc éblouit lors des saisies du soir.",
+    "actionable": true,
+    "quotes": [
+      "+1 pour le thème sombre."
+    ]
+  }
+}

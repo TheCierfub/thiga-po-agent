@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-jeudi-03",
+  "inputHash": "a9d094f7c0430d48",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "critique",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "Les réserves garde-corps ne sont toujours pas revenues."
+    ]
+  }
+}

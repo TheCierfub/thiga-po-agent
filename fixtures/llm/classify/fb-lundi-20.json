@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-20",
+  "inputHash": "6eacec47f8874236",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "L'écran blanc éblouit lors des saisies du soir.",
+    "actionable": true,
+    "quotes": [
+      "Le mode sombre, toujours pas."
+    ]
+  }
+}

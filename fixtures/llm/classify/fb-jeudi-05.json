@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-jeudi-05",
+  "inputHash": "0097641087f08042",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "friction",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Le client du chantier ne voit pas l'avancement sans que l'équipe recopie un document.",
+    "actionable": true,
+    "quotes": [
+      "Il veut un lien qu'il ouvre, sans installer quoi que ce soit et sans voir nos notes internes."
+    ]
+  }
+}

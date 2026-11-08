@@ -11,7 +11,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "agent": "tsx core/cli/main.ts",
-    "eval": "tsx core/eval/main.ts"
+    "eval": "tsx core/eval/main.ts",
+    "fixtures:author": "tsx scripts/author-fixtures.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.99",

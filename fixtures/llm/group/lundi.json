@@ -1,0 +1,160 @@
+{
+  "task": "group",
+  "key": "lundi",
+  "inputHash": "d39361618010436d",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "themes": [
+      {
+        "key": "partage_client",
+        "title": "Montrer l'avancement au client sans lui ouvrir l'outil",
+        "problem": "Le client ne voit pas l'avancement : l'équipe recopie PDF, slides ou captures. Les solutions citées divergent (PDF, lien, page à la marque) pour un même problème.",
+        "feedbackIds": [
+          "fb-lundi-01",
+          "fb-lundi-04",
+          "fb-lundi-10",
+          "fb-lundi-16",
+          "fb-lundi-18",
+          "fb-lundi-24",
+          "fb-lundi-37"
+        ],
+        "relatedSignalIds": [
+          "fb-lundi-19",
+          "fb-lundi-40"
+        ],
+        "backlogIssueId": "LIN-41",
+        "backlogRelation": "lie",
+        "quotes": [
+          {
+            "feedbackId": "fb-lundi-16",
+            "text": "je refais un powerpoint tous les vendredis pour la promo"
+          },
+          {
+            "feedbackId": "fb-lundi-04",
+            "text": "il ne modifie rien, et il n'a pas à créer un compte"
+          },
+          {
+            "feedbackId": "fb-lundi-10",
+            "text": "il nous faut une page à nos couleurs, avec notre logo"
+          }
+        ]
+      },
+      {
+        "key": "synchro_2_4",
+        "title": "Régression de synchronisation après la 2.4",
+        "problem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+        "feedbackIds": [
+          "fb-lundi-28",
+          "fb-lundi-29",
+          "fb-lundi-30",
+          "fb-lundi-32",
+          "fb-lundi-33",
+          "fb-lundi-34",
+          "fb-lundi-38",
+          "fb-lundi-39"
+        ],
+        "relatedSignalIds": [],
+        "backlogIssueId": null,
+        "backlogRelation": "aucun",
+        "quotes": [
+          {
+            "feedbackId": "fb-lundi-34",
+            "text": "ne sont plus dans l'application"
+          },
+          {
+            "feedbackId": "fb-lundi-38",
+            "text": "saisie OK sur le téléphone, liste web incomplète le soir"
+          }
+        ]
+      },
+      {
+        "key": "theme_sombre",
+        "title": "Thème sombre pour la saisie du soir",
+        "problem": "L'écran blanc éblouit lors des saisies du soir.",
+        "feedbackIds": [
+          "fb-lundi-02",
+          "fb-lundi-06",
+          "fb-lundi-11",
+          "fb-lundi-15",
+          "fb-lundi-20",
+          "fb-lundi-31"
+        ],
+        "relatedSignalIds": [],
+        "backlogIssueId": "LIN-70",
+        "backlogRelation": "doublon",
+        "quotes": [
+          {
+            "feedbackId": "fb-lundi-02",
+            "text": "l'écran blanc m'éblouit"
+          }
+        ]
+      },
+      {
+        "key": "notifications",
+        "title": "Régler la fréquence des notifications selon le rôle",
+        "problem": "Les notifications ne correspondent pas au rôle : trop de mails pour les uns, pas assez vite pour les autres.",
+        "feedbackIds": [
+          "fb-lundi-08",
+          "fb-lundi-14",
+          "fb-lundi-23",
+          "fb-lundi-35"
+        ],
+        "relatedSignalIds": [],
+        "backlogIssueId": "LIN-27",
+        "backlogRelation": "doublon",
+        "quotes": [
+          {
+            "feedbackId": "fb-lundi-08",
+            "text": "Un résumé en fin de journée me suffirait largement."
+          },
+          {
+            "feedbackId": "fb-lundi-35",
+            "text": "Il faut un immédiat pour les blocages"
+          }
+        ]
+      },
+      {
+        "key": "epingle_photo",
+        "title": "Montrer l'endroit d'une réserve sur la photo",
+        "problem": "Une réserve décrite en texte est mal localisée par le client.",
+        "feedbackIds": [
+          "fb-lundi-07",
+          "fb-lundi-17",
+          "fb-lundi-21"
+        ],
+        "relatedSignalIds": [],
+        "backlogIssueId": "LIN-36",
+        "backlogRelation": "doublon",
+        "quotes": [
+          {
+            "feedbackId": "fb-lundi-07",
+            "text": "Le client comprend un autre mur."
+          },
+          {
+            "feedbackId": "fb-lundi-17",
+            "text": "est-ce qu'on peut entourer la zone sur la photo ?"
+          }
+        ]
+      },
+      {
+        "key": "sso_contrat",
+        "title": "SSO SAML exigé par le contrat Helia",
+        "problem": "Le contrat d'Helia impose le SSO SAML avant d'étendre Étai au-delà de 30 utilisateurs.",
+        "feedbackIds": [
+          "fb-lundi-09",
+          "fb-lundi-27"
+        ],
+        "relatedSignalIds": [],
+        "backlogIssueId": null,
+        "backlogRelation": "aucun",
+        "quotes": [
+          {
+            "feedbackId": "fb-lundi-09",
+            "text": "impose une authentification SAML avant d'étendre Étai au-delà des 30 premiers utilisateurs"
+          }
+        ]
+      }
+    ]
+  }
+}

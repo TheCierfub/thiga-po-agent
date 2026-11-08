@@ -1,0 +1,18 @@
+{
+  "task": "assess",
+  "key": "jeudi--notes_internes",
+  "inputHash": "14d867feb8e079fb",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "impact": 2,
+    "impactRationale": "Sans masquage, le partage client expose des notes internes.",
+    "okrId": "OKR1",
+    "effortSize": "S",
+    "referenceStoryId": "LIN-104",
+    "effortRationale": "Déjà estimé S sur LIN-52.",
+    "constraint": null,
+    "strategyFit": "aligne",
+    "strategyRationale": "Condition du partage client (OKR 1). Déjà en cours."
+  }
+}

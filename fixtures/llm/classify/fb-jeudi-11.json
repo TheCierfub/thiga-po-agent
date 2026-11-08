@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-jeudi-11",
+  "inputHash": "68a3f9f704702ff3",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "majeure",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "les photos grises, toujours"
+    ]
+  }
+}

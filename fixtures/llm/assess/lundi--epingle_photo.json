@@ -1,0 +1,18 @@
+{
+  "task": "assess",
+  "key": "lundi--epingle_photo",
+  "inputHash": "2b84619651bcb2a5",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "impact": 1,
+    "impactRationale": "Évite des allers-retours sur la localisation des réserves.",
+    "okrId": null,
+    "effortSize": "S",
+    "referenceStoryId": "LIN-104",
+    "effortRationale": "Annoter une photo existante, du même ordre que LIN-104.",
+    "constraint": null,
+    "strategyFit": "neutre",
+    "strategyRationale": "Utile, sans lien direct avec un OKR du trimestre."
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "task": "assess",
+  "key": "jeudi--synchro_2_4",
+  "inputHash": "a97bf629ece9fe82",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "impact": 3,
+    "impactRationale": "Perte de saisies sur la version courante : l'OKR 2 est directement touché. Le signal continue après le 2 novembre.",
+    "okrId": "OKR2",
+    "effortSize": "M",
+    "referenceStoryId": "LIN-088",
+    "effortRationale": "Correctif ciblé de la file de synchronisation, du même ordre que LIN-088.",
+    "constraint": {
+      "kind": "coeur_casse",
+      "rationale": "Des réserves disparaissent avant une inspection : la fonction centrale du produit est cassée.",
+      "quote": {
+        "feedbackId": "fb-lundi-34",
+        "text": "ne sont plus dans l'application"
+      }
+    },
+    "strategyFit": "aligne",
+    "strategyRationale": "Aligné sur l'OKR 2 (fiabilité de la saisie terrain)."
+  }
+}

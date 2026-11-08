@@ -1,0 +1,18 @@
+{
+  "task": "investigate",
+  "key": "fb-lundi-12",
+  "inputHash": "49b85ac753a05e89",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "questions": [
+      "À quel moment de la journée ça coince : la saisie d'une réserve, les photos, la recherche, ou quand il n'y a pas de réseau ?",
+      "Que font vos compagnons à la place aujourd'hui ?",
+      "Est-ce sur un chantier précis, et depuis quand ?"
+    ],
+    "message": {
+      "subject": "Votre retour sur Étai",
+      "body": "Bonjour Rachid,\n\nMerci d'avoir pris le temps d'écrire. Pour comprendre ce qui ne va pas sur le terrain, j'ai trois questions courtes :\n\n1. À quel moment de la journée ça coince : la saisie d'une réserve, les photos, la recherche, ou quand il n'y a pas de réseau ?\n2. Que font vos compagnons à la place aujourd'hui ?\n3. Est-ce sur un chantier précis, et depuis quand ?\n\nUne réponse de quelques lignes suffit. Si c'est plus simple, je peux aussi vous appeler.\n\nNadia, produit Étai"
+    }
+  }
+}

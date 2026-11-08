@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-jeudi-06",
+  "inputHash": "025b73333289018c",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "majeure",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "je saisis en double par sécurité, c'est absurde"
+    ]
+  }
+}

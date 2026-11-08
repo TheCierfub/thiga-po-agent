@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-08",
+  "inputHash": "81b13dfa39b54263",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "friction",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Les notifications ne correspondent pas au rôle : trop de mails pour les uns, pas assez vite pour les autres.",
+    "actionable": true,
+    "quotes": [
+      "Un résumé en fin de journée me suffirait largement."
+    ]
+  }
+}

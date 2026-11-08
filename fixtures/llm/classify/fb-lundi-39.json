@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-39",
+  "inputHash": "7162b9dbe9eacf24",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "majeure",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "la synchro 2.4 nous lâche dès qu'on passe en sous-sol"
+    ]
+  }
+}

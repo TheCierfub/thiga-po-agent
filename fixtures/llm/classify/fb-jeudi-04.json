@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-jeudi-04",
+  "inputHash": "17f397e04e58b1b7",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "majeure",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "deux saisies de 7h30 absentes du web à 9h"
+    ]
+  }
+}

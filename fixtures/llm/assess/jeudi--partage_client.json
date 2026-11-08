@@ -1,0 +1,18 @@
+{
+  "task": "assess",
+  "key": "jeudi--partage_client",
+  "inputHash": "544dd8ff50999f23",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "impact": 2,
+    "impactRationale": "Sert directement l'OKR 1 et pèse dans deux signaux de churn. Un doublon de LIN-41 et une date de coupure chez Dune s'ajoutent.",
+    "okrId": "OKR1",
+    "effortSize": "S",
+    "referenceStoryId": "LIN-104",
+    "effortRationale": "Un lien de lecture seule (LIN-41) est comparable à LIN-104 : une vue existante, exposée sans compte. Le portail à la marque serait plus gros.",
+    "constraint": null,
+    "strategyFit": "aligne",
+    "strategyRationale": "Aligné sur l'OKR 1 (partage client hebdomadaire)."
+  }
+}

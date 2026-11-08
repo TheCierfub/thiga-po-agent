@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-13",
+  "inputHash": "b6d825d91d48afdf",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "eloge",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Les compagnons ont adopté la saisie photo.",
+    "actionable": true,
+    "quotes": [
+      "On a lâché le groupe WhatsApp pour les réserves."
+    ]
+  }
+}

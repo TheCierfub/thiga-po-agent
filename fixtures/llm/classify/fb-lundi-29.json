@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-29",
+  "inputHash": "34666f2e23ba13a6",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "majeure",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "Deux réserves de la matinée sont restées sur mon téléphone."
+    ]
+  }
+}

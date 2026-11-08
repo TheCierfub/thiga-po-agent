@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-30",
+  "inputHash": "ceced5465ae0297b",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "majeure",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "mais sur l'ordi du conducteur y'a un carré gris"
+    ]
+  }
+}

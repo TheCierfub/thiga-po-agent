@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-15",
+  "inputHash": "42edd190bc9c2bcf",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "L'écran blanc éblouit lors des saisies du soir.",
+    "actionable": true,
+    "quotes": [
+      "Je ferme l'appli au bout de dix minutes le soir."
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-38",
+  "inputHash": "5647805c90bc7470",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "majeure",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "saisie OK sur le téléphone, liste web incomplète le soir"
+    ]
+  }
+}

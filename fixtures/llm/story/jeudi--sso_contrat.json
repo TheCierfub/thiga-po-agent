@@ -1,0 +1,75 @@
+{
+  "task": "story",
+  "key": "jeudi--sso_contrat",
+  "inputHash": "4bc3d56018fce2aa",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "title": "Se connecter à Étai avec le SSO SAML de l'entreprise",
+    "asA": "responsable informatique d'un compte Enterprise",
+    "iWant": "que mes collaborateurs se connectent à Étai avec notre fournisseur d'identité SAML",
+    "soThat": "notre revue sécurité valide l'extension au-delà de 30 utilisateurs, sans mot de passe local",
+    "acceptanceCriteria": [
+      {
+        "given": "un compte Enterprise dont l'administrateur a renseigné les métadonnées SAML de son fournisseur d'identité",
+        "when": "un collaborateur ouvre Étai et choisit « Se connecter avec l'entreprise »",
+        "then": "il est authentifié par le fournisseur d'identité et arrive sur ses chantiers"
+      },
+      {
+        "given": "le SSO activé et rendu obligatoire pour le compte",
+        "when": "un utilisateur du compte tente une connexion par mot de passe local",
+        "then": "la connexion est refusée et il est renvoyé vers le SSO"
+      },
+      {
+        "given": "un collaborateur désactivé dans le fournisseur d'identité",
+        "when": "il tente d'ouvrir Étai",
+        "then": "l'accès est refusé dès la session suivante"
+      },
+      {
+        "given": "la story livrée en recette",
+        "when": "l'administrateur d'Helia remplit le questionnaire sécurité",
+        "then": "la ligne « SSO d'entreprise (SAML) » peut passer à « oui »"
+      }
+    ],
+    "size": "L",
+    "referenceStoryId": "LIN-063",
+    "sizeRationale": "Plus lourd que LIN-063 (accès limité à un chantier) : configuration par compte, recette avec le fournisseur d'identité du client, revue sécurité.",
+    "invest": {
+      "independent": {
+        "ok": true,
+        "note": "Ne dépend d'aucune autre story ouverte."
+      },
+      "negotiable": {
+        "ok": true,
+        "note": "Le provisioning automatique des comptes reste négociable."
+      },
+      "valuable": {
+        "ok": true,
+        "note": "Débloque le déploiement contractuel d'Helia sur Nantes et Grenoble."
+      },
+      "estimable": {
+        "ok": false,
+        "note": "Le fournisseur d'identité d'Helia n'est pas encore connu : l'estimation peut bouger."
+      },
+      "small": {
+        "ok": false,
+        "note": "Taille L : à découper si l'équipe le juge trop gros (connexion SAML d'abord, désactivation ensuite)."
+      },
+      "testable": {
+        "ok": true,
+        "note": "Chaque critère se vérifie avec un fournisseur d'identité de test."
+      }
+    },
+    "openQuestions": [
+      "Quel fournisseur d'identité utilise Helia ?",
+      "Garde-t-on un mot de passe local de secours pour l'administrateur du compte ?",
+      "Le provisioning automatique (SCIM) est-il exigé par l'avenant, ou seulement la connexion ?",
+      "Quelle date annonce-t-on au comité SI du 12 novembre, avant estimation fine ?"
+    ],
+    "outOfScope": [
+      "Provisioning SCIM",
+      "OpenID Connect",
+      "SSO pour les comptes Pro"
+    ]
+  }
+}

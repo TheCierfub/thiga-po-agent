@@ -1,0 +1,17 @@
+{
+  "confirmedConstraints": [
+    {
+      "themeKey": "sso_contrat",
+      "batch": "lundi",
+      "note": "Avenant Helia du 12 mars 2026, article 4.2 : vérifié dans le contrat."
+    },
+    {
+      "themeKey": "synchro_2_4",
+      "batch": "lundi",
+      "note": "Perte de réserves avant inspection : cœur du produit cassé."
+    }
+  ],
+  "rejectedConstraints": [],
+  "overrides": [],
+  "releasedFromQuarantine": []
+}

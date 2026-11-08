@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-25",
+  "inputHash": "6a8979e03a0d7f2d",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "hors_sujet",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Erreur de facturation.",
+    "actionable": true,
+    "quotes": [
+      "comporte un siège Pro en trop"
+    ]
+  }
+}

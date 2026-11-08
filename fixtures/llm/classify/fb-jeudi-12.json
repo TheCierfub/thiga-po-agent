@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-jeudi-12",
+  "inputHash": "e100733a752c0d21",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "question",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Ne sait pas comment découper les lots.",
+    "actionable": true,
+    "quotes": [
+      "Je ne sais pas si je dois créer un lot par entreprise ou par étage."
+    ]
+  }
+}

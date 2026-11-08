@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-35",
+  "inputHash": "6bf7d8077c36e288",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Les notifications ne correspondent pas au rôle : trop de mails pour les uns, pas assez vite pour les autres.",
+    "actionable": true,
+    "quotes": [
+      "Il faut un immédiat pour les blocages"
+    ]
+  }
+}

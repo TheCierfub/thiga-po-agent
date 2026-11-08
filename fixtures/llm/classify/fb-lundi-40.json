@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-40",
+  "inputHash": "d250f91ab27a3594",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "signal_churn",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Arrêt annoncé si le partage client ne change pas.",
+    "actionable": true,
+    "quotes": [
+      "On arrêtera à la fin du mois si rien ne change dans la façon de montrer le chantier au client."
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "task": "assess",
+  "key": "jeudi--theme_sombre",
+  "inputHash": "d8387bae3764c0af",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "impact": 0.25,
+    "impactRationale": "Confort d'affichage pour deux comptes gratuits. Un message de plus, même compte.",
+    "okrId": null,
+    "effortSize": "XS",
+    "referenceStoryId": "LIN-091",
+    "effortRationale": "Une bascule de thème est plus petite que LIN-091.",
+    "constraint": null,
+    "strategyFit": "non_objectif",
+    "strategyRationale": "Le thème sombre figure dans les non-objectifs du trimestre."
+  }
+}

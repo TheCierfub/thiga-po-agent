@@ -1,0 +1,119 @@
+{
+  "task": "group",
+  "key": "jeudi",
+  "inputHash": "cc648d26ea91c3c6",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "themes": [
+      {
+        "key": "notifications",
+        "title": "Régler la fréquence des notifications selon le rôle",
+        "problem": "Les notifications ne correspondent pas au rôle : trop de mails pour les uns, pas assez vite pour les autres.",
+        "feedbackIds": [
+          "fb-jeudi-01",
+          "fb-jeudi-09"
+        ],
+        "relatedSignalIds": [],
+        "backlogIssueId": "LIN-27",
+        "backlogRelation": "doublon",
+        "quotes": [
+          {
+            "feedbackId": "fb-jeudi-01",
+            "text": "Il nous faut un réglage par rôle avant d'élargir"
+          }
+        ]
+      },
+      {
+        "key": "sso_contrat",
+        "title": "SSO SAML exigé par le contrat Helia",
+        "problem": "Le contrat d'Helia impose le SSO SAML.",
+        "feedbackIds": [
+          "fb-jeudi-02"
+        ],
+        "relatedSignalIds": [],
+        "backlogIssueId": null,
+        "backlogRelation": "aucun",
+        "quotes": [
+          {
+            "feedbackId": "fb-jeudi-02",
+            "text": "le comité SI du 12 novembre attend une date de livraison pour le SSO"
+          }
+        ]
+      },
+      {
+        "key": "synchro_2_4",
+        "title": "Régression de synchronisation après la 2.4",
+        "problem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+        "feedbackIds": [
+          "fb-jeudi-03",
+          "fb-jeudi-04",
+          "fb-jeudi-06",
+          "fb-jeudi-11"
+        ],
+        "relatedSignalIds": [],
+        "backlogIssueId": null,
+        "backlogRelation": "aucun",
+        "quotes": [
+          {
+            "feedbackId": "fb-jeudi-03",
+            "text": "Les réserves garde-corps ne sont toujours pas revenues."
+          }
+        ]
+      },
+      {
+        "key": "partage_client",
+        "title": "Montrer l'avancement au client sans lui ouvrir l'outil",
+        "problem": "Le client du chantier ne voit pas l'avancement sans que l'équipe recopie un document.",
+        "feedbackIds": [
+          "fb-jeudi-05"
+        ],
+        "relatedSignalIds": [
+          "fb-jeudi-10"
+        ],
+        "backlogIssueId": "LIN-41",
+        "backlogRelation": "lie",
+        "quotes": [
+          {
+            "feedbackId": "fb-jeudi-05",
+            "text": "Il veut un lien qu'il ouvre, sans installer quoi que ce soit et sans voir nos notes internes."
+          }
+        ]
+      },
+      {
+        "key": "theme_sombre",
+        "title": "Thème sombre pour la saisie du soir",
+        "problem": "L'écran blanc éblouit lors des saisies du soir.",
+        "feedbackIds": [
+          "fb-jeudi-08"
+        ],
+        "relatedSignalIds": [],
+        "backlogIssueId": "LIN-70",
+        "backlogRelation": "doublon",
+        "quotes": [
+          {
+            "feedbackId": "fb-jeudi-08",
+            "text": "le soir, on ne s'en sert plus"
+          }
+        ]
+      },
+      {
+        "key": "notes_internes",
+        "title": "Masquer les notes internes de ce qui part au client",
+        "problem": "Les notes marquées internes apparaissent dans l'export transmis au maître d'ouvrage.",
+        "feedbackIds": [
+          "fb-jeudi-07"
+        ],
+        "relatedSignalIds": [],
+        "backlogIssueId": "LIN-52",
+        "backlogRelation": "doublon",
+        "quotes": [
+          {
+            "feedbackId": "fb-jeudi-07",
+            "text": "apparaissent dans le PDF"
+          }
+        ]
+      }
+    ]
+  }
+}

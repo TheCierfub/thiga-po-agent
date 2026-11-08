@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-05",
+  "inputHash": "7d6d726f649b3ed5",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "question",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Ne sait pas comment archiver un chantier terminé.",
+    "actionable": true,
+    "quotes": [
+      "comment j'archive un chantier terminé ?"
+    ]
+  }
+}

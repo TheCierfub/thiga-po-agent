@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-28",
+  "inputHash": "4b4fcaca57da4563",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "majeure",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "les réserves que je saisis quand je n'ai pas de réseau ne remontent pas"
+    ]
+  }
+}

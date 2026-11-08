@@ -1,0 +1,18 @@
+{
+  "task": "assess",
+  "key": "lundi--notifications",
+  "inputHash": "fd5a7e1c4c4ede7b",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "impact": 1,
+    "impactRationale": "Gêne quotidienne réelle, avec deux besoins opposés à concilier par un réglage.",
+    "okrId": null,
+    "effortSize": "S",
+    "referenceStoryId": "LIN-076",
+    "effortRationale": "Plus petit que LIN-076 : l'envoi existe déjà, il s'agit d'un réglage par rôle et par gravité.",
+    "constraint": null,
+    "strategyFit": "neutre",
+    "strategyRationale": "Ne sert pas directement un OKR du trimestre."
+  }
+}

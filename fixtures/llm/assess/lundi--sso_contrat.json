@@ -1,0 +1,25 @@
+{
+  "task": "assess",
+  "key": "lundi--sso_contrat",
+  "inputHash": "088da6d3e86fe6ec",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "impact": 2,
+    "impactRationale": "Débloque le déploiement d'un compte Enterprise sur deux agences.",
+    "okrId": null,
+    "effortSize": "L",
+    "referenceStoryId": "LIN-063",
+    "effortRationale": "Plus lourd que LIN-063 : fournisseur d'identité, revue DSI, recette avec le client.",
+    "constraint": {
+      "kind": "contrat",
+      "rationale": "Annexe sécurité du contrat Helia, échéance du 1er mars 2027.",
+      "quote": {
+        "feedbackId": "fb-lundi-09",
+        "text": "impose une authentification SAML avant d'étendre Étai au-delà des 30 premiers utilisateurs"
+      }
+    },
+    "strategyFit": "neutre",
+    "strategyRationale": "Hors OKR, mais exigé par un contrat signé."
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-22",
+  "inputHash": "10be9ebc3984225a",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "hors_sujet",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Démarchage commercial.",
+    "actionable": true,
+    "quotes": [
+      "Free audit this week?"
+    ]
+  }
+}

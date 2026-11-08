@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-33",
+  "inputHash": "b96a59a174d718cf",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "bug",
+    "severity": "majeure",
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Des saisies faites avec peu ou pas de réseau ne remontent pas, ou disparaissent, depuis la 2.4.",
+    "actionable": true,
+    "quotes": [
+      "n'était plus ni sur le téléphone ni sur le web"
+    ]
+  }
+}

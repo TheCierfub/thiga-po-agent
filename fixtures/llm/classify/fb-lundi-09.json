@@ -1,0 +1,21 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-09",
+  "inputHash": "b8bfd3f04f999e87",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "Le contrat Helia exige le SSO SAML avant d'ouvrir plus de 30 utilisateurs.",
+    "actionable": true,
+    "quotes": [
+      "impose une authentification SAML avant d'étendre Étai au-delà des 30 premiers utilisateurs",
+      "Sans SSO, on n'ouvrira pas les comptes prévus au renouvellement."
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "task": "classify",
+  "key": "fb-lundi-06",
+  "inputHash": "e02acd8969f04564",
+  "origin": "redigee",
+  "model": null,
+  "response": {
+    "type": "demande",
+    "severity": null,
+    "injection": {
+      "suspected": false,
+      "excerpt": null
+    },
+    "underlyingProblem": "L'écran blanc éblouit lors des saisies du soir.",
+    "actionable": true,
+    "quotes": [
+      "mode sombre sur @etai_app svp"
+    ]
+  }
+}
