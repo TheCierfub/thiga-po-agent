@@ -1,26 +1,44 @@
-# Feedbacks fictifs
+# Feedbacks fictifs — Étai
 
-Format prévu pour les exemples de feedbacks. Les trois fichiers JSON de ce dossier illustrent ce format. Le jeu complet de démonstration (feedbacks, demandes, éléments de backlog) reste à constituer : l'énoncé n'en fournit pas.
+Jeu synthétique pour la démo et l'évaluation. Aucune personne réelle, aucun e-mail hors domaine `.example`.
 
-## Objet JSON
+Les trois fiches d'illustration (`fb-001` à `fb-003`) sont remplacées par trois lots.
 
-Encodage UTF-8. Une fiche = un fichier.
+| Fichier | Rôle | Volume |
+| --- | --- | --- |
+| [`batch-lundi.json`](batch-lundi.json) | Pile lue le lundi 2 novembre 2026, quatre semaines de messages | 40 |
+| [`batch-jeudi.json`](batch-jeudi.json) | Delta du jeudi 5 et du vendredi 6 novembre | 12 |
+| [`holdout.json`](holdout.json) | Évaluation seulement. Hors démo, hors réglage de seuils | 10 |
+
+Le holdout reprend les mêmes pièges sous d'autres formulations. Le mélanger au lot de démo fausse la relecture.
+
+Comptes, stratégie et backlog ouvert : [`../context/`](../context/). Intention de conception : [`../answer-key.md`](../answer-key.md).
+
+## Fichier
+
+```json
+{
+  "lot": "lundi",
+  "usage": "demonstration",
+  "fenetre": { "debut": "2026-10-06", "fin": "2026-11-02" },
+  "feedbacks": []
+}
+```
+
+## Feedback
 
 | Champ | Contenu |
 | --- | --- |
-| `id` | Identifiant stable, unique dans le jeu d'exemples. |
-| `source` | Canal d'arrivée : `email`, `ticket` ou `commentaire`. |
-| `date` | Date de réception, au format `AAAA-MM-JJ`. |
-| `client` | Nom du compte client. Les noms de ces exemples sont fictifs. |
-| `segment` | Libellé libre (taille, plan, contexte). L'énoncé ne fixe pas de liste de segments. |
-| `texte` | Corps du feedback, tel qu'il est arrivé, sans reformulation. |
+| `id` | Identifiant stable (`fb-lundi-01`, `fb-jeudi-01`, `fb-hold-01`). |
+| `canal` | `email`, `ticket_support`, `avis_g2`, `avis_capterra`, `forum_produit`, `reddit`, `x`. |
+| `date` | Horodatage ISO 8601, offset `+01:00`. |
+| `auteur` | `nom`, `email`, `pseudo`, `anonyme`. L'un de ces signes peut manquer. |
+| `account_id` | Compte déjà connu, ou `null`. |
+| `langue` | `fr` ou `en`. Quelques messages sont en anglais, d'autres glissent une phrase anglaise dans un texte français. |
+| `texte` | Brut : fautes, signatures, fils cités, longueurs variables. |
 
-## Exemples présents
+`account_id` n'est rempli que lorsqu'un e-mail ou un pseudo du texte figure déjà sur le compte. Un expéditeur inconnu reste `null` : on ne crée pas de fiche client pour l'exercice.
 
-- [`fb-001.json`](fb-001.json) — email
-- [`fb-002.json`](fb-002.json) — ticket
-- [`fb-003.json`](fb-003.json) — commentaire
+## Ce que le feedback ne contient pas
 
-## Ce que la fiche ne contient pas
-
-Motif, tendance, demande extraite, score, classe MoSCoW ou RICE, user story, critères d'acceptation et complexité sont des sorties d'analyse. Ils ne font pas partie du feedback brut.
+Type, thème, score, classe MoSCoW, user story, sévérité et rattachement Linear sont des sorties. Ils sont décrits, comme intention et non comme résultat d'exécution, dans la clé de réponses.

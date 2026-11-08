@@ -1,0 +1,314 @@
+{
+  "devise": "EUR",
+  "comptes": [
+    {
+      "id": "acc-helia",
+      "identifiant_interne": "cus_1008",
+      "nom": "Helia Bâtiment",
+      "offre": "Enterprise",
+      "arr": 36000,
+      "statut": "client",
+      "risque_churn": "faible",
+      "contacts": [
+        {
+          "nom": "Sophie Kern",
+          "email": "sophie.kern@helia-batiment.example",
+          "role": "DSI",
+          "pseudos": []
+        },
+        {
+          "nom": "Marc Adel",
+          "email": "marc.adel@helia-batiment.example",
+          "role": "Directeur des travaux",
+          "pseudos": []
+        },
+        {
+          "nom": "James Adler",
+          "email": "james.adler@helia-batiment.example",
+          "role": "Sécurité groupe",
+          "pseudos": []
+        }
+      ],
+      "notes": "Avenant du 12 mars 2026, annexe sécurité article 4.2 : SSO SAML obligatoire avant d'étendre Étai au-delà de 30 utilisateurs. Échéance convenue : 1er mars 2027. Déploiement bloqué sur les agences de Grenoble et de Nantes."
+    },
+    {
+      "id": "acc-maree",
+      "identifiant_interne": "cus_1014",
+      "nom": "Marée & Fils",
+      "offre": "Pro",
+      "arr": 5400,
+      "statut": "client",
+      "risque_churn": "faible",
+      "contacts": [
+        {
+          "nom": "Jean Marée",
+          "email": "jean.maree@maree-fils.example",
+          "role": "Dirigeant",
+          "pseudos": [
+            {
+              "reseau": "x",
+              "pseudo": "@jeanmaree_bat"
+            }
+          ]
+        }
+      ],
+      "notes": "Entreprise de gros œuvre, une quinzaine de compagnons. Jean saisit lui-même sur les petits chantiers."
+    },
+    {
+      "id": "acc-kervel",
+      "identifiant_interne": "cus_1019",
+      "nom": "Kervel Gros Œuvre",
+      "offre": "Pro",
+      "arr": 8600,
+      "statut": "client",
+      "risque_churn": "faible",
+      "contacts": [
+        {
+          "nom": "Paul Kervel",
+          "email": "paul.kervel@kervel-go.example",
+          "role": "Dirigeant",
+          "pseudos": []
+        },
+        {
+          "nom": "Naïma Serradj",
+          "email": "facturation@kervel-go.example",
+          "role": "Facturation",
+          "pseudos": []
+        }
+      ],
+      "notes": "Plusieurs chefs de chantier. La boîte facturation écrit parfois au support produit."
+    },
+    {
+      "id": "acc-alpilles",
+      "identifiant_interne": "cus_1022",
+      "nom": "Alpilles Second Œuvre",
+      "offre": "Pro",
+      "arr": 4200,
+      "statut": "client",
+      "risque_churn": "élevé",
+      "contacts": [
+        {
+          "nom": "Léa Sormani",
+          "email": "lea.sormani@alpilles-so.example",
+          "role": "Cheffe d'entreprise",
+          "pseudos": []
+        }
+      ],
+      "notes": "Essai payant converti à l'automne. Mécontentement centré sur le compte-rendu client."
+    },
+    {
+      "id": "acc-nordbois",
+      "identifiant_interne": "cus_1030",
+      "nom": "Nordbois Charpente",
+      "offre": "Free",
+      "arr": 0,
+      "statut": "essai",
+      "risque_churn": "faible",
+      "contacts": [
+        {
+          "nom": "Léo Nord",
+          "email": "leo.nord@nordbois.example",
+          "role": "Charpentier",
+          "pseudos": [
+            {
+              "reseau": "x",
+              "pseudo": "@nordbois_leo"
+            }
+          ]
+        }
+      ],
+      "notes": "Deux personnes. Essai gratuit. Retour presque uniquement cosmétique."
+    },
+    {
+      "id": "acc-platre",
+      "identifiant_interne": "cus_1033",
+      "nom": "Plâtre Plus",
+      "offre": "Free",
+      "arr": 0,
+      "statut": "essai",
+      "risque_churn": "faible",
+      "contacts": [
+        {
+          "nom": "Inès Plâtre",
+          "email": "ines.platre@platreplus.example",
+          "role": "Gérante",
+          "pseudos": [
+            {
+              "reseau": "reddit",
+              "pseudo": "u/platreplus_ines"
+            }
+          ]
+        }
+      ],
+      "notes": "Deux personnes. Essai gratuit. Même sujet que Nordbois."
+    },
+    {
+      "id": "acc-rivage",
+      "identifiant_interne": "cus_1041",
+      "nom": "Rivage Promotion",
+      "offre": "Enterprise",
+      "arr": 22000,
+      "statut": "client",
+      "risque_churn": "moyen",
+      "contacts": [
+        {
+          "nom": "Camille Herry",
+          "email": "camille.herry@rivage-promo.example",
+          "role": "Responsable opérations",
+          "pseudos": []
+        }
+      ],
+      "notes": "Promoteur régional, une quinzaine d'opérations en VEFA. Veut élargir les accès."
+    },
+    {
+      "id": "acc-dune",
+      "identifiant_interne": "cus_1044",
+      "nom": "Dune Rénovation",
+      "offre": "Pro",
+      "arr": 3100,
+      "statut": "client",
+      "risque_churn": "élevé",
+      "contacts": [
+        {
+          "nom": "Omar Bensaïd",
+          "email": "omar.bensaid@dune-reno.example",
+          "role": "Dirigeant",
+          "pseudos": []
+        }
+      ],
+      "notes": "Renouvellement en décembre 2026. Cite Vertuoza comme alternative en cours d'évaluation."
+    },
+    {
+      "id": "acc-quai",
+      "identifiant_interne": "cus_1052",
+      "nom": "Quai 17",
+      "offre": "Pro",
+      "arr": 6800,
+      "statut": "client",
+      "risque_churn": "faible",
+      "contacts": [
+        {
+          "nom": "Nora Quai",
+          "email": "nora.quai@quai17.example",
+          "role": "Conductrice de travaux",
+          "pseudos": []
+        }
+      ],
+      "notes": "Veut moins de mails. Position opposée à celle de Linteau."
+    },
+    {
+      "id": "acc-linteau",
+      "identifiant_interne": "cus_1055",
+      "nom": "Linteau",
+      "offre": "Pro",
+      "arr": 6400,
+      "statut": "client",
+      "risque_churn": "faible",
+      "contacts": [
+        {
+          "nom": "Hugo Linteau",
+          "email": "hugo.linteau@linteau.example",
+          "role": "Dirigeant",
+          "pseudos": []
+        }
+      ],
+      "notes": "Le conducteur n'est pas sur le chantier l'après-midi. Veut une alerte immédiate sur les réserves bloquantes."
+    },
+    {
+      "id": "acc-orme",
+      "identifiant_interne": "cus_1060",
+      "nom": "Orme & Cie",
+      "offre": "Free",
+      "arr": 0,
+      "statut": "essai",
+      "risque_churn": "faible",
+      "contacts": [
+        {
+          "nom": "Chloé Orme",
+          "email": "chloe.orme@orme-cie.example",
+          "role": "Gérante",
+          "pseudos": []
+        }
+      ],
+      "notes": "Essai récent. Questions d'usage, pas de demande de fonctionnalité dans les lots."
+    },
+    {
+      "id": "acc-calade",
+      "identifiant_interne": "cus_1066",
+      "nom": "Calade Maçonnerie",
+      "offre": "Pro",
+      "arr": 2900,
+      "statut": "client",
+      "risque_churn": "moyen",
+      "contacts": [
+        {
+          "nom": "Yanis Calade",
+          "email": "yanis.calade@calade-maconnerie.example",
+          "role": "Chef de chantier",
+          "pseudos": []
+        }
+      ],
+      "notes": "Chantier fictif « résidence Les Glycines ». Porteur du signal de perte de réserves après la 2.4."
+    },
+    {
+      "id": "acc-vigie",
+      "identifiant_interne": "cus_1072",
+      "nom": "Vigie Contrôle",
+      "offre": "Enterprise",
+      "arr": 18000,
+      "statut": "client",
+      "risque_churn": "faible",
+      "contacts": [
+        {
+          "nom": "Aude Vigie",
+          "email": "aude.vigie@vigie-controle.example",
+          "role": "Responsable de mission",
+          "pseudos": []
+        }
+      ],
+      "notes": "Bureau de contrôle. Transmet des extraits de registre au maître d'ouvrage. Sensible aux notes internes."
+    },
+    {
+      "id": "acc-sable",
+      "identifiant_interne": "cus_1077",
+      "nom": "Sable & Chaux",
+      "offre": "Free",
+      "arr": 0,
+      "statut": "inactif",
+      "risque_churn": "élevé",
+      "contacts": [
+        {
+          "nom": "Rachid Sable",
+          "email": "rachid.sable@sable-chaux.example",
+          "role": "Gérant",
+          "pseudos": []
+        }
+      ],
+      "notes": "Compte essai peu utilisé. Le seul message du lot est trop flou pour une story."
+    },
+    {
+      "id": "acc-tuile",
+      "identifiant_interne": "cus_1080",
+      "nom": "Tuile & Toit",
+      "offre": "Pro",
+      "arr": 5100,
+      "statut": "client",
+      "risque_churn": "faible",
+      "contacts": [
+        {
+          "nom": "Emma Tuile",
+          "email": "emma.tuile@tuile-toit.example",
+          "role": "Dirigeante",
+          "pseudos": []
+        },
+        {
+          "nom": "Comptabilité Tuile & Toit",
+          "email": "compta@tuile-toit.example",
+          "role": "Facturation",
+          "pseudos": []
+        }
+      ],
+      "notes": "Couverture. Les compagnons utilisent les photos de réserve. Emma a laissé l'éloge G2."
+    }
+  ]
+}

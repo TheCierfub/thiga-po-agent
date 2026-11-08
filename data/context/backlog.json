@@ -1,0 +1,97 @@
+{
+  "outil": "Linear",
+  "workspace": "Étai",
+  "equipe": "Produit",
+  "issues": [
+    {
+      "id": "LIN-41",
+      "titre": "Lien de lecture seule pour le maître d'ouvrage",
+      "description": "Permettre d'envoyer une adresse web que le client ouvre sans compte. Il voit l'avancement et les réserves, il ne modifie rien et ne voit pas les notes internes.",
+      "statut": "Backlog",
+      "priorite": "Moyenne",
+      "estimation": "S",
+      "points": 2
+    },
+    {
+      "id": "LIN-36",
+      "titre": "Épingler une réserve sur une photo",
+      "description": "Poser un point ou un cercle sur la photo pour montrer l'endroit de la réserve, à la place d'une description du type « mur du fond à gauche ».",
+      "statut": "Backlog",
+      "priorite": "Basse",
+      "estimation": "S",
+      "points": 2
+    },
+    {
+      "id": "LIN-27",
+      "titre": "Choisir la fréquence des notifications par rôle",
+      "description": "Laisser chaque rôle choisir entre alerte immédiate et résumé quotidien. Le défaut actuel envoie un e-mail par commentaire.",
+      "statut": "Backlog",
+      "priorite": "Basse",
+      "estimation": "S",
+      "points": 2
+    },
+    {
+      "id": "LIN-22",
+      "titre": "Relancer les réserves sans nouvelle depuis 7 jours",
+      "description": "Créer une relance automatique vers l'entreprise assignée quand une réserve reste sans commentaire pendant sept jours.",
+      "statut": "À faire",
+      "priorite": "Moyenne",
+      "estimation": "S",
+      "points": 2
+    },
+    {
+      "id": "LIN-29",
+      "titre": "Importer les sous-traitants par CSV",
+      "description": "Créer les fiches entreprises et leurs contacts depuis un fichier CSV, pour les chantiers qui démarrent avec une vingtaine d'intervenants.",
+      "statut": "Backlog",
+      "priorite": "Basse",
+      "estimation": "M",
+      "points": 4
+    },
+    {
+      "id": "LIN-47",
+      "titre": "Signature du client sur le PV de réception",
+      "description": "Faire signer le procès-verbal de réception sur place, sur le téléphone du chef de chantier.",
+      "statut": "Backlog",
+      "priorite": "Moyenne",
+      "estimation": "L",
+      "points": 6
+    },
+    {
+      "id": "LIN-52",
+      "titre": "Masquer les notes internes dans ce qui est partagé",
+      "description": "Les notes marquées internes ne doivent apparaître ni dans l'export PDF transmis au maître d'ouvrage, ni dans un futur lien de partage.",
+      "statut": "En cours",
+      "priorite": "Haute",
+      "estimation": "S",
+      "points": 2
+    },
+    {
+      "id": "LIN-12",
+      "titre": "Créer une réserve depuis l'appareil photo",
+      "description": "Ouvrir l'appareil photo et créer la réserve dans la foulée, sans repasser par la liste.",
+      "statut": "À faire",
+      "priorite": "Haute",
+      "estimation": "S",
+      "points": 2
+    },
+    {
+      "id": "LIN-44",
+      "titre": "Planning semaine des sous-traitants",
+      "description": "Voir, pour une semaine donnée, quelles entreprises interviennent sur quels chantiers.",
+      "statut": "Backlog",
+      "priorite": "Basse",
+      "estimation": "L",
+      "points": 6
+    },
+    {
+      "id": "LIN-70",
+      "titre": "Thème sombre",
+      "description": "Idée parcée. Proposer un affichage sombre pour les saisies du soir. Hors objectifs du trimestre.",
+      "statut": "Backlog",
+      "priorite": "Basse",
+      "estimation": "XS",
+      "points": 1
+    }
+  ]
+}

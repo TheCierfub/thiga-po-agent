@@ -1,0 +1,179 @@
+{
+  "lot": "jeudi",
+  "usage": "demonstration",
+  "fenetre": {
+    "debut": "2026-11-05",
+    "fin": "2026-11-06"
+  },
+  "commentaire": "Delta arrivé après la revue du lundi. Daté du jeudi 5 et du vendredi 6 novembre 2026.",
+  "feedbacks": [
+    {
+      "id": "fb-jeudi-01",
+      "canal": "email",
+      "date": "2026-11-05T08:34:00+01:00",
+      "auteur": {
+        "nom": "Camille Herry",
+        "email": "camille.herry@rivage-promo.example",
+        "pseudo": null,
+        "anonyme": false
+      },
+      "account_id": "acc-rivage",
+      "langue": "fr",
+      "texte": "Bonjour Nadia,\n\nOn ouvre Étai sur 14 opérations. Les conducteurs reçoivent chaque commentaire, y compris les « ok » des entreprises. Deux d'entre eux ont déjà coupé les mails.\n\nIl nous faut un réglage par rôle avant d'élargir : un résumé quotidien pour les entreprises et les assistants, une alerte immédiate seulement pour le responsable d'opération quand la réserve est bloquante. Sans ça, je n'autorise pas les accès promoteur.\n\nCamille Herry\nRivage Promotion"
+    },
+    {
+      "id": "fb-jeudi-02",
+      "canal": "email",
+      "date": "2026-11-05T09:12:00+01:00",
+      "auteur": {
+        "nom": "Sophie Kern",
+        "email": "sophie.kern@helia-batiment.example",
+        "pseudo": null,
+        "anonyme": false
+      },
+      "account_id": "acc-helia",
+      "langue": "fr",
+      "texte": "Bonjour,\n\nle comité SI du 12 novembre attend une date de livraison pour le SSO. Je dois leur dire si le 1er mars 2027 tient toujours, ou s'il faut geler les ouvertures de comptes à Nantes.\n\nSophie Kern\nHelia Bâtiment"
+    },
+    {
+      "id": "fb-jeudi-03",
+      "canal": "email",
+      "date": "2026-11-05T09:28:00+01:00",
+      "auteur": {
+        "nom": "Yanis Calade",
+        "email": "yanis.calade@calade-maconnerie.example",
+        "pseudo": null,
+        "anonyme": false
+      },
+      "account_id": "acc-calade",
+      "langue": "fr",
+      "texte": "Les réserves garde-corps ne sont toujours pas revenues. J'ai refait trois photos ce matin, elles restent sur le téléphone. L'inspecteur passe aujourd'hui. Dites-moi si je dois tout ressaisir sur le web depuis le bureau, au moins je sais à quoi m'en tenir.\n\nYanis Calade"
+    },
+    {
+      "id": "fb-jeudi-04",
+      "canal": "ticket_support",
+      "date": "2026-11-05T09:41:00+01:00",
+      "auteur": {
+        "nom": "Paul Kervel",
+        "email": "paul.kervel@kervel-go.example",
+        "pseudo": null,
+        "anonyme": false
+      },
+      "account_id": "acc-kervel",
+      "langue": "fr",
+      "texte": "Ce matin encore, deux saisies de 7h30 absentes du web à 9h. Je joins le chef du chantier de Vénissieux, même symptôme que mes deux autres. La 2.4 est en cause, on n'avait pas ça la semaine d'avant.\n\nPaul Kervel"
+    },
+    {
+      "id": "fb-jeudi-05",
+      "canal": "email",
+      "date": "2026-11-05T11:17:00+01:00",
+      "auteur": {
+        "nom": "Jean Marée",
+        "email": "jean.maree@maree-fils.example",
+        "pseudo": null,
+        "anonyme": false
+      },
+      "account_id": "acc-maree",
+      "langue": "fr",
+      "texte": "Le client a refusé le document Word. Il veut un lien qu'il ouvre, sans installer quoi que ce soit et sans voir nos notes internes. Je lui ai dit que je revenais vers vous aujourd'hui.\n\nJean Marée"
+    },
+    {
+      "id": "fb-jeudi-06",
+      "canal": "x",
+      "date": "2026-11-06T07:22:00+01:00",
+      "auteur": {
+        "nom": null,
+        "email": null,
+        "pseudo": "@jeanmaree_bat",
+        "anonyme": false
+      },
+      "account_id": "acc-maree",
+      "langue": "fr",
+      "texte": "toujours la synchro qui bloque en bas de dalle. je saisis en double par sécurité, c'est absurde. @etai_app"
+    },
+    {
+      "id": "fb-jeudi-07",
+      "canal": "ticket_support",
+      "date": "2026-11-06T08:48:00+01:00",
+      "auteur": {
+        "nom": "Aude Vigie",
+        "email": "aude.vigie@vigie-controle.example",
+        "pseudo": null,
+        "anonyme": false
+      },
+      "account_id": "acc-vigie",
+      "langue": "fr",
+      "texte": "Titre : notes internes visibles dans le paquet envoyé au maître d'ouvrage\n\nNous exportons le registre pour le maître d'ouvrage. Les notes marquées internes (échafaudage non conforme, nom d'un compagnon) apparaissent dans le PDF. Tant que ce n'est pas masqué, je ne peux pas utiliser l'export en mission. On contourne en recopiant.\n\nAude Vigie"
+    },
+    {
+      "id": "fb-jeudi-08",
+      "canal": "email",
+      "date": "2026-11-06T12:16:00+01:00",
+      "auteur": {
+        "nom": "Léo Nord",
+        "email": "leo.nord@nordbois.example",
+        "pseudo": null,
+        "anonyme": false
+      },
+      "account_id": "acc-nordbois",
+      "langue": "fr",
+      "texte": "Dernier message sur le mode sombre et après j'arrête de demander : le soir, on ne s'en sert plus. Dommage, le reste nous allait pour un essai.\n\nLéo Nord"
+    },
+    {
+      "id": "fb-jeudi-09",
+      "canal": "email",
+      "date": "2026-11-06T14:02:00+01:00",
+      "auteur": {
+        "nom": "Nora Quai",
+        "email": "nora.quai@quai17.example",
+        "pseudo": null,
+        "anonyme": false
+      },
+      "account_id": "acc-quai",
+      "langue": "fr",
+      "texte": "Je confirme le digest. Même position qu'en octobre : un mail groupé, pas un mail par commentaire. J'ai vu que d'autres veulent l'immédiat, tant mieux si c'est un choix, mais le défaut actuel est intenable.\n\nNora Quai"
+    },
+    {
+      "id": "fb-jeudi-10",
+      "canal": "email",
+      "date": "2026-11-06T15:27:00+01:00",
+      "auteur": {
+        "nom": "Omar Bensaïd",
+        "email": "omar.bensaid@dune-reno.example",
+        "pseudo": null,
+        "anonyme": false
+      },
+      "account_id": "acc-dune",
+      "langue": "fr",
+      "texte": "Nadia, pour faire court : on coupe Étai au 30 novembre. Vertuoza nous a fait une démo hier, le partage client est inclus. Je reste disponible cette semaine si vous avez une réponse concrète sur le compte-rendu, sinon je ne relancerai pas.\n\nOmar Bensaïd"
+    },
+    {
+      "id": "fb-jeudi-11",
+      "canal": "reddit",
+      "date": "2026-11-06T21:08:00+01:00",
+      "auteur": {
+        "nom": null,
+        "email": null,
+        "pseudo": "u/betonniere92",
+        "anonyme": false
+      },
+      "account_id": null,
+      "langue": "fr",
+      "texte": "Retour : les photos grises, toujours. Un collègue sur un autre chantier (pas la même boîte) a le même carré gris depuis la maj. Donc ce n'est pas notre téléphone.\n\nu/betonniere92"
+    },
+    {
+      "id": "fb-jeudi-12",
+      "canal": "email",
+      "date": "2026-11-06T22:16:00+01:00",
+      "auteur": {
+        "nom": "Chloé Orme",
+        "email": "chloe.orme@orme-cie.example",
+        "pseudo": null,
+        "anonyme": false
+      },
+      "account_id": "acc-orme",
+      "langue": "fr",
+      "texte": "Autre question, après celle sur l'archivage : c'est quoi un « lot » dans l'application ? Chez nous on dit « corps d'état ». Je ne sais pas si je dois créer un lot par entreprise ou par étage.\n\nChloé Orme"
+    }
+  ]
+}
