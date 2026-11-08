@@ -22,7 +22,7 @@ pnpm agent run --batch jeudi
 
 Aucune clé n'est nécessaire : par défaut, l'agent rejoue des réponses LLM déjà écrites (`fixtures/llm/`), sans réseau. Ces réponses ont été **rédigées à la main**, pas produites par un modèle : le mode rejoué démontre le pipeline, pas la qualité d'un LLM.
 
-Pour un vrai modèle : copier `.env.example` vers `.env`, renseigner `LLM_PROVIDER`, `LLM_MODEL` et la clé, puis `pnpm agent run --batch lundi --provider real`. Ajouter `--record` pour remplacer les fixtures par des réponses enregistrées.
+Pour un vrai modèle, voir [Passage réel sur OpenRouter](#passage-réel-sur-openrouter).
 
 Ce que produit chaque lot, dans `out/` (ignoré par git) :
 
@@ -45,11 +45,42 @@ Options : `--reach comptes|volume|arr`, `--decisions <fichier>`, `--out <dossier
 ```bash
 pnpm test        # tests unitaires et pipeline rejoué de bout en bout
 pnpm eval        # comparaison à data/answer-key.json, rapport dans out/eval/rapport.md
+pnpm eval:compare  # même évaluation avec de vrais modèles, voir plus bas
 pnpm typecheck
 pnpm lint
 ```
 
 `pnpm eval` en mode rejoué évalue lundi et jeudi contre la clé, et le holdout sur les seules couches déterministes (rapprochement, heuristique d'injection). Les fixtures ayant été écrites après lecture de la clé, les scores de type et de thème en mode rejoué ne mesurent pas un modèle. `pnpm eval --provider real` classe aussi le holdout avec le vrai modèle.
+
+## Passage réel sur OpenRouter
+
+Prérequis : Node 22 (au minimum 20.12, pour `process.loadEnvFile`), pnpm 10.33 (`corepack enable` suffit), une clé OpenRouter.
+
+```bash
+pnpm install
+OPENROUTER_API_KEY=sk-or-... pnpm eval:compare
+```
+
+La commande évalue trois profils sur lundi, jeudi et holdout, avec un plafond de 5 $ tous profils confondus, et écrit `out/eval-real/<profil>.json` et `out/eval-real/summary.md`. La clé peut aussi être mise dans `.env` (voir `.env.example`), jamais commitée.
+
+| Profil | Étapes de texte | Décisions (type, injection, gravité, backlog) |
+| --- | --- | --- |
+| A | `anthropic/claude-sonnet-5.5` | dans la réponse de classification et de regroupement |
+| B | `anthropic/claude-sonnet-5.5` | Jev (`typesafe/jev-1.14`, API Decisions), repli sur Sonnet 5.5 |
+| C | `openai/gpt-5.6-luna` | dans la réponse de classification et de regroupement |
+
+Options :
+
+- `--profiles A,B` : sous-ensemble de profils, ou chemin vers un `.json` au même format que `config/llm-profiles/`.
+- `--budget 5` : plafond en dollars. L'exécution s'arrête proprement quand il est atteint ; les profils restants sont marqués « non lancé » et le récapitulatif est écrit quand même.
+- `--story-model anthropic/claude-opus-5.5` : modèle de la story pour tous les profils.
+- `--record-fixtures A` : une fois le profil A terminé, remplace `fixtures/llm/` par ses sorties réelles de lundi et jeudi (jamais le holdout), avec un `manifest.json`. Les fichiers ne contiennent que les réponses : la commande refuse de les installer s'ils contiennent la clé ou un en-tête d'autorisation.
+
+Mesures par profil : les métriques de `pnpm eval`, le nombre d'appels, le coût (`usage.cost`, sinon `GET /api/v1/generation`), la latence moyenne et p95 par appel, le taux de réponses hors schéma, les réponses de décision illisibles et les replis. Les réponses illisibles sont journalisées brutes dans `out/eval-real/raw-responses.jsonl`.
+
+Un seul profil sur un seul lot : `pnpm agent run --batch lundi --provider real --profile B --budget 1`. Une éval d'un profil : `pnpm eval --provider real --profile A`.
+
+Volume : contre le faux serveur des tests, un profil fait 79 appels de texte, sans compter les relances ; B y ajoute une requête de décision par feedback classé et une par thème nouveau. Le coût réel n'a pas été mesuré. Si le plafond par défaut ne suffit pas aux trois profils, relancer avec `--budget` plus élevé ou `--profiles` réduit.
 
 ## Pipeline
 
@@ -78,7 +109,7 @@ Les cases « LLM » passent par une interface `LlmProvider` sans aucun outil : l
 
 ## Démarche et choix techniques
 
-L'énoncé reformulé est dans [`docs/brief.md`](docs/brief.md). Le journal de décisions est dans [`docs/decisions.md`](docs/decisions.md) : ADR-002 à 007 pour l'architecture, ADR-008 à 013 pour les choix de la phase 1 (seuils, allocation, sécurité, fixtures, invalidation).
+L'énoncé reformulé est dans [`docs/brief.md`](docs/brief.md). Le journal de décisions est dans [`docs/decisions.md`](docs/decisions.md) : ADR-002 à 007 pour l'architecture, ADR-008 à 013 pour les choix de la phase 1 (seuils, allocation, sécurité, fixtures, invalidation), ADR-014 pour le passage réel sur OpenRouter.
 
 ## Ce qui a été délégué à l'IA vs vérifié manuellement
 
@@ -88,7 +119,8 @@ Le journal est [`AI_USAGE.md`](AI_USAGE.md). Le code et les fixtures de la phase
 
 - Pas encore d'interface : `app/` est un placeholder (phase 2). `pnpm dev` le sert sur le port 43217.
 - `LinearSink` est un bouchon documenté : aucune écriture externe en phase 1.
-- Les fixtures sont rédigées, pas enregistrées. Elles sont à remplacer par `--provider real --record` dès qu'une clé est disponible.
+- Les fixtures sont rédigées, pas enregistrées. Elles sont à remplacer par `pnpm eval:compare --record-fixtures <profil>` dès qu'une clé est disponible.
+- Le câblage OpenRouter est testé contre un faux serveur local, jamais contre l'API réelle : aucun résultat de modèle réel n'existe encore dans ce dépôt.
 - Une fixture est liée à l'empreinte de ses données : modifier un feedback rend le mode rejoué strict en erreur, jusqu'à réenregistrement.
 - Un feedback en quarantaine sort du scoring jusqu'à ce que le PO le libère. Conséquence visible dans l'éval : le thème « nom du PDF exporté » de la clé n'apparaît pas.
 - Les connecteurs sont des fichiers. L'architecture de production est décrite (ADR-007), pas branchée.
@@ -107,11 +139,13 @@ data/po-decisions.json      décisions du PO rejouées par la CLI
 core/schemas/               schémas Zod
 core/ingest, privacy, identity, security, evidence
 core/scoring/               fenêtre, tendance, RICE, MoSCoW
-core/llm/                   interface fournisseur, réel, rejoué, prompts
+core/llm/                   interface fournisseur, réel, rejoué, prompts, décisions
+core/llm/openrouter/        client, chat, API Decisions (Jev), compteur de coût et budget
+config/llm-profiles/        profils A, B, C : un modèle par étape
 core/steps/                 classification, thèmes, évaluation, story, investigation
 core/pipeline/              orchestration et état
 core/report/, core/sink/    rendus markdown, BacklogSink
-core/cli/, core/eval/       pnpm agent, pnpm eval
+core/cli/, core/eval/       pnpm agent, pnpm eval, pnpm eval:compare
 fixtures/llm/               réponses rejouées
 scripts/author-fixtures.ts  rédaction des fixtures (pnpm fixtures:author)
 app/                        Next.js, placeholder de la phase 2

@@ -53,3 +53,22 @@ Généré par le modèle :
 - un premier passage `pnpm eval --provider real`, seul résultat qui mesurera un modèle.
 
 Aucun incident à signaler.
+
+## 2026-11-08 — Phase 1bis : préparation du passage réel
+
+Modèle : Claude Opus 5.5, en agent dans Cursor.
+
+Généré par le modèle :
+
+- le client OpenRouter (`core/llm/openrouter/`), les profils A, B et C, les moteurs de décision (`core/llm/decisions.ts`, `core/steps/decide.ts`), `pnpm eval:compare` et ses tests contre un faux serveur ;
+- l'ADR-014 et la section du README sur le passage réel.
+
+Recherche : le format de l'API Decisions et la nature de `typesafe/jev-router` viennent de la documentation publique d'OpenRouter (guides Jev et Jev Router, référence de l'API Decisions). Aucune clé n'était disponible : aucun appel réel n'a été fait, aucun chiffre de coût ou de qualité de modèle n'est encore connu.
+
+À relire par Valentin :
+
+- le remplacement de `typesafe/jev-router` par `typesafe/jev-1.14` dans le profil B (ADR-014) ;
+- les questions fermées posées à Jev, en français, dans `core/steps/decide.ts` ;
+- le premier `summary.md` réel, seul résultat qui comparera des modèles.
+
+Aucun incident à signaler.
