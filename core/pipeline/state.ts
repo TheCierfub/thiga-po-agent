@@ -1,0 +1,53 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { z } from "zod";
+import {
+  AllocationSchema,
+  AuthorMatchSchema,
+  FeedbackClassificationSchema,
+  InvestigationDraftSchema,
+  MaskedFeedbackSchema,
+  ReachModeSchema,
+  RiceScoreSchema,
+  ThemeAssessmentSchema,
+  ThemeSchema,
+  UserStoryDraftSchema,
+} from "../schemas";
+
+export const RunStateSchema = z.object({
+  version: z.literal(1),
+  batch: z.string(),
+  referenceDate: z.iso.date(),
+  reachMode: ReachModeSchema,
+  /** Texte d'origine remplacé par le texte masqué : l'état local ne conserve aucune donnée personnelle. */
+  feedbacks: z.array(MaskedFeedbackSchema),
+  matches: z.array(AuthorMatchSchema),
+  classifications: z.array(FeedbackClassificationSchema),
+  themes: z.array(ThemeSchema),
+  assessments: z.array(ThemeAssessmentSchema),
+  rice: z.array(RiceScoreSchema),
+  allocation: AllocationSchema,
+  evidence: z.record(z.string(), z.string()),
+  assumptions: z.record(z.string(), z.string()),
+  stories: z.array(UserStoryDraftSchema),
+  investigations: z.array(InvestigationDraftSchema),
+  warnings: z.array(z.string()),
+});
+export type RunState = z.infer<typeof RunStateSchema>;
+
+export function statePath(outDir: string, batch: string): string {
+  return path.join(outDir, "state", `${batch}.json`);
+}
+
+export function loadState(outDir: string, batch: string): RunState | null {
+  const file = statePath(outDir, batch);
+  if (!existsSync(file)) return null;
+  return RunStateSchema.parse(JSON.parse(readFileSync(file, "utf8")));
+}
+
+export function saveState(outDir: string, state: RunState): string {
+  const file = statePath(outDir, state.batch);
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, `${JSON.stringify(state, null, 2)}\n`);
+  return file;
+}
