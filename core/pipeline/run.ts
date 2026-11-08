@@ -38,6 +38,8 @@ export interface RunOptions {
   reachMode: ReachMode;
   decisions: PoDecisions;
   previous: RunState | null;
+  /** Rédiger la story du premier élément retenu (défaut : oui). */
+  draftStory?: boolean;
 }
 
 export interface ThemeChange {
@@ -353,7 +355,7 @@ export async function runBatch(options: RunOptions): Promise<RunResult> {
     staleStoryKeys.has(s.themeKey) ? { ...s, status: "obsolete" } : s,
   );
   let story: UserStoryDraft | null = null;
-  if (target) {
+  if (target && options.draftStory !== false) {
     const reusable = stories.find((s) => s.themeKey === target.themeKey && s.status === "brouillon");
     if (reusable) {
       story = reusable;

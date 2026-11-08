@@ -70,7 +70,10 @@ export function renderBrief(result: RunResult): string {
   const freshFeedbacks = state.feedbacks.filter((f) => fresh.has(f.id));
   const classes = state.classifications.filter((c) => fresh.has(c.feedbackId));
   const quarantined = classes.filter((c) => c.injection.quarantined);
-  const piiCount = freshFeedbacks.reduce((n, f) => n + f.pii.reduce((m, p) => m + p.count, 0), 0);
+  const piiByKind = new Map<string, number>();
+  for (const p of freshFeedbacks.flatMap((f) => f.pii)) piiByKind.set(p.kind, (piiByKind.get(p.kind) ?? 0) + p.count);
+  const piiCount = [...piiByKind.values()].reduce((a, b) => a + b, 0);
+  const piiDetail = piiCount > 0 ? ` (${[...piiByKind].map(([k, v]) => `${k} ${v}`).join(", ")})` : "";
   const byType = new Map<string, number>();
   for (const c of classes) byType.set(c.type, (byType.get(c.type) ?? 0) + 1);
   const matches = state.matches.filter((m) => fresh.has(m.feedbackId));
@@ -80,7 +83,7 @@ export function renderBrief(result: RunResult): string {
     `# Brief de la semaine · lot ${state.batch}`,
     "",
     `${freshFeedbacks.length} nouveaux feedbacks, arrêtés au ${state.referenceDate}. Types : ${[...byType].map(([k, v]) => `${k} ${v}`).join(", ")}.`,
-    `Auteurs rattachés avec certitude : ${certain} sur ${matches.length}. Données personnelles masquées avant envoi au LLM : ${piiCount}.`,
+    `Auteurs rattachés avec certitude : ${certain} sur ${matches.length}. Données personnelles masquées avant envoi au LLM : ${piiCount}${piiDetail}.`,
     "",
     "## À décider",
     "",

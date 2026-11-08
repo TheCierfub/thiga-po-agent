@@ -20,7 +20,8 @@ export class NotImplementedInPhase1Error extends Error {
 export class LinearSink implements BacklogSink {
   readonly name = "linear";
 
-  async push(_items: BacklogItem[]): Promise<SinkResult[]> {
+  async push(items: BacklogItem[]): Promise<SinkResult[]> {
+    void items;
     throw new NotImplementedInPhase1Error();
   }
 }
