@@ -41,7 +41,7 @@ async function BatchShell({ children, params }: LayoutProps<"/[batch]">) {
 
   return (
     <OverridesProvider view={view}>
-      <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+      <header className="z-30 border-b bg-background md:sticky md:top-0 md:bg-background/85 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/70">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 pt-3 sm:px-6">
           <div className="flex min-w-0 flex-1 items-baseline gap-2">
             <span className="font-semibold tracking-tight">Étai</span>

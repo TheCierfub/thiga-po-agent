@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddFeedbackForm } from "@/components/etai/add-feedback";
 import { ArrivalItem, ArrivalWatch } from "@/components/etai/arrival-watch";
+import { HashScroll } from "@/components/etai/hash-scroll";
 import { SocialMark } from "@/components/etai/social-mark";
 import { readPollSeconds } from "@/core/sources/x-listen";
 import { isDemoBatch } from "@/lib/etai/batches";
@@ -60,7 +61,7 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
             <ArrivalItem
               key={f.id}
               id={f.id}
-              className="scroll-mt-32 rounded-xl border bg-card p-4 transition-[box-shadow] duration-300 target:ring-2 target:ring-(--moscow-should)/50"
+              className="scroll-mt-4 rounded-xl border bg-card p-4 transition-[box-shadow] duration-300 target:ring-2 target:ring-(--moscow-should)/50 md:scroll-mt-32"
             >
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                 <span className="font-mono">{f.id}</span>
@@ -87,6 +88,7 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
           );
         })}
       </ul>
+      <HashScroll />
       </ArrivalWatch>
     </div>
   );
