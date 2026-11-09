@@ -12,6 +12,12 @@
   --color-warn-chip: var(--warn-chip);
   --color-ok-bg: var(--ok-bg);
   --color-ok-fg: var(--ok-fg);
+  --color-sentiment-neg-bg: var(--sentiment-neg-bg);
+  --color-sentiment-neg-border: var(--sentiment-neg-border);
+  --color-sentiment-neg-fg: var(--sentiment-neg-fg);
+  --color-sentiment-frustre-bg: var(--sentiment-frustre-bg);
+  --color-sentiment-frustre-border: var(--sentiment-frustre-border);
+  --color-sentiment-frustre-fg: var(--sentiment-frustre-fg);
   --color-mark: var(--mark);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -92,6 +98,12 @@
   --warn-chip: oklch(0.962 0.059 95.617);
   --ok-bg: oklch(0.979 0.021 166.113);
   --ok-fg: oklch(0.432 0.095 166.913);
+  --sentiment-neg-bg: oklch(0.96 0.04 58);
+  --sentiment-neg-border: oklch(0.68 0.17 55);
+  --sentiment-neg-fg: oklch(0.45 0.15 50);
+  --sentiment-frustre-bg: oklch(0.96 0.03 330);
+  --sentiment-frustre-border: oklch(0.62 0.18 330);
+  --sentiment-frustre-fg: oklch(0.45 0.16 332);
   --mark: oklch(0.945 0.08 95);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -115,6 +127,12 @@
   --warn-chip: oklch(0.45 0.09 75 / 45%);
   --ok-bg: oklch(0.35 0.06 165 / 35%);
   --ok-fg: oklch(0.8 0.13 165);
+  --sentiment-neg-bg: oklch(0.42 0.12 55 / 48%);
+  --sentiment-neg-border: oklch(0.78 0.16 58);
+  --sentiment-neg-fg: oklch(0.88 0.11 65);
+  --sentiment-frustre-bg: oklch(0.4 0.1 330 / 42%);
+  --sentiment-frustre-border: oklch(0.76 0.16 328);
+  --sentiment-frustre-fg: oklch(0.88 0.1 335);
   --mark: oklch(0.55 0.11 85 / 45%);
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

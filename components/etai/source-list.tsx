@@ -21,11 +21,11 @@ export interface SourceItem {
 }
 
 const SENTIMENT_TONE: Record<Sentiment, string> = {
-  positif: "text-ok-fg",
-  neutre: "text-muted-foreground",
-  negatif: "text-warn-fg",
-  frustre: "text-warn-fg",
-  indetermine: "text-muted-foreground",
+  positif: "border-ok-fg/45 bg-ok-bg text-ok-fg",
+  neutre: "border-border bg-muted text-muted-foreground",
+  negatif: "border-sentiment-neg-border bg-sentiment-neg-bg text-sentiment-neg-fg",
+  frustre: "border-sentiment-frustre-border bg-sentiment-frustre-bg text-sentiment-frustre-fg",
+  indetermine: "border-dashed border-muted-foreground/40 bg-transparent text-muted-foreground/75",
 };
 
 export function SourceList({ items }: { items: SourceItem[] }) {
