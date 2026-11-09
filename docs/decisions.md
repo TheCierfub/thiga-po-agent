@@ -486,10 +486,31 @@ Le pipeline rédigeait automatiquement la story du premier thème retenu de chaq
 
 ### Décision
 
-Un lot ne rédige plus de story tout seul. Sur chaque thème, « Générer la user story » appelle le même passage Sonnet que `draftStory` : feedbacks masqués, citations déjà vérifiées, feedbacks en quarantaine exclus. Le titre, le récit, les critères et la taille sont des champs modifiables. « Valider et exporter vers Linear » envoie cette version.
+Un lot ne rédige plus de story tout seul. Sur chaque thème, « Générer la user story » appelle le même passage Sonnet que `draftStory` : feedbacks masqués, citations déjà vérifiées, feedbacks en quarantaine exclus. Le modèle rend toujours une story structurée. Le code la sérialise en un seul texte (titre, récit, critères, complexité). La PO édite ce texte. « Valider et exporter vers Linear » envoie ce texte tel quel, et le titre de l'issue est le titre écrit dans le texte. Il n'y a pas de bouton pour régénérer.
 
 En mode direct, la story générée ou éditée est écrite dans l'analyse du lot (Supabase). `pnpm db:seed` recharge le corpus et retire ces éditions. Les stories déjà en base avant ce changement y restent jusqu'au prochain seed. En mode démo, la rédaction rejoue une réponse déjà écrite si elle existe, et reste dans l'écran.
 
 ### Conséquences
 
-L'évaluation comparative peut encore demander une story (`draftStory: true`) pour mesurer le modèle. Le chemin produit, le seed et la commande, ne le font plus.
+L'évaluation comparative peut encore demander une story (`draftStory: true`) pour mesurer le modèle. Le chemin produit, le seed et la commande, ne le font plus. Le passage Sonnet (modèle, budget, température) n'a pas changé : seul le texte montré à la PO a changé.
+
+## ADR-021 — Le sentiment se décide avec le type
+
+- **Statut :** acceptée
+- **Date :** 2026-11-09
+
+### Contexte
+
+Nadia veut un ton par feedback (positif, neutre, négatif, frustré) dans la liste des sources, sans un appel de modèle de plus.
+
+### Décision
+
+Jev (`typesafe/jev-1.14`) répond à une question `choice` de plus, dans le même appel que le type, l'injection et la gravité. Quatre options : positif, neutre, négatif, frustré. Si la confiance est sous 0,8, si elle est absente, ou si Jev est tombé en repli, la valeur affichée est « indéterminé ». Le profil A, qui ne pose pas de question à Jev, laisse « indéterminé » : on n'ajoute pas d'appel.
+
+Le sentiment est un champ facultatif de la classification, dans le JSON `analysis_runs.state` déjà stocké. Pas de nouvelle colonne, pas de migration SQL. Un état déjà en base reste lisible ; les feedbacks sans sentiment s'affichent « indéterminé ».
+
+Les 52 feedbacks du corpus de démo ont une valeur écrite à la main dans `fixtures/sentiment/demo.json`. Ce ne sont pas des sorties de Jev. `pnpm db:seed` et le mode démo les posent au rejeu. Un ajout direct ou un post X reçu ensuite passe par Jev.
+
+### Conséquences
+
+Relancer le seed recharge ces 52 valeurs et retire les sentiments décidés en direct sur le corpus. Le badge est dans l'en-tête de l'accordéon des sources : entreprise, prénom et nom, sentiment, puis à droite la date et le canal.

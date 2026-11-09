@@ -1,4 +1,4 @@
-import type { Channel, ConstraintKind, FeedbackType, IdentityConfidence, MoscowClass, MoscowDecision, ThemeCategory } from "@/core/schemas";
+import type { Channel, ConstraintKind, FeedbackType, IdentityConfidence, MoscowClass, MoscowDecision, Sentiment, ThemeCategory } from "@/core/schemas";
 
 export { CATEGORY_LABEL, num, pct } from "@/core/report/format";
 
@@ -33,6 +33,14 @@ export const REPLY_LABEL = {
   message_prive: "Message privé",
   reponse_publique: "Réponse publique",
 } as const;
+
+export const SENTIMENT_LABEL: Record<Sentiment, string> = {
+  positif: "Positif",
+  neutre: "Neutre",
+  negatif: "Négatif",
+  frustre: "Frustré",
+  indetermine: "Indéterminé",
+};
 
 export const TYPE_LABEL: Record<FeedbackType, string> = {
   bug: "Bug",

@@ -92,14 +92,17 @@ describe("LinearSink", () => {
 
     expect(result).toMatchObject({ action: "cree", target: "ETA-1", url: "https://linear.app/etai/issue/ETA-1" });
     const issue = api.issues[0]!;
-    expect(issue.title).toBe(lundi.state.themes.find((t) => t.key === "sso_contrat")!.title);
+    const story = lundi.state.stories.find((item) => item.themeKey === "sso_contrat")!;
+    expect(issue.title).toBe(story.title);
+    expect(issue.title).not.toBe(lundi.state.themes.find((t) => t.key === "sso_contrat")!.title);
     expect(issue.estimate).toBe(6);
     expect(issue.labelIds).toEqual([api.labels.get(moscowLabelName("Must")), api.labels.get("Feature")]);
-    expect(issue.description).toContain("Catégorie : **Nouvelle fonctionnalité**");
-    expect(issue.description).toContain("## Story");
+    expect(issue.description).toContain(`# ${story.title}`);
+    expect(issue.description).toContain("En tant que");
+    expect(issue.description).toContain("## Critères d'acceptation");
     expect(issue.description).toContain("Étant donné");
-    expect(issue.description).toMatch(/« .+ »/);
-    expect(issue.description).toContain(`[fb-lundi-`);
+    expect(issue.description).toContain("## Complexité relative");
+    expect(issue.description).toContain(story.text!.trim());
     expect(issue.description).toContain("etai:sso_contrat");
     expect(api.needs).toHaveLength(itemFor("sso_contrat").details.customers.length);
     expect(api.needs[0]!.attachmentUrl).toMatch(/^http:\/\/localhost:43217\/lundi\/feedbacks#fb-lundi-/);
@@ -201,7 +204,7 @@ describe("cible d'export", () => {
     expect(target.reason).toMatch(/LINEAR_API_KEY et LINEAR_TEAM_ID absents/);
     const [result] = await target.sink.push([itemFor("sso_contrat")]);
     expect(result!.action).toBe("cree");
-    expect(readFileSync(path.join(root, "out/linear-export/sso_contrat.md"), "utf8")).toContain("## Story");
+    expect(readFileSync(path.join(root, "out/linear-export/sso_contrat.md"), "utf8")).toContain("En tant que");
   });
 
   it("avec clé et équipe : LinearSink, sans appel réel", async () => {
@@ -248,7 +251,7 @@ describe("équipe Linear et export à blanc", () => {
     expect(results.find((r) => r.stableKey === "etai:sso_contrat")!.action).toBe("cree");
     expect(dry.operations).toContain("Créerait le label « MoSCoW : Must ».");
     expect(dry.operations.some((o) => o.startsWith("Mettrait à jour LIN-41"))).toBe(true);
-    expect(dry.operations.some((o) => o.startsWith("Créerait l'issue « SSO"))).toBe(true);
+    expect(dry.operations.some((o) => o.startsWith("Créerait l'issue « Se connecter"))).toBe(true);
     expect(dry.operations.some((o) => /^Ajouterait une demande client de .+ sur LIN-41/.test(o))).toBe(true);
   });
 

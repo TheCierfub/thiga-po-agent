@@ -354,7 +354,7 @@ describe("ajout d'un feedback en direct", async () => {
       log: () => undefined,
     });
     expect(calls).toHaveLength(1);
-    expect(Object.keys(calls[0]!.questions).sort()).toEqual(["critical", "injection", "theme", "type"]);
+    expect(Object.keys(calls[0]!.questions).sort()).toEqual(["critical", "injection", "sentiment", "theme", "type"]);
     expect(provider.requests.map((request) => request.task)).toEqual([]);
     expect(result.state.themes.map((theme) => theme.key)).not.toContain("notifications_doublon");
     expect(result.state.themes.find((theme) => theme.key === "notifications")?.feedbackIds).toContain(feedback.id);

@@ -1,9 +1,32 @@
 import type { DecisionAnswer, DecisionEngine, DecisionQuestion } from "../llm/decisions";
 import type { DecisionPlan } from "../llm/profiles";
-import type { BacklogIssue, DecisionStep, DecisionTrace, FeedbackType, MaskedFeedback, Severity } from "../schemas";
+import type { BacklogIssue, DecisionStep, DecisionTrace, FeedbackType, MaskedFeedback, Sentiment, Severity } from "../schemas";
 
 /** Seuil du « oui » pour l'injection : bas, car un faux positif ne coûte qu'une relecture du PO. */
 export const INJECTION_THRESHOLD = 0.5;
+
+/** En dessous, le sentiment affiché est « indéterminé ». */
+export const SENTIMENT_THRESHOLD = 0.8;
+
+export const SENTIMENT_QUESTION: DecisionQuestion = {
+  type: "choice",
+  instructions: "Quel est le sentiment dominant de la personne qui a écrit ce feedback, d'après le ton du message ?",
+  options: {
+    positif: "Satisfaite, reconnaissante, ou le message est un éloge.",
+    neutre: "Factuel, sans charge émotionnelle marquée.",
+    negatif: "Mécontente ou critique, sans que l'agacement domine.",
+    frustre: "Agacée, bloquée, lasse ou en colère : l'effort ou le blocage se sent dans le ton.",
+  },
+};
+
+const SENTIMENT_CHOICES = new Set(["positif", "neutre", "negatif", "frustre"]);
+
+export function sentimentFromAnswer(answer: DecisionAnswer | undefined, fallbackUsed: boolean): Sentiment {
+  if (fallbackUsed || !answer || answer.type !== "choice") return "indetermine";
+  if (!SENTIMENT_CHOICES.has(answer.choice)) return "indetermine";
+  if (answer.confidence === null || answer.confidence < SENTIMENT_THRESHOLD) return "indetermine";
+  return answer.choice as Sentiment;
+}
 
 const TYPE_OPTIONS: Record<FeedbackType, string> = {
   bug: "Le produit ne fait pas ce qu'il devrait : erreur, perte de données, blocage.",
@@ -133,6 +156,7 @@ export interface FeedbackDecisions {
   type?: FeedbackType;
   injectionSuspected?: boolean;
   severity?: Severity | null;
+  sentiment?: Sentiment;
   theme?: ThemeChoice;
   traces: Partial<Record<DecisionStep, DecisionTrace>>;
 }
@@ -148,8 +172,10 @@ export async function decideForFeedback(
   for (const [engine, steps] of byEngine(plan, ["type", "injection", "critical"] as const)) {
     const questions: Record<string, DecisionQuestion> = Object.fromEntries(steps.map((s) => [s, FEEDBACK_QUESTIONS[s]]));
     const withTheme = askTheme && plan.theme === engine;
+    const askSentiment = steps.includes("type");
     if (withTheme) questions.theme = themeQuestion(themes);
-    const names = [...steps, ...(withTheme ? ["theme"] : [])];
+    if (askSentiment) questions.sentiment = SENTIMENT_QUESTION;
+    const names = [...steps, ...(withTheme ? ["theme"] : []), ...(askSentiment ? ["sentiment"] : [])];
     const out = await engine.decide({
       step: names.join("+"),
       key: `feedback--${feedback.id}--${names.join("+")}`,
@@ -165,6 +191,7 @@ export async function decideForFeedback(
       themeAsked = true;
       result.theme = readThemeChoice(out, themes);
     }
+    if (askSentiment) result.sentiment = sentimentFromAnswer(out.answers.sentiment, out.fallbackUsed);
     for (const step of steps) {
       const answer = out.answers[step]!;
       result.traces[step] = trace(out.engine, answer, out.fallbackUsed);

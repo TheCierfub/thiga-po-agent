@@ -134,6 +134,7 @@ describe("pnpm eval:compare contre un faux OpenRouter", () => {
             type: { type: "choice", choice: c?.type ?? "eloge", probabilities: { [c?.type ?? "eloge"]: 0.8 }, confidence: 0.8 },
             injection: { type: "noul", noul: c?.injection.suspected ? 0.9 : 0.02 },
             critical: { type: "choice", choice: c?.severity ?? "pas_un_bug" },
+            sentiment: { type: "choice", choice: "neutre", probabilities: { neutre: 0.9 }, confidence: 0.9 },
           },
           usage: { cost: 0.0001 },
         },
@@ -153,7 +154,7 @@ describe("pnpm eval:compare contre un faux OpenRouter", () => {
     const mine = server.requests.slice(before);
     const decisionBody = mine.find((r) => r.path === "/api/alpha/decisions")!.body!;
     expect(decisionBody.model).toBe("typesafe/jev-1.14");
-    expect(Object.keys(decisionBody.questions as object)).toEqual(["type", "injection", "critical"]);
+    expect(Object.keys(decisionBody.questions as object)).toEqual(["type", "injection", "critical", "sentiment"]);
     expect(mine.some((r) => taskOf(r.body) === "story" && r.body!.model === "anthropic/claude-opus-5.5")).toBe(true);
     expect(readFileSync(path.join(outDir, "raw-responses.jsonl"), "utf8")).toContain("LIN-inexistante");
     expect(readFileSync(path.join(outDir, "raw-responses.jsonl"), "utf8")).not.toContain(KEY);

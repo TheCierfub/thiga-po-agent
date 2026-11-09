@@ -8,6 +8,7 @@ import { NO_OVERRIDES, type PoOverrides } from "@/core/scoring/overrides";
 import type { Account, BacklogIssue, Strategy } from "@/core/schemas";
 import type { DemoBatch } from "./batches";
 import { DEMO_DETAIL, resolveDataMode } from "./data-mode";
+import { applyDemoSentiments, loadDemoSentiments } from "@/core/sentiment/demo";
 import { ROOT, demoRun } from "./runs";
 
 export type AccountView = Pick<Account, "id" | "nom" | "offre" | "arr" | "risque_churn" | "statut">;
@@ -64,9 +65,10 @@ export async function getDemoBatchView(batch: DemoBatch): Promise<BatchView> {
   "use cache";
   cacheLife("max");
   const run = await demoRun(batch);
+  const state = applyDemoSentiments(run.state, loadDemoSentiments(ROOT));
   return toView(
     batch,
-    { state: run.state, newFeedbackIds: run.newFeedbackIds, changes: run.changes },
+    { state, newFeedbackIds: run.newFeedbackIds, changes: run.changes },
     { dataMode: "demo", dataModeDetail: DEMO_DETAIL, overrides: NO_OVERRIDES },
   );
 }

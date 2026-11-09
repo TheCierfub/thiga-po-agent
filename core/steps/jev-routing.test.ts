@@ -4,7 +4,7 @@ import { ScriptedProvider } from "../llm/scripted";
 import type { MaskedFeedback } from "../schemas";
 import { shouldReassessTheme } from "../scoring/rice";
 import { exactExcerpt, classifyFeedback } from "./classify";
-import { DEFAULT_THEME_CONFIDENCE, formatAttachmentReason, themeChoiceIsConfident } from "./decide";
+import { DEFAULT_THEME_CONFIDENCE, formatAttachmentReason, sentimentFromAnswer, themeChoiceIsConfident } from "./decide";
 
 const feedback: MaskedFeedback = {
   id: "fb-direct-1",
@@ -31,6 +31,7 @@ describe("Jev ne décide pas deux fois", () => {
           if (question.type === "noul") answers[id] = { type: "noul", probability: 0.02 };
           else if (id === "theme") answers[id] = { type: "choice", choice: "notifications", probabilities: null, confidence: 0.87 };
           else if (id === "type") answers[id] = { type: "choice", choice: "bug", probabilities: null, confidence: 0.9 };
+          else if (id === "sentiment") answers[id] = { type: "choice", choice: "frustre", probabilities: null, confidence: 0.91 };
           else answers[id] = { type: "choice", choice: "majeure", probabilities: null, confidence: 0.8 };
         }
         return { engine: engine.name, answers, fallbackUsed: false };
@@ -42,8 +43,9 @@ describe("Jev ne décide pas deux fois", () => {
     ]);
     expect(provider.requests).toEqual([]);
     expect(calls).toHaveLength(1);
-    expect(Object.keys(calls[0]!.questions).sort()).toEqual(["critical", "injection", "theme", "type"]);
+    expect(Object.keys(calls[0]!.questions).sort()).toEqual(["critical", "injection", "sentiment", "theme", "type"]);
     expect(out.type).toBe("bug");
+    expect(out.sentiment).toBe("frustre");
     expect(out.themeChoice?.themeKey).toBe("notifications");
     expect(out.quotes[0]?.text).toBe(exactExcerpt(feedback.maskedText));
     expect(out.decisions?.type?.engine).toContain("jev");
@@ -70,5 +72,14 @@ describe("Jev ne décide pas deux fois", () => {
       "Rattaché par Jev (confiance 1,00) : même problème que les feedbacks du thème « Régler la fréquence des notifications selon le rôle ». 2e choix : Montrer l'endroit d'une réserve sur la photo, 0,04.",
     );
     expect(reason).not.toContain("typesafe");
+  });
+
+  it("laisse le sentiment indéterminé sous 0,8, ou si Jev est tombé en repli", () => {
+    const sure = { type: "choice" as const, choice: "negatif", probabilities: null, confidence: 0.8 };
+    expect(sentimentFromAnswer(sure, false)).toBe("negatif");
+    expect(sentimentFromAnswer({ ...sure, confidence: 0.79 }, false)).toBe("indetermine");
+    expect(sentimentFromAnswer({ ...sure, confidence: null }, false)).toBe("indetermine");
+    expect(sentimentFromAnswer(sure, true)).toBe("indetermine");
+    expect(sentimentFromAnswer({ type: "noul", probability: 0.9 }, false)).toBe("indetermine");
   });
 });

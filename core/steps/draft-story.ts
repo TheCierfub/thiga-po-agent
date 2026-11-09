@@ -11,6 +11,7 @@ import {
   type ThemeAssessment,
   type UserStoryDraft,
 } from "../schemas";
+import { renderStoryText } from "../stories/text";
 import { hashOf } from "../util/hash";
 
 const SYSTEM = `${COMPANY_CONTEXT}
@@ -66,13 +67,14 @@ export async function draftStory(input: DraftStoryInput, provider: LlmProvider):
     throw new Error(`Story ${theme.key} : story de référence inconnue ${out.referenceStoryId}.`);
   }
 
-  return {
+  const story = {
     ...out,
     themeKey: theme.key,
     backlogIssueId: theme.backlogIssueId,
     evidence: theme.quotes,
     evidenceHash: input.evidenceHash,
     batch: input.batch,
-    status: "brouillon",
+    status: "brouillon" as const,
   };
+  return { ...story, text: renderStoryText(story) };
 }

@@ -7,10 +7,10 @@ import { CategoryBadge, Empty, Section, TrendBars } from "@/components/etai/bits
 import { SourceList, type SourceItem } from "@/components/etai/source-list";
 import { StoryPanel } from "@/components/etai/story-panel";
 import { ThemeMoscow, ThemeNav } from "@/components/etai/theme-nav";
-import { excerpt, feedbackReference } from "@/core/stories/place";
+import { feedbackDate } from "@/core/stories/place";
 import { DEMO_BATCHES, isDemoBatch } from "@/lib/etai/batches";
 import { readExportMode } from "@/lib/etai/export-mode";
-import { CHANNEL_LABEL, MATCH_LABEL, feedbackWho } from "@/lib/etai/labels";
+import { CHANNEL_LABEL } from "@/lib/etai/labels";
 import { getBatchView, getDemoBatchView } from "@/lib/etai/view";
 
 export async function generateStaticParams() {
@@ -61,7 +61,6 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
       if (!feedback) return [];
       const match = matches.get(id);
       const account = match?.accountId ? view.accounts[match.accountId] : undefined;
-      const who = feedbackWho(feedback.author, account?.nom, MATCH_LABEL[match?.confidence ?? "non_rapproche"]);
       const classification = classes.get(id);
       const quotes = [...theme.quotes.filter((quote) => quote.feedbackId === id).map((quote) => quote.text), ...(classification?.quotes.map((quote) => quote.text) ?? [])];
       const rejected = [...theme.rejectedQuotes.filter((quote) => quote.feedbackId === id).map((quote) => quote.text), ...(classification?.rejectedQuotes ?? [])];
@@ -72,14 +71,14 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
       const item: SourceItem & { receivedAt: string } = {
         id,
         receivedAt: feedback.receivedAt,
-        caption: feedbackReference(feedback.receivedAt, CHANNEL_LABEL[feedback.channel], who),
-        excerpt: excerpt(feedback.maskedText),
+        company: account?.nom ?? null,
+        person: feedback.author.anonymous ? null : feedback.author.name?.trim() || null,
+        sentiment: classification?.sentiment ?? "indetermine",
+        dateLabel: feedbackDate(feedback.receivedAt),
+        channel: CHANNEL_LABEL[feedback.channel],
         body: feedback.maskedText,
         quotes,
         rejected,
-        when: new Date(feedback.receivedAt).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" }),
-        channel: CHANNEL_LABEL[feedback.channel],
-        who,
         href: `/${batch}/feedbacks#${id}`,
         note,
       };
@@ -135,11 +134,10 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
             live={view.dataMode === "live"}
             mode={exportMode}
             existingIssueId={theme.backlogIssueId}
-            points={view.strategy.sizePoints}
           />
         </Section>
 
-        <Section index={2} title={`Feedbacks sources (${sources.length})`} description="Du plus récent au plus ancien. Le message complet s’ouvre au clic.">
+        <Section index={2} title={`Feedbacks sources (${sources.length})`} description="Du plus récent au plus ancien. La ligne s’ouvre pour le message complet.">
           <SourceList items={sources} />
         </Section>
       </div>
