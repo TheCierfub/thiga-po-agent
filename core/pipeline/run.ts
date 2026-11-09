@@ -30,7 +30,7 @@ import { assessTheme } from "../steps/assess";
 import { classifyAll, isRelatedSignal, isThemeEligible, needsInvestigation } from "../steps/classify";
 import { draftStory } from "../steps/draft-story";
 import { attachFeedback, type ExistingThemeBrief } from "../steps/attach";
-import { DEFAULT_THEME_CONFIDENCE, themeChoiceIsConfident } from "../steps/decide";
+import { DEFAULT_THEME_CONFIDENCE, formatAttachmentReason, themeChoiceIsConfident } from "../steps/decide";
 import { groupThemes, type GroupedTheme } from "../steps/group";
 import type { IngestTrace } from "./ingest-trace";
 import { draftInvestigation } from "../steps/investigate";
@@ -293,11 +293,19 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
       const chosen = choice?.themeKey ? previous?.themes.find((theme) => theme.key === choice.themeKey) : undefined;
       if (choice && chosen && themeChoiceIsConfident(choice, options.themeConfidence ?? DEFAULT_THEME_CONFIDENCE)) {
         const quote = member.classification.quotes[0];
+        const titles = new Map((previous?.themes ?? []).map((theme) => [theme.key, theme.title]));
         attachmentRecords.push({
           feedbackId: member.feedback.id,
           action: "rattacher",
           themeKey: chosen.key,
-          rationale: `Rattaché par ${choice.engine}.`,
+          rationale: formatAttachmentReason({
+            themeKey: chosen.key,
+            themeTitle: chosen.title,
+            confidence: choice.confidence,
+            probability: choice.probability,
+            probabilities: choice.probabilities,
+            titles,
+          }),
           relatedThemeIds: [],
           forced: false,
           engine: choice.engine,
@@ -417,6 +425,7 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
         accounts,
         window,
         mode: reachMode,
+        includeIds: new Set(fresh.map((item) => item.id)),
       });
       const next = computeConfidence(reach.accounts.length, channels).value;
       if (!shouldReassessTheme(false, prevRice.confidence.value, next)) toAssess.delete(key);
@@ -457,6 +466,7 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
       accounts,
       window,
       mode: reachMode,
+      ...(options.strictAttachment ? { includeIds: new Set(fresh.map((item) => item.id)) } : {}),
     });
     rice.set(
       theme.key,
@@ -484,6 +494,11 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
     const issue = theme.backlogIssueId ? backlogById.get(theme.backlogIssueId) : undefined;
     const committed =
       issue && (strategy.capacity.committedIssueIds.includes(issue.id) || issue.statut === "En cours") ? issue.id : null;
+    const previousDecision = previous?.allocation.decisions.find((decision) => decision.themeKey === theme.key);
+    const evidenceUnchanged = previous !== null && previous.evidence[theme.key] === evidence[theme.key];
+    const confirmationStale = evidenceUnchanged
+      ? (previousDecision?.constraint?.confirmationStale ?? false)
+      : confirmation !== undefined && confirmation.batch !== batch && staleConfirmations.has(theme.key);
     return {
       themeKey: theme.key,
       points: r.effort.points,
@@ -498,7 +513,7 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
             source: llmConstraint ? "llm" : "regle",
             confirmed: confirmation !== undefined,
             rejected: decisions.rejectedConstraints.some((c) => c.themeKey === theme.key),
-            confirmationStale: confirmation !== undefined && confirmation.batch !== batch && staleConfirmations.has(theme.key),
+            confirmationStale,
           }
         : null,
     };

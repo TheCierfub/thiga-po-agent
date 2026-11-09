@@ -4,7 +4,7 @@ import { ScriptedProvider } from "../llm/scripted";
 import type { MaskedFeedback } from "../schemas";
 import { shouldReassessTheme } from "../scoring/rice";
 import { exactExcerpt, classifyFeedback } from "./classify";
-import { DEFAULT_THEME_CONFIDENCE, themeChoiceIsConfident } from "./decide";
+import { DEFAULT_THEME_CONFIDENCE, formatAttachmentReason, themeChoiceIsConfident } from "./decide";
 
 const feedback: MaskedFeedback = {
   id: "fb-direct-1",
@@ -58,5 +58,17 @@ describe("Jev ne décide pas deux fois", () => {
     expect(shouldReassessTheme(true, 1, 1)).toBe(true);
     expect(shouldReassessTheme(false, 1, 1)).toBe(false);
     expect(shouldReassessTheme(false, 0.8, 1)).toBe(true);
+    const reason = formatAttachmentReason({
+      themeKey: "notifications",
+      themeTitle: "Régler la fréquence des notifications selon le rôle",
+      confidence: 1,
+      probability: 1,
+      probabilities: { notifications: 1, epingle_photo: 0.04 },
+      titles: new Map([["epingle_photo", "Montrer l'endroit d'une réserve sur la photo"]]),
+    });
+    expect(reason).toBe(
+      "Rattaché par Jev (confiance 1,00) : même problème que les feedbacks du thème « Régler la fréquence des notifications selon le rôle ». 2e choix : Montrer l'endroit d'une réserve sur la photo, 0,04.",
+    );
+    expect(reason).not.toContain("typesafe");
   });
 });

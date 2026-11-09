@@ -5,7 +5,6 @@ import type { DecisionPlan } from "../llm/profiles";
 import type { DecisionEngine, DecisionRequest, DecisionResult } from "../llm/decisions";
 import type { LlmProvider, LlmRequest } from "../llm/provider";
 import { ChannelSchema, FeedbackSchema, type Feedback } from "../schemas";
-import { localDate } from "../scoring/window";
 import type { AnalysisStore } from "../store/types";
 import { costOf, stepDurations, themeMoves, type IngestCall, type IngestDecision, type IngestTrace, type TimedCall } from "./ingest-trace";
 import { readThemeConfidence } from "../steps/decide";
@@ -66,8 +65,10 @@ export function appendFeedback(options: {
   draftStory?: boolean;
   themeConfidence?: number;
 }): Promise<RunResult> {
-  const received = localDate(options.feedback.receivedAt);
-  const referenceDate = received > options.previous.referenceDate ? received : options.previous.referenceDate;
+  // La fenêtre du lot ne glisse pas : un feedback daté après la revue (le 9 novembre
+  // alors que jeudi s'arrête le 6) ferait sortir des messages du début de fenêtre et
+  // changerait le RICE de thèmes non touchés. Le nouveau feedback est compté à part.
+  const referenceDate = options.previous.referenceDate;
   return advanceRun({
     batch: options.previous.batch,
     referenceDate,
