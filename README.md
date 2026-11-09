@@ -89,11 +89,13 @@ Le rôle `anon` (celui de la clé publishable) peut lire et écrire les trois ta
 
 ## Social listening (X via Treg)
 
-La page Feedbacks du jeudi interroge X tant qu'elle reste ouverte. Treg ne pousse rien, et l'offre gratuite de Render endort le service : il n'y a pas de cron. Le navigateur appelle une action serveur toutes les 20 secondes. Fermer l'onglet arrête l'écoute. Elle s'arrête aussi au bout de 30 minutes, ou à 0,50 $ de coût Treg cumulé.
+Nadia ne voit pas l’écoute. Un post X arrive dans ses feedbacks comme les autres, avec l’icône X, le @handle et le lien. La liste du jeudi se rafraîchit seule.
 
-Treg plutôt que l'API X officielle : pas de compte développeur, et une recherche routée coûte de 0,00075 $ à 0,015 $ contre 0,005 $ par résultat chez X. L'indexation peut prendre un moment : un post qui vient d'être publié peut n'apparaître qu'au passage suivant. Plan B, sur la page : inclure les dernières heures au lieu du seul point de départ (ouverture de la page, moins 2 minutes).
+L’interrogation est sur `/ops/ecoute`, absente de la navigation. Cette page appelle une action serveur toutes les 20 secondes tant qu’elle est ouverte. Fermer l’onglet arrête l’écoute. Elle s’arrête aussi au bout de 30 minutes, ou à 0,50 $ de coût Treg cumulé. Treg ne pousse rien, et l’offre gratuite de Render endort le service : il n’y a pas de cron.
 
-L'appel préfère AnyAPI en direct (`query` + `queryType: Latest`, posts du plus récent au plus ancien, environ 0,00054 $). La recherche routée ne sert qu'en repli : elle ne sait pas forcer ce tri. `TREG_TOKEN` reste côté serveur. La requête par défaut est `#etai OR @etai` (`ETAI_X_QUERY`), affichée sur la page : `#etai` et `@etai` existent déjà pour autre chose, et le point de départ à l'ouverture écarte ce bruit. Les posts déjà vus (`fb-x-<id>`) ne sont pas repris. Le détail est dans l'ADR-019.
+Treg plutôt que l’API X officielle : pas de compte développeur, et une recherche routée coûte de 0,00075 $ à 0,015 $ contre 0,005 $ par résultat chez X. L’indexation peut prendre un moment. Plan B, sur `/ops/ecoute` : inclure les dernières heures au lieu du seul point de départ (ouverture de la page, moins 2 minutes).
+
+L’appel préfère AnyAPI en direct (`query` + `queryType: Latest`, environ 0,00054 $). La recherche routée ne sert qu’en repli. `TREG_TOKEN` reste côté serveur. La requête par défaut est `#etai OR @etai` (`ETAI_X_QUERY`). Les posts déjà vus (`fb-x-<id>`) ne sont pas repris. Les trois horodatages (publié, détecté, traité) sont gardés avec le feedback : le tableau des délais de `/ops/ecoute` les relit après un rechargement. Le détail est dans l’ADR-019.
 
 ## Brancher Linear
 

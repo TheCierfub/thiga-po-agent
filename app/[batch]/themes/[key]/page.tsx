@@ -223,7 +223,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
                       {f ? feedbackWho(f.author, account?.nom, MATCH_LABEL[m?.confidence ?? "non_rapproche"]) : MATCH_LABEL[m?.confidence ?? "non_rapproche"]}
                     </span>
                     <span>{CHANNEL_LABEL[f.channel]}</span>
-                    {f.channel === "social" ? <SocialMark url={f.sourceUrl} listening={f.listening} /> : null}
+                    {f.channel === "social" ? <SocialMark url={f.sourceUrl} /> : null}
                     <span>{new Date(f.receivedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" })}</span>
                     {theme.relatedSignalIds.includes(id) && !theme.feedbackIds.includes(id) ? <span>signal lié</span> : null}
                     {view.changes && view.newFeedbackIds.includes(id) ? <span className="font-medium text-(--moscow-must)">nouveau</span> : null}
