@@ -55,7 +55,9 @@ L'interface (Next.js, shadcn/ui, thème sombre) s'ouvre sur le brief du lundi. L
 | Thèmes et stories | feedbacks sources avec citations vérifiées surlignées, user story, critères, complexité relative, bouton « Valider et exporter vers Linear », bloqué si le thème est « à revoir » |
 | Recontact | brouillons modifiables (questions d'investigation, demande d'identifiant de compte). « Envoyer » dépose le message dans `out/outbox/` : rien n'est jamais envoyé |
 
-**Mode démo (par défaut, sans clé).** L'interface rejoue lundi puis jeudi depuis `fixtures/llm/`, avec le même pipeline que la CLI : aucun appel LLM, aucun réseau. Le bouton d'export écrit en Markdown dans `out/linear-export/`, et l'interface l'indique (badge en haut à droite, encadré sous le bouton).
+**Mode démo (par défaut, sans `SUPABASE_URL`).** L'interface rejoue lundi puis jeudi depuis `fixtures/llm/`, avec le même pipeline que la CLI : aucun appel LLM, aucun réseau. Le badge **Données : démo** l'indique, ainsi qu'un bandeau. Les arbitrages du PO restent dans le navigateur. Le bouton d'export écrit en Markdown dans `out/linear-export/` tant que Linear n'est pas branché (badge **Export** à côté).
+
+**Mode direct.** Avec `SUPABASE_URL` et `SUPABASE_KEY`, et après `pnpm db:seed`, le badge passe à **Données : Supabase**. Les feedbacks bruts, l'analyse et les arbitrages sont lus et écrits dans Postgres. L'écran Feedbacks permet de coller un e-mail, un ticket ou un commentaire : OpenRouter classe ce seul texte, le rattache à un thème existant ou en ouvre un, puis le RICE et le MoSCoW sont recalculés. Le temps passé est affiché pendant l'attente et à la fin. Si la base est absente, vide ou injoignable, l'interface revient au mode démo et le dit. Sans `OPENROUTER_API_KEY`, l'ajout est refusé et rien n'est enregistré.
 
 **Mode Linear.** Avec `LINEAR_API_KEY` et `LINEAR_TEAM_ID` dans l'environnement ou dans `.env`, le même bouton crée ou met à jour l'issue Linear, en tenant compte des arbitrages faits dans l'écran Priorisation. Redémarrer `pnpm dev` suffit, sans rebuild.
 
@@ -63,7 +65,27 @@ L'interface (Next.js, shadcn/ui, thème sombre) s'ouvre sur le brief du lundi. L
 
 `render.yaml` décrit le service web : build `pnpm build`, démarrage `next start` sur le port fourni par Render, contrôle de santé sur `/lundi`, redéploiement à chaque commit sur `main`. Dans Render : *New → Blueprint*, puis choisir ce dépôt. `LINEAR_API_KEY` et `LINEAR_TEAM_ID` sont demandées à la création ; vides, l'instance reste en mode démo. Les liens vers les feedbacks utilisent l'URL publique du service (`RENDER_EXTERNAL_URL`), sauf si `ETAI_PUBLIC_URL` est défini.
 
-Sur l'offre gratuite, le service s'endort après une période sans visite : le premier affichage prend alors quelques dizaines de secondes. Le dossier `out/` n'y est pas conservé entre deux déploiements.
+Sur l'offre gratuite, le service s'endort après une période sans visite : le premier affichage prend alors quelques dizaines de secondes. Le dossier `out/` n'y est pas conservé entre deux déploiements. Les feedbacks et les arbitrages, eux, restent dans Supabase une fois la base branchée.
+
+## Brancher Supabase
+
+Le projet Postgres est déjà créé. La migration n'est pas appliquée par le code : il faut la lancer soi-même (SQL Editor du dashboard, ou `supabase db query` une fois le CLI lié).
+
+1. Ouvrir `supabase/migrations/20261109154558_persist_po_cycle.sql` et l'exécuter sur la base.
+2. Copier `.env.example` vers `.env`. Renseigner `SUPABASE_URL` et `SUPABASE_KEY` (clé **publishable**, `sb_publishable_…`, jamais la clé secrète). Ces variables restent côté serveur : ne pas les préfixer par `NEXT_PUBLIC_`.
+3. Charger le corpus de démo, sans appel de modèle :
+
+```bash
+pnpm db:seed
+```
+
+La commande rejoue lundi et jeudi depuis les fixtures, écrit les feedbacks bruts, les analyses et les arbitrages de départ. La relancer remet ce corpus et retire les feedbacks ajoutés dans l'interface.
+
+4. Pour analyser un feedback collé dans l'interface, ajouter aussi `OPENROUTER_API_KEY`. Le profil utilisé est A (`ETAI_LLM_PROFILE` pour un autre). Chaque ajout est plafonné à 1 $ (`ETAI_LLM_BUDGET_USD`).
+
+Sur Render, les mêmes variables se déclarent dans le blueprint : `SUPABASE_URL`, `SUPABASE_KEY`, `OPENROUTER_API_KEY`. Elles sont vides tant qu'on ne les remplit pas, et l'instance reste en mode démo. Le seed se lance en local, pas au démarrage du service.
+
+Le rôle `anon` (celui de la clé publishable) peut lire et écrire les trois tables. C'est un compromis de démo : pas d'auth, pas de séparation entre PO. La marche à suivre pour la production est dans l'ADR-016.
 
 ## Brancher Linear
 
@@ -85,7 +107,7 @@ Ce qui est écrit, pour chaque thème Must, Should ou Could non bloqué :
 - si le thème est rattaché à une issue du backlog qui existe dans l'équipe, cette issue est mise à jour au lieu d'en créer une autre. Seule la section Étai de la description change (entre deux marqueurs) ; le texte écrit à la main et l'estimation de l'équipe restent ;
 - une demande client (Customer Request) par compte qui porte le thème, avec ses citations. Si la fonction Customers n'est pas activée dans l'espace, l'issue est exportée quand même et une note le signale. `LINEAR_CUSTOMER_REQUESTS=0` les désactive.
 
-Relancer l'export ne crée pas de doublon. La CLI exporte le classement de l'agent et `data/po-decisions.json` ; les arbitrages faits dans l'interface n'existent que dans le navigateur, et partent avec le bouton de l'interface. Les liens vers les feedbacks pointent sur `http://localhost:43217` ; `ETAI_PUBLIC_URL` les redirige vers une instance publiée.
+Relancer l'export ne crée pas de doublon. La CLI exporte le classement de l'agent et `data/po-decisions.json`. Les arbitrages faits dans l'interface partent avec le bouton : en mode démo ils vivent dans le navigateur, en mode direct ils sont relus depuis Supabase. Les liens vers les feedbacks pointent sur `http://localhost:43217` ; `ETAI_PUBLIC_URL` les redirige vers une instance publiée.
 
 ## Tests et évaluation
 
@@ -156,18 +178,19 @@ Les cases « LLM » passent par une interface `LlmProvider` sans aucun outil : l
 
 ## Démarche et choix techniques
 
-L'énoncé reformulé est dans [`docs/brief.md`](docs/brief.md). Le journal de décisions est dans [`docs/decisions.md`](docs/decisions.md) : ADR-002 à 007 pour l'architecture, ADR-008 à 013 pour les choix de la phase 1 (seuils, allocation, sécurité, fixtures, invalidation), ADR-014 pour le passage réel sur OpenRouter, ADR-015 pour l'interface et l'export Linear.
+L'énoncé reformulé est dans [`docs/brief.md`](docs/brief.md). Le journal de décisions est dans [`docs/decisions.md`](docs/decisions.md) : ADR-002 à 007 pour l'architecture, ADR-008 à 013 pour les choix de la phase 1 (seuils, allocation, sécurité, fixtures, invalidation), ADR-014 pour le passage réel sur OpenRouter, ADR-015 pour l'interface et l'export Linear, ADR-016 pour Supabase.
 
 ## Ce qui a été délégué à l'IA vs vérifié manuellement
 
-Le journal est [`AI_USAGE.md`](AI_USAGE.md). Le code et les fixtures des phases 1 et 2 ont été écrits par Claude Opus 5.5. Les seuils et la règle d'allocation restent à valider par Valentin.
+Le journal est [`AI_USAGE.md`](AI_USAGE.md). Le code et les fixtures des phases 1 et 2 ont été écrits par Claude Opus 5.5. Les seuils et la règle d'allocation restent à valider par Valentin. L'ADR-016 décrit la persistance Supabase.
 
 ## Limites et prochaines étapes
 
 - `LinearSink` est testé contre un faux Linear en mémoire, jamais contre l'API réelle. Premier essai prévu sur l'équipe THI, en commençant par `--dry-run`.
 - Les identifiants LIN-xx du jeu de données sont fictifs : dans un vrai espace, ils sont introuvables et l'issue est créée (une note le dit).
-- L'interface tourne en mode démo uniquement : elle ne lance pas de vrai modèle, elle rejoue les fixtures.
-- Les arbitrages du PO dans l'interface vivent dans le navigateur (localStorage), pas dans `data/po-decisions.json`. Reconfirmer une contrainte « à revoir » se fait encore dans ce fichier.
+- Sans `SUPABASE_URL`, ou si la base ne répond pas, l'interface reste en mode démo : fixtures, aucun modèle. Le badge et le bandeau le disent.
+- En mode direct, les arbitrages de l'interface (effort, MoSCoW forcé) sont dans Supabase. En mode démo, ils restent dans le navigateur. Reconfirmer une contrainte « à revoir » se fait encore dans `data/po-decisions.json`, rechargé au seed.
+- L'ajout d'un feedback dans l'interface exige `OPENROUTER_API_KEY`. Ce dépôt ne contient pas de résultat d'un tel appel : le flux est testé avec un faux client.
 - Les fixtures sont rédigées, pas enregistrées. Elles sont à remplacer par `pnpm eval:compare --record-fixtures <profil>` dès qu'une clé est disponible.
 - Le câblage OpenRouter est testé contre un faux serveur local, jamais contre l'API réelle : aucun résultat de modèle réel n'existe encore dans ce dépôt.
 - Une fixture est liée à l'empreinte de ses données : modifier un feedback rend le mode rejoué strict en erreur, jusqu'à réenregistrement.
@@ -198,8 +221,11 @@ core/outbox/                brouillons de recontact, boîte de test
 core/cli/, core/eval/       pnpm agent, pnpm export:linear, pnpm eval, pnpm eval:compare
 fixtures/llm/               réponses rejouées
 scripts/author-fixtures.ts  rédaction des fixtures (pnpm fixtures:author)
-app/                        Next.js : écrans par lot, actions serveur (export, boîte de test)
+app/                        Next.js : écrans par lot, actions serveur (export, boîte de test, ajout, arbitrages)
 components/etai/            composants des écrans ; components/ui/ : shadcn/ui
-lib/etai/                   données du mode démo, arbitrages du PO, libellés
+lib/etai/                   vues des lots, mode démo ou Supabase, arbitrages du PO, libellés
+core/store/                 persistance (mémoire pour les tests, Supabase)
+supabase/migrations/        schéma et politiques RLS, à appliquer sur la base
+scripts/db-seed.ts          pnpm db:seed
 .agents/skills/             skill emil-design-eng (animations, finitions)
 ```

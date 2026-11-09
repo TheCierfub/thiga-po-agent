@@ -355,3 +355,42 @@ Chaque thème porte une catégorie, affichée dans le brief, la priorisation, la
 - Règle prioritaire : un thème dont tous les feedbacks sont des bugs est classé Bug par le code (`categorySource: "regle"`).
 - Les types par feedback (demande, friction) ne suffisent pas à séparer amélioration et nouveauté : « partage client » et « notifications » ont chacun environ moitié de frictions, alors que l'un est une capacité absente et l'autre un réglage d'une fonction existante. D'où une décision du LLM, qui voit le produit et l'issue liée.
 - La catégorie n'entre ni dans le RICE ni dans le MoSCoW.
+
+## ADR-016 — Persistance Supabase, RLS ouverte au rôle anon
+
+- **Statut :** acceptée pour la démo ; insuffisante pour une production multi-PO
+- **Date :** 2026-11-09
+
+### Contexte
+
+Les feedbacks viennent des fixtures, les arbitrages du PO vivent dans le navigateur, et `out/` disparaît à chaque déploiement. Un PO qui reprend la main ne retrouve ni ses ajouts ni ses choix. Il n'y a pas de clé `service_role` : le seul secret disponible est la clé publishable du projet, qui authentifie le rôle Postgres `anon` tant qu'aucune session Supabase Auth n'est ouverte.
+
+### Décision
+
+Postgres hébergé par Supabase, lu et écrit uniquement depuis le serveur Next avec `@supabase/supabase-js`. Les variables sont `SUPABASE_URL` et `SUPABASE_KEY`. Elles ne sont pas préfixées `NEXT_PUBLIC_` : le navigateur ne reçoit pas la clé, même si une clé publishable est conçue pour pouvoir l'être.
+
+Trois tables, dans `supabase/migrations/20261109154558_persist_po_cycle.sql` :
+
+- `feedbacks` — texte brut, auteur, source, compte déclaré, lot. L'horodatage d'origine est gardé tel quel (`received_at_raw`) pour rester fidèle au schéma Zod.
+- `analysis_runs` — un lot (lundi ou jeudi) : classifications, thèmes, évaluations, scores RICE, allocation MoSCoW, dans le JSON déjà validé par `RunStateSchema`.
+- `po_arbitrages` — décisions de contraintes (`PoDecisions`) et surcharges de l'interface (effort, MoSCoW forcé).
+
+RLS activée et forcée sur les trois. `anon` a `select`, `insert`, `update`, `delete`, avec des politiques `using (true)` / `with check (true)`. `authenticated` n'a ni grant ni politique. `service_role` a les grants mais l'application ne l'utilise pas.
+
+Le seed (`pnpm db:seed`) rejoue les fixtures, sans modèle, et remplace le corpus. Un feedback collé dans l'interface repart du lot jeudi déjà analysé : classification et rattachement ne portent que sur ce texte, seuls les thèmes dont les preuves changent sont réévalués, tous les scores sont recalculés. Le compte choisi par le PO compte dans le Reach (`method: saisie_po`) quand l'auteur n'est pas déjà rapproché par e-mail. La fenêtre glisse jusqu'à la date du message pour qu'il y entre.
+
+Sans `SUPABASE_URL`, ou si l'appel échoue, ou si les lots ne sont pas seedés, l'interface rejoue les fixtures et l'affiche (badge et bandeau). Aucun modèle n'est appelé dans ce repli.
+
+Les comptes, le backlog et la stratégie restent des fichiers du dépôt : ce ne sont pas des données saisies par le PO.
+
+### Ce qui manque pour la production
+
+- **Auth.** Un compte par PO (Supabase Auth). Retirer les politiques `anon` et les grants associés. N'autoriser que `authenticated`, avec `auth.uid()` (ou un claim de `app_metadata`, jamais `user_metadata`). La clé publishable peut alors vivre dans le navigateur : elle n'ouvre que les lignes de l'utilisateur connecté.
+- **Multi-PO.** Aujourd'hui il n'y a qu'un cycle, partagé par quiconque possède la clé. Il faut un `workspace_id` (ou `owner_id`) sur les trois tables, et des politiques qui le comparent à l'identité. Le seed et l'interface n'ont pas cette dimension.
+- **Clé secrète.** Les tâches d'administration (seed, effacement du corpus) devraient passer par `service_role` ou `sb_secret_…`, hors du navigateur, et non par `anon`.
+- **Données personnelles.** Les textes bruts contiennent des e-mails. Les exposer au rôle `anon` est acceptable seulement parce que la clé reste sur le serveur de démo et que le jeu est fictif. En production : chiffrement ou masquage avant stockage, durée de rétention, et plus aucun accès anonyme.
+- **Comptes clients.** La liste des comptes est encore le fichier du cas. Un vrai PO doit pouvoir en ajouter sans redéployer.
+
+### Conséquences
+
+Le mode démo reste rejouable sans réseau. Le mode direct survit aux redéploiements Render. Tant que les politiques `anon` sont en place, toute personne qui obtient la clé publishable peut lire et modifier les feedbacks : ne pas la publier, et ne pas la considérer comme un contrôle d'accès.

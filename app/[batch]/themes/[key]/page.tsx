@@ -9,11 +9,11 @@ import { ThemeMoscow, ThemeNav } from "@/components/etai/theme-nav";
 import { DEMO_BATCHES, isDemoBatch } from "@/lib/etai/batches";
 import { readExportMode } from "@/lib/etai/export-mode";
 import { CHANNEL_LABEL, MATCH_LABEL, highlightQuotes } from "@/lib/etai/labels";
-import { getBatchView } from "@/lib/etai/view";
+import { getBatchView, getDemoBatchView } from "@/lib/etai/view";
 import { cn } from "@/lib/utils";
 
 export async function generateStaticParams() {
-  const views = await Promise.all(DEMO_BATCHES.map((b) => getBatchView(b)));
+  const views = await Promise.all(DEMO_BATCHES.map((b) => getDemoBatchView(b)));
   const keys = [...new Set(views.flatMap((v) => v.state.themes.map((t) => t.key)))];
   return keys.map((key) => ({ key }));
 }

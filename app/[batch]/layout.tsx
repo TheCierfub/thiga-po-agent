@@ -1,24 +1,43 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { BatchSwitcher } from "@/components/etai/batch-switcher";
+import { DataModeBadge } from "@/components/etai/data-mode-badge";
 import { ExportStatus, ExportStatusFallback } from "@/components/etai/export-status";
 import { NavTabs } from "@/components/etai/nav-tabs";
 import { DEMO_BATCHES, isDemoBatch } from "@/lib/etai/batches";
 import { OverridesProvider } from "@/lib/etai/overrides";
 import { getBatchView } from "@/lib/etai/view";
 
-/** Les deux lots sont prérendus ; changer de lot remplace toute l'interface, ce n'est pas une navigation interne. */
+/** Les deux lots sont prérendus en démo. Le mode direct lit la base à la requête. */
 export const instant = false;
 
 export function generateStaticParams() {
   return DEMO_BATCHES.map((batch) => ({ batch }));
 }
 
-export default async function BatchLayout({ children, params }: LayoutProps<"/[batch]">) {
+export default function BatchLayout({ children, params }: LayoutProps<"/[batch]">) {
+  return (
+    <Suspense fallback={<ShellFallback />}>
+      <BatchShell params={params}>{children}</BatchShell>
+    </Suspense>
+  );
+}
+
+function ShellFallback() {
+  return (
+    <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+      <div className="h-8 w-48 animate-pulse rounded-md bg-muted" />
+      <div className="mt-6 h-40 animate-pulse rounded-xl bg-muted/60" />
+    </div>
+  );
+}
+
+async function BatchShell({ children, params }: LayoutProps<"/[batch]">) {
   const { batch } = await params;
   if (!isDemoBatch(batch)) notFound();
   const [view, lundi, jeudi] = await Promise.all([getBatchView(batch), getBatchView("lundi"), getBatchView("jeudi")]);
   const storyTheme = view.state.stories.find((s) => s.status === "brouillon")?.themeKey ?? view.state.themes[0]?.key ?? null;
+  const live = view.dataMode === "live";
 
   return (
     <OverridesProvider view={view}>
@@ -28,7 +47,8 @@ export default async function BatchLayout({ children, params }: LayoutProps<"/[b
             <span className="font-semibold tracking-tight">Étai</span>
             <span className="truncate text-sm text-muted-foreground">Agent produit · Nadia, Product Owner</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <DataModeBadge mode={view.dataMode} detail={view.dataModeDetail} />
             <Suspense fallback={<ExportStatusFallback />}>
               <ExportStatus />
             </Suspense>
@@ -39,10 +59,16 @@ export default async function BatchLayout({ children, params }: LayoutProps<"/[b
           </div>
         </div>
       </header>
+      {live ? null : (
+        <div className="border-b bg-warn-bg">
+          <p className="mx-auto max-w-6xl px-4 py-2 text-sm text-warn-fg sm:px-6">{view.dataModeDetail}</p>
+        </div>
+      )}
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>
       <footer className="mx-auto w-full max-w-6xl px-4 pb-8 text-xs text-muted-foreground sm:px-6">
-        Mode démo sans clé : réponses LLM rejouées depuis fixtures/llm, calculs RICE et MoSCoW refaits en code à chaque affichage.
-        Aucun message n&apos;est envoyé ; les exports vont vers Linear seulement si la clé est configurée.
+        {live
+          ? "Mode direct : les feedbacks, l'analyse et les arbitrages sont dans Supabase. Un feedback ajouté est classé seul, puis le RICE et le MoSCoW sont recalculés. Aucun message n'est envoyé."
+          : "Mode démo : réponses LLM rejouées depuis fixtures/llm, sans appel de modèle. Les arbitrages restent dans ce navigateur. Aucun message n'est envoyé ; les exports vont vers Linear seulement si la clé est configurée."}
       </footer>
     </OverridesProvider>
   );

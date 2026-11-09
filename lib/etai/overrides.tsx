@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, use, useCallback, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, use, useCallback, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
+import { toast } from "sonner";
+import { saveArbitrages } from "@/app/actions";
 import { NO_OVERRIDES, hasOverrides, reprioritize, type ForceableClass, type PoOverrides } from "@/core/scoring/overrides";
 import type { Size } from "@/core/schemas";
 import type { DemoBatch } from "./batches";
@@ -40,8 +42,64 @@ interface OverridesContextValue {
 
 const OverridesContext = createContext<OverridesContextValue | null>(null);
 
-/** Arbitrages du PO, propres à chaque lot et gardés dans le navigateur. */
+/** Arbitrages du PO. En direct ils sont écrits dans la base ; en démo, dans le navigateur. */
 export function OverridesProvider({ view, children }: { view: BatchView; children: ReactNode }) {
+  if (view.dataMode === "live") return <LiveOverrides view={view}>{children}</LiveOverrides>;
+  return <LocalOverrides view={view}>{children}</LocalOverrides>;
+}
+
+function LiveOverrides({ view, children }: { view: BatchView; children: ReactNode }) {
+  const [overrides, setOverrides] = useState(view.overrides);
+  const incoming = JSON.stringify(view.overrides);
+  const [seen, setSeen] = useState(incoming);
+  if (incoming !== seen) {
+    setSeen(incoming);
+    setOverrides(view.overrides);
+  }
+  const [, startTransition] = useTransition();
+  const batch: DemoBatch = view.batch;
+
+  const write = useCallback(
+    (next: PoOverrides) => {
+      setOverrides(next);
+      startTransition(async () => {
+        const result = await saveArbitrages({ batch, overrides: next });
+        if (!result.ok) toast.error("Arbitrage non enregistré", { description: result.message });
+      });
+    },
+    [batch],
+  );
+
+  const value = useMemo<OverridesContextValue>(
+    () => ({
+      view,
+      overrides,
+      active: hasOverrides(overrides),
+      setEffort(themeKey, size) {
+        const effort = { ...overrides.effort };
+        if (size) effort[themeKey] = size;
+        else delete effort[themeKey];
+        write({ ...overrides, effort });
+      },
+      force(themeKey, moscow, motif) {
+        write({ ...overrides, forced: { ...overrides.forced, [themeKey]: { moscow, motif } } });
+      },
+      unforce(themeKey) {
+        const forced = { ...overrides.forced };
+        delete forced[themeKey];
+        write({ ...overrides, forced });
+      },
+      reset() {
+        write(NO_OVERRIDES);
+      },
+    }),
+    [view, overrides, write],
+  );
+
+  return <OverridesContext value={value}>{children}</OverridesContext>;
+}
+
+function LocalOverrides({ view, children }: { view: BatchView; children: ReactNode }) {
   const batch: DemoBatch = view.batch;
   const raw = useSyncExternalStore(
     subscribe,

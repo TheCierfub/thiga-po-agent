@@ -50,7 +50,7 @@ export const AuthorMatchSchema = z.object({
   /** Compte suggéré sans certitude (même domaine e-mail), jamais compté dans le Reach. */
   candidateAccountId: z.string().nullable(),
   confidence: IdentityConfidenceSchema,
-  method: z.enum(["email", "pseudo", "domaine", "aucune"]),
+  method: z.enum(["email", "pseudo", "domaine", "saisie_po", "aucune"]),
   explanation: z.string(),
   sourceDisagreement: z.boolean(),
 });

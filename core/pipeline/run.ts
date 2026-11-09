@@ -1,4 +1,4 @@
-import { loadBatchFile, loadContext, type BatchName } from "../data/load";
+import { loadBatchFile, loadContext, type BatchName, type Context } from "../data/load";
 import type { PoDecisions } from "../decisions/po-decisions";
 import { buildIdentityIndex, matchAuthor } from "../identity/match";
 import { ingestBatch } from "../ingest/connectors";
@@ -8,6 +8,7 @@ import type {
   Account,
   AuthorMatch,
   BacklogIssue,
+  Feedback,
   FeedbackClassification,
   InvestigationDraft,
   MaskedFeedback,
@@ -44,6 +45,25 @@ export interface RunOptions {
   draftStory?: boolean;
   /** Étapes de décision confiées à un moteur dédié. Absentes : décidées dans les réponses de texte. */
   decider?: DecisionPlan;
+}
+
+/** Même avancement que runBatch, à partir de feedbacks déjà normalisés (fichier ou saisie). */
+export interface AdvanceOptions {
+  batch: string;
+  referenceDate: string;
+  incoming: Feedback[];
+  provider: LlmProvider;
+  reachMode: ReachMode;
+  decisions: PoDecisions;
+  previous: RunState | null;
+  context: Context;
+  draftStory?: boolean;
+  decider?: DecisionPlan;
+  /**
+   * Le compte indiqué par le PO compte dans le Reach quand l'auteur n'est pas déjà rapproché
+   * avec certitude. Réservé à la saisie directe : les fichiers de lot ne l'activent pas.
+   */
+  trustDeclaredAccount?: boolean;
 }
 
 export interface ThemeChange {
@@ -161,21 +181,55 @@ function mergeThemes(previous: Theme[], grouped: GroupedTheme[]): { merged: Grou
 }
 
 export async function runBatch(options: RunOptions): Promise<RunResult> {
-  const { root, batch, provider, reachMode, decisions, previous } = options;
-  const context = loadContext(root);
+  const file = loadBatchFile(options.root, options.batch);
+  return advanceRun({
+    batch: options.batch,
+    referenceDate: file.fenetre.fin,
+    incoming: ingestBatch(file),
+    provider: options.provider,
+    reachMode: options.reachMode,
+    decisions: options.decisions,
+    previous: options.previous,
+    context: loadContext(options.root),
+    draftStory: options.draftStory,
+    decider: options.decider,
+  });
+}
+
+export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
+  const { batch, provider, reachMode, decisions, previous, context } = options;
   const { strategy, backlog } = context;
   const accounts = new Map(context.accounts.map((a) => [a.id, a]));
   const backlogById = new Map(backlog.map((i) => [i.id, i]));
-  const file = loadBatchFile(root, batch);
-  const window = windowEndingOn(file.fenetre.fin);
+  const window = windowEndingOn(options.referenceDate);
   const warnings: string[] = [];
 
-  // 1. Ingestion, masquage avant tout appel LLM, rapprochement.
-  const incoming = ingestBatch(file).map(maskFeedback);
+  // 1. Masquage avant tout appel LLM, rapprochement. Seuls les feedbacks inconnus sont traités.
+  const incoming = options.incoming.map(maskFeedback);
   const known = new Set(previous?.feedbacks.map((f) => f.id) ?? []);
   const fresh = incoming.filter((f) => !known.has(f.id));
   const index = buildIdentityIndex(context.accounts);
-  const freshMatches: AuthorMatch[] = fresh.map((f) => matchAuthor(f, index));
+  const freshMatches: AuthorMatch[] = fresh.map((f) => {
+    const match = matchAuthor(f, index);
+    if (
+      options.trustDeclaredAccount &&
+      match.confidence !== "certaine" &&
+      f.sourceAccountId !== null &&
+      accounts.has(f.sourceAccountId)
+    ) {
+      const account = accounts.get(f.sourceAccountId)!;
+      return {
+        feedbackId: f.id,
+        accountId: account.id,
+        candidateAccountId: null,
+        confidence: "certaine",
+        method: "saisie_po",
+        explanation: `Compte indiqué par le PO : ${account.nom}.`,
+        sourceDisagreement: false,
+      };
+    }
+    return match;
+  });
   for (const m of freshMatches) {
     if (m.sourceDisagreement) warnings.push(`${m.feedbackId} : le compte déclaré par la source diffère du rapprochement.`);
   }
@@ -410,7 +464,7 @@ export async function runBatch(options: RunOptions): Promise<RunResult> {
   const state: RunState = {
     version: 1,
     batch,
-    referenceDate: file.fenetre.fin,
+    referenceDate: options.referenceDate,
     reachMode,
     feedbacks: [...feedbacks.values()].map(stripPii),
     matches: [...matches.values()],

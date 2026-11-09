@@ -15,3 +15,9 @@ services:
         sync: false
       - key: LINEAR_TEAM_ID
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
