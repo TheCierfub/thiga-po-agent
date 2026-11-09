@@ -3,6 +3,9 @@ import { PageSkeleton } from "@/components/etai/page-skeleton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddFeedbackForm } from "@/components/etai/add-feedback";
+import { SocialMark } from "@/components/etai/social-mark";
+import { XListen } from "@/components/etai/x-listen";
+import { DEFAULT_X_QUERY, readPollSeconds, readSessionCapUsd } from "@/core/sources/x-listen";
 import { isDemoBatch } from "@/lib/etai/batches";
 import { CHANNEL_LABEL, MATCH_LABEL, TYPE_LABEL, feedbackWho } from "@/lib/etai/labels";
 import { getBatchView } from "@/lib/etai/view";
@@ -36,6 +39,16 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
           {feedbacks.length} feedbacks sur la fenêtre de 28 jours, texte masqué (e-mails, téléphones et adresses remplacés).
         </p>
       </div>
+      {batch === "jeudi" ? (
+        <XListen
+          enabled={Boolean(process.env.TREG_TOKEN?.trim())}
+          live={dataMode === "live"}
+          detail={dataModeDetail}
+          query={process.env.ETAI_X_QUERY?.trim() || DEFAULT_X_QUERY}
+          pollSeconds={readPollSeconds(process.env.ETAI_X_POLL_SECONDS)}
+          maxSessionUsd={readSessionCapUsd(process.env.ETAI_X_MAX_SESSION_USD)}
+        />
+      ) : null}
       <AddFeedbackForm
         accounts={accounts}
         live={dataMode === "live"}
@@ -61,6 +74,7 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
                   {feedbackWho(f.author, account?.nom, MATCH_LABEL[m?.confidence ?? "non_rapproche"])}
                 </span>
                 <span>{CHANNEL_LABEL[f.channel]}</span>
+                {f.channel === "social" ? <SocialMark url={f.sourceUrl} listening={f.listening} /> : null}
                 <span>{new Date(f.receivedAt).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" })}</span>
                 {c ? <span>{TYPE_LABEL[c.type]}</span> : null}
                 {c?.injection.quarantined ? <span className="font-medium text-warn-fg">quarantaine</span> : null}

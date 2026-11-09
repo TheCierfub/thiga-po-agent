@@ -445,3 +445,30 @@ La fenêtre du lot ne glisse pas à l'ajout. Le seed s'arrête au 6 novembre. Un
 - L'API Decisions est alpha : la forme de la réponse peut changer. Une réponse illisible part en repli, elle n'est pas inventée.
 - Les questions sont en français. Jev a tenu ce jour-là, ce n'est pas une garantie.
 - La citation automatique est la première phrase, pas le meilleur extrait choisi par un modèle. Elle reste une sous-chaîne exacte.
+
+## ADR-019 — Écoute X par interrogation depuis la page
+
+- **Statut :** acceptée pour la démo
+- **Date :** 2026-11-09
+
+### Contexte
+
+Valentin publie un post sur X pendant la restitution. Il faut le voir arriver comme un feedback, traité par le même passage direct que le collage (Jev, rattachement, RICE et MoSCoW), et mesurer le temps entre la publication et l'écran.
+
+Treg ne pousse rien : il faut demander. L'offre gratuite de Render endort le service web après un moment sans visite, donc un cron sur ce service ne tient pas la cadence. L'API X officielle demanderait un compte développeur, et une recherche récente y coûte 0,005 $ par résultat. La recherche routée Treg coûte de 0,00075 $ à 0,015 $ par appel, sans compte développeur.
+
+### Décision
+
+L'écoute vit dans la page du lot jeudi, tant qu'elle est ouverte. Le navigateur appelle `pollXMentions` toutes les 20 secondes (minimum 10, `ETAI_X_POLL_SECONDS`). Un passage déjà en cours est sauté. L'écoute s'arrête au bout de 30 minutes, ou si le coût cumulé des en-têtes `X-Treg-Cost-Micro` atteint `ETAI_X_MAX_SESSION_USD` (défaut 0,50 $). Chaque recherche est plafonnée à 0,02 $.
+
+L'appel part d'abord vers AnyAPI en direct, avec `queryType: Latest`, parce que ce tri n'existe pas sur la recherche routée. La recherche routée n'est appelée que si AnyAPI ne répond pas. La requête affichée reste réglable (`ETAI_X_QUERY`, défaut `#etai OR @etai`) : ce mot-dièse et ce compte existent déjà hors d'Étaï, et c'est le point de départ à l'ouverture qui les laisse de côté.
+
+Le premier passage ne reprend pas l'historique. Il ne traite que les posts publiés après l'ouverture de la page, moins 2 minutes. Un réglage de la page peut élargir aux dernières heures, pour le cas où le post de démo n'est pas encore indexé au moment voulu. Les posts de plus de 7 jours sont écartés. Un post déjà enregistré (`fb-x-<id>`) ne l'est pas une seconde fois.
+
+Chaque post ingéré garde trois horodatages : publication sur X, détection par le passage Treg, fin de `ingestDirectFeedback`. L'écran montre le délai d'indexation et le délai de traitement. Le texte du post passe par la détection d'injection de Jev, comme un collage.
+
+Le jeton `TREG_TOKEN` reste sur le serveur. Il n'est ni envoyé au navigateur, ni écrit dans les logs.
+
+### Production
+
+Un worker ou un cron, sur une instance qui ne s'endort pas, interrogerait Treg ou recevrait un flux. Mieux : un webhook, ou le filtered stream de l'API X, pour ne plus dépendre d'une page ouverte. Le plafond de session et la marge de 2 minutes sont des garde-fous de démo, pas le régime cible.

@@ -8,6 +8,7 @@ export const CHANNELS = [
   "forum_produit",
   "reddit",
   "x",
+  "social",
 ] as const;
 export const ChannelSchema = z.enum(CHANNELS);
 export type Channel = z.infer<typeof ChannelSchema>;

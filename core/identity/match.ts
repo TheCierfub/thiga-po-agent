@@ -65,6 +65,17 @@ export function matchAuthor(feedback: Feedback, index: Index): AuthorMatch {
     }
   }
 
+  if (feedback.channel === "social" && feedback.sourceAccountId?.startsWith("x:@")) {
+    return {
+      ...base,
+      accountId: feedback.sourceAccountId,
+      confidence: "certaine",
+      method: "pseudo",
+      explanation: `Compte X distinct ${feedback.sourceAccountId.slice(2)}, compté dans le Reach.`,
+      sourceDisagreement: false,
+    };
+  }
+
   if (author.email) {
     const candidates = index.byDomain.get(domainOf(author.email)) ?? [];
     if (candidates.length === 1 && candidates[0]) {

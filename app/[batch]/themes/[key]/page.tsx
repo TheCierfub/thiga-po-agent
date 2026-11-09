@@ -8,6 +8,7 @@ import { ExportPanel, ExportPanelSkeleton } from "@/components/etai/export-panel
 import { ThemeMoscow, ThemeNav } from "@/components/etai/theme-nav";
 import { DEMO_BATCHES, isDemoBatch } from "@/lib/etai/batches";
 import { readExportMode } from "@/lib/etai/export-mode";
+import { SocialMark } from "@/components/etai/social-mark";
 import { CHANNEL_LABEL, MATCH_LABEL, feedbackWho, highlightQuotes } from "@/lib/etai/labels";
 import { getBatchView, getDemoBatchView } from "@/lib/etai/view";
 import { cn } from "@/lib/utils";
@@ -222,6 +223,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
                       {f ? feedbackWho(f.author, account?.nom, MATCH_LABEL[m?.confidence ?? "non_rapproche"]) : MATCH_LABEL[m?.confidence ?? "non_rapproche"]}
                     </span>
                     <span>{CHANNEL_LABEL[f.channel]}</span>
+                    {f.channel === "social" ? <SocialMark url={f.sourceUrl} listening={f.listening} /> : null}
                     <span>{new Date(f.receivedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" })}</span>
                     {theme.relatedSignalIds.includes(id) && !theme.feedbackIds.includes(id) ? <span>signal lié</span> : null}
                     {view.changes && view.newFeedbackIds.includes(id) ? <span className="font-medium text-(--moscow-must)">nouveau</span> : null}
