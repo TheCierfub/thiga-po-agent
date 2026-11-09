@@ -182,7 +182,14 @@ function IngestReport({ outcome }: { outcome: AddFeedbackOutcome }) {
   const { trace } = outcome;
   return (
     <div role="status" className="space-y-2 text-sm">
-      <p>Traité en {(outcome.elapsedMs / 1000).toFixed(1)} s.</p>
+      <p>
+        Traité en {(outcome.elapsedMs / 1000).toFixed(1)} s.
+        {trace.decision?.attached
+          ? ` Rattaché par ${/jev|decisions/i.test(trace.decision.engine) ? "Jev" : trace.decision.engine}, confiance ${
+              trace.decision.confidence === null ? "inconnue" : trace.decision.confidence.toFixed(2).replace(".", ",")
+            }.`
+          : ""}
+      </p>
       {trace.themes.length === 0 ? <p>Aucun thème touché (quarantaine ou hors sujet).</p> : null}
       <ul className="space-y-1">
         {trace.themes.map((theme) => (

@@ -2,11 +2,13 @@ import { z } from "zod";
 import type { Context } from "../data/load";
 import type { PoDecisions } from "../decisions/po-decisions";
 import type { DecisionPlan } from "../llm/profiles";
+import type { DecisionEngine, DecisionRequest, DecisionResult } from "../llm/decisions";
 import type { LlmProvider, LlmRequest } from "../llm/provider";
 import { ChannelSchema, FeedbackSchema, type Feedback } from "../schemas";
 import { localDate } from "../scoring/window";
 import type { AnalysisStore } from "../store/types";
-import { costOf, stepDurations, themeMoves, type IngestCall, type IngestTrace, type TimedCall } from "./ingest-trace";
+import { costOf, stepDurations, themeMoves, type IngestCall, type IngestDecision, type IngestTrace, type TimedCall } from "./ingest-trace";
+import { readThemeConfidence } from "../steps/decide";
 import type { RunState } from "./state";
 import { advanceRun, type ChangeReport, type RunResult } from "./run";
 
@@ -62,6 +64,7 @@ export function appendFeedback(options: {
   context: Context;
   decider?: DecisionPlan;
   draftStory?: boolean;
+  themeConfidence?: number;
 }): Promise<RunResult> {
   const received = localDate(options.feedback.receivedAt);
   const referenceDate = received > options.previous.referenceDate ? received : options.previous.referenceDate;
@@ -74,10 +77,11 @@ export function appendFeedback(options: {
     decisions: options.decisions,
     previous: options.previous,
     context: options.context,
-    draftStory: options.draftStory,
+    draftStory: false,
     decider: options.decider,
     trustDeclaredAccount: true,
     strictAttachment: true,
+    themeConfidence: options.themeConfidence,
   });
 }
 
@@ -124,6 +128,36 @@ function callsFrom(spans: TimedCall[], usage: UsageRecord[]): IngestCall[] {
   return usage.map((call) => ({ ...call }));
 }
 
+function timeDecisions(plan: DecisionPlan | undefined, spans: TimedCall[]): DecisionPlan | undefined {
+  if (!plan) return plan;
+  const cache = new Map<DecisionEngine, DecisionEngine>();
+  const wrap = (engine: DecisionEngine | undefined) => {
+    if (!engine) return undefined;
+    const existing = cache.get(engine);
+    if (existing) return existing;
+    const timed: DecisionEngine = {
+      name: engine.name,
+      async decide(request: DecisionRequest): Promise<DecisionResult> {
+        const started = Date.now();
+        try {
+          return await engine.decide(request);
+        } finally {
+          spans.push({ task: request.step, key: request.key, durationMs: Date.now() - started });
+        }
+      },
+    };
+    cache.set(engine, timed);
+    return timed;
+  };
+  return {
+    type: wrap(plan.type),
+    injection: wrap(plan.injection),
+    critical: wrap(plan.critical),
+    backlog: wrap(plan.backlog),
+    theme: wrap(plan.theme),
+  };
+}
+
 function buildTrace(input: {
   feedbackId: string;
   spans: TimedCall[];
@@ -131,6 +165,7 @@ function buildTrace(input: {
   writeMs: number;
   changes: ChangeReport | null;
   rationaleFor: (key: string) => { rationale: string | null; relatedThemeIds: string[] };
+  decision: IngestDecision | null;
 }): IngestTrace {
   const calls = callsFrom(input.spans, input.usage);
   return {
@@ -139,6 +174,7 @@ function buildTrace(input: {
     calls,
     costUsd: costOf(calls),
     themes: themeMoves(input.changes?.themes ?? [], input.rationaleFor),
+    decision: input.decision,
   };
 }
 
@@ -150,6 +186,7 @@ export async function ingestDirectFeedback(options: {
   decisions: PoDecisions;
   context: Context;
   decider?: DecisionPlan;
+  themeConfidence?: number;
   /** Jetons et coût par appel HTTP, lus après l'analyse. Absent avec un faux client. */
   usage?: () => UsageRecord[];
   log?: (line: string) => void;
@@ -169,7 +206,8 @@ export async function ingestDirectFeedback(options: {
     provider: timer,
     decisions: options.decisions,
     context: options.context,
-    decider: options.decider,
+    decider: timeDecisions(options.decider, timer.spans),
+    themeConfidence: options.themeConfidence ?? readThemeConfidence(),
   });
   const rationaleFor = (key: string) => {
     const attachment = result.state.attachments?.find((item) => item.feedbackId === options.feedback.id && item.themeKey === key);
@@ -181,6 +219,19 @@ export async function ingestDirectFeedback(options: {
   };
   const persistStarted = Date.now();
   await options.store.upsertFeedbacks([{ feedback: options.feedback, origin: "direct" }]);
+  const classification = result.state.classifications.find((item) => item.feedbackId === options.feedback.id);
+  const attachment = result.state.attachments?.find((item) => item.feedbackId === options.feedback.id);
+  const choice = classification?.themeChoice;
+  const decision: IngestDecision | null = choice
+    ? {
+        engine: choice.engine,
+        choice: choice.themeKey ?? "aucun",
+        confidence: choice.confidence,
+        probability: choice.probability,
+        fallbackUsed: choice.fallbackUsed,
+        attached: attachment?.action === "rattacher" && Boolean(attachment.engine),
+      }
+    : null;
   const draft = buildTrace({
     feedbackId: options.feedback.id,
     spans: timer.spans,
@@ -188,6 +239,7 @@ export async function ingestDirectFeedback(options: {
     writeMs: 0,
     changes: result.changes,
     rationaleFor,
+    decision,
   });
   const changes = result.changes ? { ...result.changes, ingest: draft } : result.changes;
   try {

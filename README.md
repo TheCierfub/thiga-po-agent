@@ -81,7 +81,7 @@ pnpm db:seed
 
 La commande rejoue lundi et jeudi depuis les fixtures, écrit les feedbacks bruts, les analyses et les arbitrages de départ. La relancer remet ce corpus et retire les feedbacks ajoutés dans l'interface.
 
-4. Pour analyser un feedback collé dans l'interface, ajouter aussi `OPENROUTER_API_KEY`. Le profil utilisé est A (`ETAI_LLM_PROFILE` pour un autre). Chaque ajout est plafonné à 1 $ (`ETAI_LLM_BUDGET_USD`).
+4. Pour analyser un feedback collé dans l'interface, ajouter aussi `OPENROUTER_API_KEY`. Le profil par défaut est B : Jev décide (type, injection, gravité, thème), Sonnet ne rédige que si le rattachement n'est pas assez sûr ou si le palier de confiance change. `ETAI_LLM_PROFILE=A` revient à Sonnet pour tout. `ETAI_THEME_CONFIDENCE` (défaut 0,8) est le seuil de Jev. Chaque ajout est plafonné à 1 $ (`ETAI_LLM_BUDGET_USD`).
 
 Sur Render, les mêmes variables se déclarent dans le blueprint : `SUPABASE_URL`, `SUPABASE_KEY`, `OPENROUTER_API_KEY`. Elles sont vides tant qu'on ne les remplit pas, et l'instance reste en mode démo. Le seed se lance en local, pas au démarrage du service.
 
@@ -135,7 +135,7 @@ La commande évalue trois profils sur lundi, jeudi et holdout, avec un plafond d
 | Profil | Étapes de texte | Décisions (type, injection, gravité, backlog) |
 | --- | --- | --- |
 | A | `anthropic/claude-sonnet-5.5` | dans la réponse de classification et de regroupement |
-| B | `anthropic/claude-sonnet-5.5` | Jev (`typesafe/jev-1.14`, API Decisions), repli sur Sonnet 5.5 |
+| B | `anthropic/claude-sonnet-5.5` pour le texte seulement | Jev (`typesafe/jev-1.14`) seul pour le type, l'injection, la gravité, le backlog et le thème d'un ajout ; repli Sonnet 5.5 si Jev échoue |
 | C | `openai/gpt-5.6-luna` | dans la réponse de classification et de regroupement |
 
 Options :

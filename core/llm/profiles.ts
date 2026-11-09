@@ -70,7 +70,10 @@ export class RoutedProvider implements LlmProvider {
   }
 }
 
-export type DecisionPlan = Partial<Record<DecisionStep, DecisionEngine>>;
+export interface DecisionPlan extends Partial<Record<DecisionStep, DecisionEngine>> {
+  /** Même moteur que les autres décisions. Posé à l'ajout direct, pas dans le fichier de profil. */
+  theme?: DecisionEngine;
+}
 
 export interface ProfileRuntime {
   provider: LlmProvider;
@@ -121,5 +124,6 @@ export function buildProfileRuntime(
     decider[step] = engine;
     groups.set(cacheKey, [...(groups.get(cacheKey) ?? []), step]);
   }
+  if (decider.type) decider.theme = decider.type;
   return { provider: new RoutedProvider(routes), decider, decisionGroups: [...groups.values()] };
 }

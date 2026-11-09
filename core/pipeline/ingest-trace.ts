@@ -15,6 +15,17 @@ export const IngestTraceSchema = z.object({
     }),
   ),
   costUsd: z.number().nullable(),
+  decision: z
+    .object({
+      engine: z.string(),
+      choice: z.string(),
+      confidence: z.number().nullable(),
+      probability: z.number().nullable(),
+      fallbackUsed: z.boolean(),
+      attached: z.boolean(),
+    })
+    .nullable()
+    .optional(),
   themes: z.array(
     z.object({
       key: z.string(),
@@ -57,12 +68,22 @@ export interface IngestThemeMove {
   moscowAfter: string;
 }
 
+export interface IngestDecision {
+  engine: string;
+  choice: string;
+  confidence: number | null;
+  probability: number | null;
+  fallbackUsed: boolean;
+  attached: boolean;
+}
+
 export interface IngestTrace {
   feedbackId: string;
   steps: IngestStep[];
   calls: IngestCall[];
   costUsd: number | null;
   themes: IngestThemeMove[];
+  decision?: IngestDecision | null;
 }
 
 export interface TimedCall {
@@ -79,16 +100,19 @@ const STEP_OF: Record<string, string> = {
   investigate: "investigation",
 };
 
+const TEXT_TASKS = new Set(Object.keys(STEP_OF));
+
 export function stepDurations(calls: TimedCall[], writeMs: number): IngestStep[] {
   const totals = new Map<string, number>();
   for (const call of calls) {
-    const name = STEP_OF[call.task] ?? call.task;
+    const name = TEXT_TASKS.has(call.task) ? STEP_OF[call.task]! : "decision";
     totals.set(name, (totals.get(name) ?? 0) + call.durationMs);
   }
   const steps = ["classification", "rattachement", "reevaluation", "ecriture"].map((name) => ({
     name,
     durationMs: name === "ecriture" ? writeMs : (totals.get(name) ?? 0),
   }));
+  if (totals.has("decision")) steps.unshift({ name: "decision", durationMs: totals.get("decision") ?? 0 });
   for (const name of ["redaction", "investigation"]) {
     const durationMs = totals.get(name);
     if (durationMs) steps.push({ name, durationMs });
@@ -140,6 +164,7 @@ export function costOf(calls: IngestCall[]): number | null {
 }
 
 export const STEP_LABEL: Record<string, string> = {
+  decision: "Décision",
   classification: "Classification",
   rattachement: "Rattachement",
   reevaluation: "Réévaluation",

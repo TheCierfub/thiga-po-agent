@@ -77,6 +77,17 @@ export const FeedbackClassificationSchema = z.object({
   quotes: z.array(QuoteSchema),
   rejectedQuotes: z.array(z.string()),
   decisions: z.partialRecord(DecisionStepSchema, DecisionTraceSchema).optional(),
+  /** Choix de thème par le moteur de décision, à l'ajout direct seulement. */
+  themeChoice: z
+    .object({
+      themeKey: z.string().nullable(),
+      confidence: z.number().nullable(),
+      probability: z.number().nullable(),
+      probabilities: z.record(z.string(), z.number()).nullable(),
+      fallbackUsed: z.boolean(),
+      engine: z.string(),
+    })
+    .optional(),
 });
 export type FeedbackClassification = z.infer<typeof FeedbackClassificationSchema>;
 
@@ -138,6 +149,9 @@ export const FeedbackAttachmentSchema = z.object({
   relatedThemeIds: z.array(z.string()),
   /** Vrai si le code a refusé un thème isolé et imposé le rattachement. */
   forced: z.boolean(),
+  engine: z.string().optional(),
+  confidence: z.number().nullable().optional(),
+  probability: z.number().nullable().optional(),
 });
 export type FeedbackAttachment = z.infer<typeof FeedbackAttachmentSchema>;
 

@@ -22,7 +22,7 @@ import type {
   UserStoryDraft,
 } from "../schemas";
 import { allocateMoscow, type AllocationItem } from "../scoring/moscow";
-import { computeConfidence, computeReach, computeRice } from "../scoring/rice";
+import { computeConfidence, computeReach, computeRice, shouldReassessTheme } from "../scoring/rice";
 import { computeTrend } from "../scoring/trend";
 import { windowEndingOn, type Window } from "../scoring/window";
 import { assumptionsHash, evidenceHash, planInvalidation, type InvalidationPlan } from "../state/invalidation";
@@ -30,6 +30,7 @@ import { assessTheme } from "../steps/assess";
 import { classifyAll, isRelatedSignal, isThemeEligible, needsInvestigation } from "../steps/classify";
 import { draftStory } from "../steps/draft-story";
 import { attachFeedback, type ExistingThemeBrief } from "../steps/attach";
+import { DEFAULT_THEME_CONFIDENCE, themeChoiceIsConfident } from "../steps/decide";
 import { groupThemes, type GroupedTheme } from "../steps/group";
 import type { IngestTrace } from "./ingest-trace";
 import { draftInvestigation } from "../steps/investigate";
@@ -69,6 +70,8 @@ export interface AdvanceOptions {
   trustDeclaredAccount?: boolean;
   /** Compare le feedback à chaque thème ouvert et refuse un thème isolé. */
   strictAttachment?: boolean;
+  /** Confiance minimale pour accepter le thème choisi par le moteur de décision. */
+  themeConfidence?: number;
 }
 
 export interface ThemeChange {
@@ -249,7 +252,15 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
 
   // 2. Classification des seuls nouveaux feedbacks.
   const decider = options.decider ?? {};
-  const freshClassifications = await classifyAll(fresh, provider, decisions.releasedFromQuarantine, decider);
+  const themeBriefs = (previous?.themes ?? []).map((theme) => ({ key: theme.key, title: theme.title, problem: theme.problem }));
+  const freshClassifications = await classifyAll(
+    fresh,
+    provider,
+    decisions.releasedFromQuarantine,
+    decider,
+    4,
+    options.strictAttachment ? themeBriefs : [],
+  );
   for (const c of freshClassifications) {
     if (c.rejectedQuotes.length > 0) warnings.push(`${c.feedbackId} : ${c.rejectedQuotes.length} citation(s) rejetée(s).`);
   }
@@ -272,41 +283,76 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
   const members = freshClassifications.filter(isThemeEligible).map(pair);
   const signals = freshClassifications.filter(isRelatedSignal).map(pair);
   const attachmentRecords: FeedbackAttachment[] = [];
-  const grouping =
-    options.strictAttachment && members.length === 1 && signals.length === 0
-      ? await (async () => {
-          const existingThemes: ExistingThemeBrief[] = (previous?.themes ?? []).map((theme) => ({
-            key: theme.key,
-            title: theme.title,
-            problem: theme.problem,
-            backlogIssueId: theme.backlogIssueId,
-            quotes: theme.quotes.slice(0, 2).map((quote) => quote.text),
-          }));
-          const attached = await attachFeedback(
-            { batch, feedback: members[0]!.feedback, classification: members[0]!.classification, backlog, existingThemes },
-            provider,
-          );
-          attachmentRecords.push(attached.attachment);
-          return { themes: [attached.grouped], unassigned: [] as string[], warnings: attached.warnings };
-        })()
-      : members.length + signals.length > 0
-        ? await groupThemes(
-            {
-              batch,
-              members,
-              signals,
-              backlog,
-              existingThemes: (previous?.themes ?? []).map((t) => ({
-                key: t.key,
-                title: t.title,
-                problem: t.problem,
-                backlogIssueId: t.backlogIssueId,
-              })),
-            },
-            provider,
-          )
-        : { themes: [], unassigned: [], warnings: [] };
+  const grouping = await groupIncoming();
   warnings.push(...grouping.warnings);
+
+  async function groupIncoming() {
+    if (options.strictAttachment && members.length === 1 && signals.length === 0) {
+      const member = members[0]!;
+      const choice = member.classification.themeChoice;
+      const chosen = choice?.themeKey ? previous?.themes.find((theme) => theme.key === choice.themeKey) : undefined;
+      if (choice && chosen && themeChoiceIsConfident(choice, options.themeConfidence ?? DEFAULT_THEME_CONFIDENCE)) {
+        const quote = member.classification.quotes[0];
+        attachmentRecords.push({
+          feedbackId: member.feedback.id,
+          action: "rattacher",
+          themeKey: chosen.key,
+          rationale: `Rattaché par ${choice.engine}.`,
+          relatedThemeIds: [],
+          forced: false,
+          engine: choice.engine,
+          confidence: choice.confidence,
+          probability: choice.probability,
+        });
+        return {
+          themes: [
+            {
+              key: chosen.key,
+              title: chosen.title,
+              problem: chosen.problem,
+              feedbackIds: [member.feedback.id],
+              relatedSignalIds: [],
+              backlogIssueId: null,
+              backlogRelation: "aucun" as const,
+              quotes: quote ? [quote] : [],
+              rejectedQuotes: [],
+            },
+          ],
+          unassigned: [] as string[],
+          warnings: [] as string[],
+        };
+      }
+      const existingThemes: ExistingThemeBrief[] = (previous?.themes ?? []).map((theme) => ({
+        key: theme.key,
+        title: theme.title,
+        problem: theme.problem,
+        backlogIssueId: theme.backlogIssueId,
+        quotes: theme.quotes.slice(0, 2).map((quote) => quote.text),
+      }));
+      const attached = await attachFeedback(
+        { batch, feedback: member.feedback, classification: member.classification, backlog, existingThemes },
+        provider,
+      );
+      attachmentRecords.push(attached.attachment);
+      return { themes: [attached.grouped], unassigned: [] as string[], warnings: attached.warnings };
+    }
+    if (members.length + signals.length === 0) return { themes: [], unassigned: [] as string[], warnings: [] as string[] };
+    return groupThemes(
+      {
+        batch,
+        members,
+        signals,
+        backlog,
+        existingThemes: (previous?.themes ?? []).map((t) => ({
+          key: t.key,
+          title: t.title,
+          problem: t.problem,
+          backlogIssueId: t.backlogIssueId,
+        })),
+      },
+      provider,
+    );
+  }
 
   // Rattachement au backlog par un moteur dédié : seulement pour les thèmes nouveaux,
   // un thème déjà ouvert garde son rattachement.
@@ -358,6 +404,24 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
   // 5. Évaluation LLM des seuls thèmes nouveaux ou modifiés.
   const previousAssessments = new Map((previous?.assessments ?? []).map((a) => [a.themeKey, a]));
   const toAssess = new Set(plan ? plan.reassess : themes.map((t) => t.key));
+  if (options.strictAttachment && plan && previous) {
+    for (const key of [...toAssess]) {
+      if (plan.newThemes.includes(key)) continue;
+      const theme = themes.find((item) => item.key === key);
+      const prevRice = previous.rice.find((score) => score.themeKey === key);
+      if (!theme || !prevRice) continue;
+      const { channels, ...reach } = computeReach({
+        feedbackIds: theme.feedbackIds,
+        feedbacks,
+        matches,
+        accounts,
+        window,
+        mode: reachMode,
+      });
+      const next = computeConfidence(reach.accounts.length, channels).value;
+      if (!shouldReassessTheme(false, prevRice.confidence.value, next)) toAssess.delete(key);
+    }
+  }
   const assessments = new Map<string, ThemeAssessment>();
   for (const theme of themes) {
     const reuse = previousAssessments.get(theme.key);

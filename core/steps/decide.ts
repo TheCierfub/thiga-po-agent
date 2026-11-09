@@ -58,23 +58,85 @@ function byEngine<S extends DecisionStep>(plan: DecisionPlan, steps: readonly S[
   return [...groups];
 }
 
+export interface ThemeOption {
+  key: string;
+  title: string;
+  problem: string;
+}
+
+export interface ThemeChoice {
+  themeKey: string | null;
+  confidence: number | null;
+  probability: number | null;
+  probabilities: Record<string, number> | null;
+  fallbackUsed: boolean;
+  engine: string;
+}
+
+/** En dessous, ou si Jev a répondu « aucun » ou est tombé en repli, Sonnet compare les thèmes. */
+export const DEFAULT_THEME_CONFIDENCE = 0.8;
+
+export const AUCUN_THEME = "aucun";
+
+export function readThemeConfidence(env: NodeJS.ProcessEnv = process.env): number {
+  const parsed = Number(env.ETAI_THEME_CONFIDENCE ?? String(DEFAULT_THEME_CONFIDENCE));
+  return Number.isFinite(parsed) && parsed > 0 && parsed <= 1 ? parsed : DEFAULT_THEME_CONFIDENCE;
+}
+
+export function themeQuestion(themes: readonly ThemeOption[]): DecisionQuestion {
+  return {
+    type: "choice",
+    instructions:
+      "Quel thème déjà ouvert décrit le même problème que ce feedback ? Un bug, une régression ou des doublons sur un problème déjà ouvert comptent comme ce thème. Choisis « aucun » seulement si aucun titre ni résumé ne correspond.",
+    options: {
+      ...Object.fromEntries(themes.slice(0, 254).map((theme) => [theme.key, `${theme.title} — ${theme.problem}`])),
+      [AUCUN_THEME]: "Aucun thème existant ne traite ce problème.",
+    },
+  };
+}
+
+export function themeChoiceIsConfident(choice: ThemeChoice, threshold: number): boolean {
+  if (choice.fallbackUsed || choice.themeKey === null) return false;
+  const score = choice.confidence ?? choice.probability;
+  return score !== null && score >= threshold;
+}
+
 export interface FeedbackDecisions {
   type?: FeedbackType;
   injectionSuspected?: boolean;
   severity?: Severity | null;
+  theme?: ThemeChoice;
   traces: Partial<Record<DecisionStep, DecisionTrace>>;
 }
 
-export async function decideForFeedback(feedback: MaskedFeedback, plan: DecisionPlan): Promise<FeedbackDecisions> {
+export async function decideForFeedback(
+  feedback: MaskedFeedback,
+  plan: DecisionPlan,
+  themes: readonly ThemeOption[] = [],
+): Promise<FeedbackDecisions> {
   const result: FeedbackDecisions = { traces: {} };
+  const askTheme = themes.length > 0 && plan.theme !== undefined;
+  let themeAsked = false;
   for (const [engine, steps] of byEngine(plan, ["type", "injection", "critical"] as const)) {
-    const questions = Object.fromEntries(steps.map((s) => [s, FEEDBACK_QUESTIONS[s]]));
+    const questions: Record<string, DecisionQuestion> = Object.fromEntries(steps.map((s) => [s, FEEDBACK_QUESTIONS[s]]));
+    const withTheme = askTheme && plan.theme === engine;
+    if (withTheme) questions.theme = themeQuestion(themes);
+    const names = [...steps, ...(withTheme ? ["theme"] : [])];
     const out = await engine.decide({
-      step: steps.join("+"),
-      key: `feedback--${feedback.id}--${steps.join("+")}`,
-      state: { canal: feedback.channel, langue: feedback.language, feedback: feedback.maskedText },
+      step: names.join("+"),
+      key: `feedback--${feedback.id}--${names.join("+")}`,
+      state: {
+        canal: feedback.channel,
+        langue: feedback.language,
+        feedback: feedback.maskedText,
+        ...(withTheme ? { themes: themes.map((theme) => ({ id: theme.key, titre: theme.title, resume: theme.problem })) } : {}),
+      },
       questions,
     });
+    if (withTheme) {
+      themeAsked = true;
+      result.theme = readThemeChoice(out, themes);
+    }
     for (const step of steps) {
       const answer = out.answers[step]!;
       result.traces[step] = trace(out.engine, answer, out.fallbackUsed);
@@ -85,7 +147,43 @@ export async function decideForFeedback(feedback: MaskedFeedback, plan: Decision
       }
     }
   }
+  if (askTheme && !themeAsked && plan.theme) {
+    const out = await plan.theme.decide({
+      step: "theme",
+      key: `feedback--${feedback.id}--theme`,
+      state: {
+        feedback: feedback.maskedText,
+        themes: themes.map((theme) => ({ id: theme.key, titre: theme.title, resume: theme.problem })),
+      },
+      questions: { theme: themeQuestion(themes) },
+    });
+    result.theme = readThemeChoice(out, themes);
+  }
   return result;
+}
+
+function readThemeChoice(out: { engine: string; fallbackUsed: boolean; answers: Record<string, DecisionAnswer> }, themes: readonly ThemeOption[]): ThemeChoice {
+  const answer = out.answers.theme;
+  const known = new Set(themes.map((theme) => theme.key));
+  if (!answer || answer.type !== "choice" || answer.choice === AUCUN_THEME || !known.has(answer.choice)) {
+    const probabilities = answer?.type === "choice" ? answer.probabilities : null;
+    return {
+      themeKey: null,
+      confidence: answer?.type === "choice" ? answer.confidence : null,
+      probability: answer?.type === "choice" && answer.probabilities ? (answer.probabilities[answer.choice] ?? null) : null,
+      probabilities,
+      fallbackUsed: out.fallbackUsed,
+      engine: out.engine,
+    };
+  }
+  return {
+    themeKey: answer.choice,
+    confidence: answer.confidence,
+    probability: answer.probabilities ? (answer.probabilities[answer.choice] ?? null) : null,
+    probabilities: answer.probabilities,
+    fallbackUsed: out.fallbackUsed,
+    engine: out.engine,
+  };
 }
 
 export interface BacklogDecision {

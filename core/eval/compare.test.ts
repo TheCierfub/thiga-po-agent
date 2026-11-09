@@ -37,8 +37,11 @@ beforeAll(async () => {
   server = await startFakeOpenRouter((req) => {
     if (req.path === "/api/alpha/decisions") return decisionsBehaviour(req);
     const task = taskOf(req.body);
-    const known = answers.get(userPrompt(req.body));
+    const prompt = userPrompt(req.body);
+    const known = answers.get(prompt);
     if (known !== undefined) return { body: chatCompletion(known, { cost: 0.001 }) };
+    const reused = reuseFixture(task, prompt);
+    if (reused !== undefined) return { body: chatCompletion(reused, { cost: 0.001 }) };
     if (task === "decide") return { body: chatCompletion(backlogOracle(userPrompt(req.body)) ?? firstOptionAnswer(req.body), { cost: 0.0005 }) };
     if (task === "classify") return { body: chatCompletion(HOLDOUT_CLASSIFICATION, { cost: 0.001 }) };
     return { status: 400, body: { error: { message: `prompt inconnu pour ${task}` } } };
@@ -50,6 +53,19 @@ type Classified = { type: string; severity: string | null; injection: { suspecte
 type Grouped = { themes: { title: string; backlogIssueId: string | null; backlogRelation: string }[] };
 
 /** Ce qu'aurait répondu un modèle de décision d'accord avec les fixtures. */
+/** Le profil B n'envoie plus le prompt de classification complet : on retrouve la fixture par identifiant. */
+function reuseFixture(task: string, prompt: string): unknown | undefined {
+  const ids = [...prompt.matchAll(/\b(fb-[\w-]+)\b/g)].map((match) => match[1]!);
+  if (new Set(ids).size !== 1) return undefined;
+  const id = ids[0]!;
+  for (const [oldPrompt, out] of answers) {
+    if (!oldPrompt.includes(id) || !out || typeof out !== "object") continue;
+    if (task === "classify" && "quotes" in out && "underlyingProblem" in out) return out;
+    if (task === "assess" && "impact" in out && "effortSize" in out) return out;
+  }
+  return undefined;
+}
+
 function classificationOf(text: string): Classified | null {
   for (const [prompt, out] of answers) {
     if (out && typeof out === "object" && "actionable" in out && prompt.includes(text)) return out as Classified;

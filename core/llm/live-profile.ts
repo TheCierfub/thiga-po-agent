@@ -14,7 +14,7 @@ export function createLiveProvider(
   if (!env.OPENROUTER_API_KEY?.trim()) {
     throw new Error("OPENROUTER_API_KEY est absente : le feedback n'est pas envoyé au modèle.");
   }
-  const profile = env.ETAI_LLM_PROFILE?.trim() || "A";
+  const profile = env.ETAI_LLM_PROFILE?.trim() || "B";
   const parsed = Number(env.ETAI_LLM_BUDGET_USD ?? "1");
   const meter = new Meter({ budgetUsd: Number.isFinite(parsed) && parsed > 0 ? parsed : 1 });
   const client = openRouterClientFromEnv({ meter, env });

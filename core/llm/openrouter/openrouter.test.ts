@@ -234,6 +234,7 @@ describe("profils", () => {
     const runtime = buildProfileRuntime(loadProfile(ROOT, "B"), new OpenRouterClient({ apiKey: KEY, meter }));
     expect(runtime.decisionGroups).toEqual([["type", "injection", "critical", "backlog"]]);
     expect(new Set(Object.values(runtime.decider)).size).toBe(1);
+    expect(runtime.decider.theme).toBe(runtime.decider.type);
     expect(existsSync(path.join(ROOT, "config/llm-profiles/B.json"))).toBe(true);
   });
 });
