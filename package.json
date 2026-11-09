@@ -14,7 +14,8 @@
     "export:linear": "tsx core/cli/export-linear.ts",
     "eval": "tsx core/eval/main.ts",
     "eval:compare": "tsx core/eval/compare-main.ts",
-    "fixtures:author": "tsx scripts/author-fixtures.ts"
+    "fixtures:author": "tsx scripts/author-fixtures.ts",
+    "db:seed": "tsx scripts/db-seed.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.99",
@@ -22,6 +23,7 @@
     "@ai-sdk/openai-compatible": "^3.0.87",
     "@base-ui/react": "^1.9.0",
     "@linear/sdk": "^101.1.0",
+    "@supabase/supabase-js": "^2.119.0",
     "ai": "^7.0.165",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",

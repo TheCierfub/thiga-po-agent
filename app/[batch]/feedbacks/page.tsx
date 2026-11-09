@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { PageSkeleton } from "@/components/etai/page-skeleton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AddFeedbackForm } from "@/components/etai/add-feedback";
 import { isDemoBatch } from "@/lib/etai/batches";
 import { CHANNEL_LABEL, MATCH_LABEL, TYPE_LABEL } from "@/lib/etai/labels";
 import { getBatchView } from "@/lib/etai/view";
@@ -17,12 +18,15 @@ export default function FeedbacksPage({ params }: PageProps<"/[batch]/feedbacks"
 async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbacks">, "params">) {
   const { batch } = await params;
   if (!isDemoBatch(batch)) notFound();
-  const { state, accounts, newFeedbackIds, changes } = await getBatchView(batch);
+  const { state, accounts: accountsById, newFeedbackIds, changes, dataMode, dataModeDetail } = await getBatchView(batch);
   const matches = new Map(state.matches.map((m) => [m.feedbackId, m]));
   const classes = new Map(state.classifications.map((c) => [c.feedbackId, c]));
   const themeOf = (id: string) => state.themes.find((t) => t.feedbackIds.includes(id) || t.relatedSignalIds.includes(id));
   const fresh = new Set(newFeedbackIds);
   const feedbacks = [...state.feedbacks].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
+  const accounts = Object.values(accountsById)
+    .map((account) => ({ id: account.id, nom: account.nom }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
 
   return (
     <div className="space-y-6">
@@ -32,12 +36,13 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
           {feedbacks.length} feedbacks sur la fenêtre de 28 jours, texte masqué (e-mails, téléphones et adresses remplacés).
         </p>
       </div>
+      <AddFeedbackForm accounts={accounts} live={dataMode === "live"} detail={dataModeDetail} />
       <ul className="space-y-2">
         {feedbacks.map((f) => {
           const m = matches.get(f.id);
           const c = classes.get(f.id);
           const theme = themeOf(f.id);
-          const account = m?.accountId ? accounts[m.accountId] : undefined;
+          const account = m?.accountId ? accountsById[m.accountId] : undefined;
           return (
             <li
               key={f.id}

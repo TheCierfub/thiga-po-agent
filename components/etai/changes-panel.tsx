@@ -37,7 +37,7 @@ export function ChangesPanel({ batch, changes, accounts }: { batch: string; chan
           if (t.confidenceBefore !== null && t.confidenceBefore !== t.confidenceAfter) {
             facts.push(`Confidence ${pct(t.confidenceBefore)} → ${pct(t.confidenceAfter)}`);
           }
-          if (t.status === "inchange") facts.push("évaluation reprise de lundi");
+          if (t.status === "inchange") facts.push("évaluation reprise, sans nouvel appel au modèle");
           return (
             <li key={t.key} className={moved ? "rounded-xl border border-(--moscow-should)/30 bg-card p-4" : "rounded-xl border bg-card p-4"}>
               <div className="flex items-start justify-between gap-3">

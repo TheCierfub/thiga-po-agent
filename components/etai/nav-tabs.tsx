@@ -14,6 +14,7 @@ export function NavTabs({ batch, storyTheme, drafts }: { batch: string; storyThe
       label: "Thèmes et stories",
       match: (p: string) => p.startsWith(`/${batch}/themes`),
     },
+    { href: `/${batch}/feedbacks`, label: "Feedbacks", match: (p: string) => p.startsWith(`/${batch}/feedbacks`) },
     { href: `/${batch}/recontact`, label: "Recontact", count: drafts, match: (p: string) => p.startsWith(`/${batch}/recontact`) },
   ];
   return (

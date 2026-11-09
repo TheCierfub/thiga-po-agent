@@ -21,8 +21,8 @@ async function PrioritizationPageContent({ params }: Pick<PageProps<"/[batch]/pr
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Priorisation RICE et MoSCoW</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           RICE = Reach × Impact × Confidence ÷ Effort, calculé en code. Ouvrez une ligne pour voir le détail du calcul. Modifier
-          l&apos;effort ou forcer une catégorie recalcule tout de suite le classement et la capacité ; vos arbitrages restent dans ce
-          navigateur.
+          l&apos;effort ou forcer une catégorie recalcule tout de suite le classement. En mode direct, ces arbitrages sont enregistrés
+          dans la base ; en mode démo, ils restent dans ce navigateur.
         </p>
       </div>
       <PrioritizationBoard />

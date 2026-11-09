@@ -1,5 +1,6 @@
+import { z } from "zod";
 import type { RunState } from "../pipeline/state";
-import { arbitrablePoints, type Allocation, type MoscowDecision, type RiceScore, type Size, type Strategy } from "../schemas";
+import { SizeSchema, arbitrablePoints, type Allocation, type MoscowDecision, type RiceScore, type Strategy } from "../schemas";
 import { allocateMoscow, capacityAlerts, type AllocationItem } from "./moscow";
 import { computeRice } from "./rice";
 
@@ -7,10 +8,14 @@ export const FORCEABLE_CLASSES = ["Must", "Should", "Could", "Won't"] as const;
 export type ForceableClass = (typeof FORCEABLE_CLASSES)[number];
 
 /** Arbitrages du PO dans l'interface : ils ne touchent ni aux preuves ni aux évaluations du LLM. */
-export interface PoOverrides {
-  effort: Record<string, Size>;
-  forced: Record<string, { moscow: ForceableClass; motif: string }>;
-}
+export const PoOverridesSchema = z.object({
+  effort: z.record(z.string(), SizeSchema),
+  forced: z.record(
+    z.string(),
+    z.object({ moscow: z.enum(FORCEABLE_CLASSES), motif: z.string().max(500) }),
+  ),
+});
+export type PoOverrides = z.infer<typeof PoOverridesSchema>;
 
 export const NO_OVERRIDES: PoOverrides = { effort: {}, forced: {} };
 
