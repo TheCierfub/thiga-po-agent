@@ -3,6 +3,7 @@ import path from "node:path";
 import { loadPoDecisions } from "../data/load";
 import { EMPTY_PO_DECISIONS } from "../decisions/po-decisions";
 import { ReplayProvider } from "../llm/fixtures";
+import { applyDemoSentiments, loadDemoSentiments } from "../sentiment/demo";
 import { runBatch, type RunResult } from "./run";
 
 export const DEMO_DECISIONS_FILE = "data/po-decisions.json";
@@ -14,9 +15,11 @@ export const DEMO_DECISIONS_FILE = "data/po-decisions.json";
 export async function replayDemo(root: string): Promise<{ lundi: RunResult; jeudi: RunResult }> {
   const decisions = existsSync(path.join(root, DEMO_DECISIONS_FILE)) ? loadPoDecisions(root, DEMO_DECISIONS_FILE) : EMPTY_PO_DECISIONS;
   const provider = new ReplayProvider(path.join(root, "fixtures/llm"));
+  const sentiments = loadDemoSentiments(root);
   const lundi = await runBatch({ root, batch: "lundi", provider, reachMode: "comptes", decisions, previous: null });
-  const jeudi = await runBatch({ root, batch: "jeudi", provider, reachMode: "comptes", decisions, previous: lundi.state });
-  return { lundi, jeudi };
+  const lundiWithSentiment = { ...lundi, state: applyDemoSentiments(lundi.state, sentiments) };
+  const jeudi = await runBatch({ root, batch: "jeudi", provider, reachMode: "comptes", decisions, previous: lundiWithSentiment.state });
+  return { lundi: lundiWithSentiment, jeudi: { ...jeudi, state: applyDemoSentiments(jeudi.state, sentiments) } };
 }
 
 export function feedbackUrlFor(batch: string, env: Partial<Record<string, string>> = process.env): (feedbackId: string) => string {

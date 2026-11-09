@@ -7,12 +7,11 @@ import { toast } from "sonner";
 import { generateThemeStory, saveThemeStory } from "@/app/actions";
 import { ExportPanel } from "@/components/etai/export-panel";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { SIZES, type UserStoryDraft } from "@/core/schemas";
+import type { UserStoryDraft } from "@/core/schemas";
 import { formatUsd } from "@/core/pipeline/ingest-trace";
+import { storyIssueSize, storyIssueTitle, storyText } from "@/core/stories/text";
 import type { DemoBatch } from "@/lib/etai/batches";
 import type { ExportMode } from "@/lib/etai/export-mode";
 import { useOverrides } from "@/lib/etai/overrides";
@@ -24,7 +23,6 @@ export function StoryPanel({
   live,
   mode,
   existingIssueId,
-  points,
 }: {
   batch: DemoBatch;
   themeKey: string;
@@ -32,7 +30,6 @@ export function StoryPanel({
   live: boolean;
   mode: ExportMode;
   existingIssueId: string | null;
-  points: Record<UserStoryDraft["size"], number>;
 }) {
   const router = useRouter();
   const { overrides } = useOverrides();
@@ -42,16 +39,18 @@ export function StoryPanel({
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
-  function patch(partial: Partial<UserStoryDraft>) {
+  function edit(text: string) {
     setStory((current) => {
       if (!current) return current;
-      const next = { ...current, ...partial, editedByPo: true as const };
-      latest.current = next;
-      return next;
+      const next = { ...current, text, editedByPo: true as const };
+      const titled = { ...next, title: storyIssueTitle(next), size: storyIssueSize(next) };
+      latest.current = titled;
+      return titled;
     });
   }
 
-  function save(next: UserStoryDraft | null) {
+  function save() {
+    const next = latest.current;
     if (!live || !next) return;
     void saveThemeStory({ batch, story: next }).then((result) => {
       if (!result.ok) toast.error("Story non enregistrée", { description: result.message });
@@ -89,80 +88,22 @@ export function StoryPanel({
   }
 
   return (
-    <div className="space-y-5 rounded-xl border bg-card p-4 sm:p-5">
+    <div className="space-y-4 rounded-xl border bg-card p-4 sm:p-5">
       {note ? <p className="text-xs text-muted-foreground">{note}</p> : null}
       <div className="space-y-1.5">
-        <Label htmlFor="story-title">Titre</Label>
-        <Input id="story-title" value={story.title} onChange={(event) => patch({ title: event.target.value })} onBlur={() => save(latest.current)} />
-      </div>
-      <div className="grid gap-3">
-        <Field label="En tant que" value={story.asA} onChange={(asA) => patch({ asA })} onBlur={() => save(latest.current)} />
-        <Field label="Je veux" value={story.iWant} onChange={(iWant) => patch({ iWant })} onBlur={() => save(latest.current)} />
-        <Field label="Afin que" value={story.soThat} onChange={(soThat) => patch({ soThat })} onBlur={() => save(latest.current)} />
-      </div>
-      <div className="space-y-3">
-        <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Critères d’acceptation</h3>
-        {story.acceptanceCriteria.map((criterion, index) => (
-          <div key={index} className="grid gap-2 rounded-lg border border-dashed p-3">
-            <Field label="Étant donné" value={criterion.given} onChange={(given) => patchCriterion(story, index, { given }, patch)} onBlur={() => save(latest.current)} />
-            <Field label="Quand" value={criterion.when} onChange={(when) => patchCriterion(story, index, { when }, patch)} onBlur={() => save(latest.current)} />
-            <Field label="Alors" value={criterion.then} onChange={(then) => patchCriterion(story, index, { then }, patch)} onBlur={() => save(latest.current)} />
-          </div>
-        ))}
-      </div>
-      <div className="max-w-xs space-y-1.5">
-        <Label htmlFor="story-size">Complexité relative</Label>
-        <Select
-          value={story.size}
-          onValueChange={(value) => {
-            const size = value as UserStoryDraft["size"];
-            const next = { ...story, size, editedByPo: true as const };
-            latest.current = next;
-            setStory(next);
-            save(next);
-          }}
-        >
-          <SelectTrigger id="story-size" className="w-full font-mono">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SIZES.map((size) => (
-              <SelectItem key={size} value={size} className="font-mono">
-                {size} · {points[size]} pt
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-sm text-muted-foreground">{story.sizeRationale}</p>
+        <Label htmlFor="story-text">Texte envoyé à Linear</Label>
+        <Textarea
+          id="story-text"
+          value={storyText(story)}
+          onChange={(event) => edit(event.target.value)}
+          onBlur={save}
+          className="min-h-80 font-sans text-sm leading-relaxed"
+        />
       </div>
       <div className="border-t pt-4">
         <ExportPanel batch={batch} themeKey={themeKey} hasStory existingIssueId={existingIssueId} mode={mode} story={story} />
       </div>
-      <Button type="button" variant="outline" onClick={generate} disabled={pending}>
-        {pending ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : null}
-        Régénérer
-      </Button>
       {error ? <p className="text-sm text-warn-fg">{error}</p> : null}
     </div>
   );
-}
-
-function Field({ label, value, onChange, onBlur }: { label: string; value: string; onChange: (value: string) => void; onBlur: () => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Textarea value={value} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} className="min-h-16" />
-    </div>
-  );
-}
-
-function patchCriterion(
-  story: UserStoryDraft,
-  index: number,
-  partial: Partial<UserStoryDraft["acceptanceCriteria"][number]>,
-  patch: (partial: Partial<UserStoryDraft>) => void,
-) {
-  patch({
-    acceptanceCriteria: story.acceptanceCriteria.map((criterion, item) => (item === index ? { ...criterion, ...partial } : criterion)),
-  });
 }

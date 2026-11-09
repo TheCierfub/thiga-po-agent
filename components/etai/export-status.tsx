@@ -1,9 +1,10 @@
-import { readExportMode } from "@/lib/etai/export-mode";
+import { formatTeamLabel, readExportMode } from "@/lib/etai/export-mode";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export async function ExportStatus() {
-  const { mode, missing } = await readExportMode();
+  const { mode, missing, team } = await readExportMode();
   const linear = mode === "linear";
+  const label = formatTeamLabel(team);
   return (
     <Tooltip>
       <TooltipTrigger
@@ -16,7 +17,7 @@ export async function ExportStatus() {
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-72 leading-relaxed">
         {linear
-          ? "LINEAR_API_KEY et LINEAR_TEAM_ID sont définis : les exports créent ou mettent à jour des issues Linear."
+          ? `Les exports créent ou mettent à jour des issues dans l'équipe ${label ?? "Linear"}.`
           : `${missing.join(" et ")} absent(s) : les exports sont écrits dans out/linear-export/, rien n'est envoyé à Linear.`}
       </TooltipContent>
     </Tooltip>

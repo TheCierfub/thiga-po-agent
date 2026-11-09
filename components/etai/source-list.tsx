@@ -1,45 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { highlightQuotes } from "@/lib/etai/labels";
+import { Accordion, AccordionItem, AccordionPanel, AccordionTrigger } from "@/components/ui/accordion";
+import type { Sentiment } from "@/core/schemas";
+import { SENTIMENT_LABEL, highlightQuotes } from "@/lib/etai/labels";
+import { cn } from "@/lib/utils";
 
 export interface SourceItem {
   id: string;
-  caption: string;
-  excerpt: string;
+  company: string | null;
+  person: string | null;
+  sentiment: Sentiment;
+  dateLabel: string;
+  channel: string;
   body: string;
   quotes: string[];
   rejected: string[];
-  when: string;
-  channel: string;
-  who: string;
   href: string;
   note: string | null;
 }
 
+const SENTIMENT_TONE: Record<Sentiment, string> = {
+  positif: "text-ok-fg",
+  neutre: "text-muted-foreground",
+  negatif: "text-warn-fg",
+  frustre: "text-warn-fg",
+  indetermine: "text-muted-foreground",
+};
+
 export function SourceList({ items }: { items: SourceItem[] }) {
   if (items.length === 0) return null;
   return (
-    <ul className="divide-y overflow-hidden rounded-xl border">
-      {items.map((item) => (
-        <li key={item.id}>
-          <Sheet>
-            <SheetTrigger className="flex w-full flex-col gap-1 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/40">
-              <span className="text-sm font-medium" title={item.id}>
-                {item.caption}
+    <Accordion className="overflow-hidden rounded-xl border">
+      {items.map((item) => {
+        const who = [item.company, item.person].filter(Boolean);
+        return (
+          <AccordionItem key={item.id} value={item.id}>
+            <AccordionTrigger>
+              <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                {who.length > 0 ? (
+                  who.map((part, index) => (
+                    <span key={`${index}-${part}`} className={index === 0 && item.company ? "font-medium text-foreground" : "text-foreground"}>
+                      {part}
+                    </span>
+                  ))
+                ) : (
+                  <span className="font-medium">Anonyme</span>
+                )}
+                <span className={cn("rounded-full border px-1.5 py-px text-[11px] leading-4", SENTIMENT_TONE[item.sentiment])}>
+                  {SENTIMENT_LABEL[item.sentiment]}
+                </span>
               </span>
-              <span className="line-clamp-2 text-sm text-muted-foreground">{item.excerpt}</span>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>{item.caption}</SheetTitle>
-                <SheetDescription>
-                  {item.when} · {item.channel} · {item.who}
-                  {item.note ? ` · ${item.note}` : ""}
-                </SheetDescription>
-              </SheetHeader>
-              <p className="text-sm leading-relaxed whitespace-pre-line">
+              <span className="flex shrink-0 items-center gap-2 pt-0.5 text-xs text-muted-foreground">
+                <span>{item.dateLabel}</span>
+                <span>{item.channel}</span>
+              </span>
+            </AccordionTrigger>
+            <AccordionPanel>
+              {item.note ? <p className="mb-2 text-xs text-muted-foreground">{item.note}</p> : null}
+              <p className="leading-relaxed whitespace-pre-line">
                 {highlightQuotes(item.body, item.quotes).map((part, index) =>
                   part.quote ? (
                     <mark key={index} className="rounded-sm bg-mark px-0.5 text-foreground">
@@ -51,18 +70,18 @@ export function SourceList({ items }: { items: SourceItem[] }) {
                 )}
               </p>
               {item.rejected.length > 0 ? (
-                <p className="text-xs text-muted-foreground">Citation écartée, introuvable mot pour mot : {item.rejected.map((quote) => `« ${quote} »`).join(", ")}</p>
+                <p className="mt-3 text-xs text-muted-foreground">Citation écartée, introuvable mot pour mot : {item.rejected.map((quote) => `« ${quote} »`).join(", ")}</p>
               ) : null}
-              <p className="text-xs text-muted-foreground">
-                <Link href={item.href} className="underline underline-offset-2 hover:text-foreground" title={item.id}>
+              <p className="mt-3 text-xs text-muted-foreground">
+                <Link href={item.href} className="underline underline-offset-2 hover:text-foreground">
                   Ouvrir dans les feedbacks
                 </Link>
                 <span className="mt-1 block font-mono">{item.id}</span>
               </p>
-            </SheetContent>
-          </Sheet>
-        </li>
-      ))}
-    </ul>
+            </AccordionPanel>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
   );
 }

@@ -38,6 +38,8 @@ export const UserStoryDraftSchema = UserStoryLlmSchema.extend({
   status: z.enum(["brouillon", "obsolete"]),
   /** Vrai quand la PO a modifié le texte après la rédaction. */
   editedByPo: z.boolean().optional(),
+  /** Markdown éditable. Absent sur une story déjà en base : on le reconstruit à l'affichage. */
+  text: z.string().optional(),
 });
 export type UserStoryDraft = z.infer<typeof UserStoryDraftSchema>;
 

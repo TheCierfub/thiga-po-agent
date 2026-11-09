@@ -1,6 +1,7 @@
 import type { RunResult } from "../pipeline/run";
 import type { MoscowClass, Quote, Size, ThemeCategory } from "../schemas";
 import { CATEGORY_LABEL, num, pct, reachLabel } from "../report/format";
+import { storyIssueSize, storyIssueTitle, storyText } from "../stories/text";
 
 /** Clé stable d'un élément exporté : elle ne dépend que du thème, jamais du lot ni de l'heure. */
 export function stableKey(themeKey: string): string {
@@ -76,7 +77,7 @@ export function buildBacklogItems(result: Pick<RunResult, "state" | "accounts" |
       const r = rice.get(d.themeKey)!;
       const story = stories.get(d.themeKey);
       const category = categories.get(d.themeKey)!;
-      const body = [
+      const composed = [
         `# ${t.title}`,
         "",
         `Catégorie : **${CATEGORY_LABEL[category]}**. MoSCoW : **${d.moscow}**. ${d.reason}`,
@@ -93,20 +94,11 @@ export function buildBacklogItems(result: Pick<RunResult, "state" | "accounts" |
         "",
         ...t.quotes.map((q) => `- ${q.feedbackId} : « ${q.text} »`),
         "",
-        ...(story
-          ? [
-              "## Story",
-              "",
-              `En tant que ${story.asA}, je veux ${story.iWant}, afin que ${story.soThat}.`,
-              "",
-              ...story.acceptanceCriteria.map((c) => `- Étant donné ${c.given}, quand ${c.when}, alors ${c.then}.`),
-              "",
-            ]
-          : []),
         `Feedbacks : ${t.feedbackIds.map(link).join(", ")}.`,
         "",
       ].join("\n");
-      const size = story?.size ?? r.effort.size;
+      const body = story ? storyText(story) : composed;
+      const size = story ? storyIssueSize(story) : r.effort.size;
       const customers = r.reach.accounts.map((accountId) => {
         const feedbackIds = t.feedbackIds.filter((id) => accountOf.get(id) === accountId);
         return {
@@ -119,7 +111,7 @@ export function buildBacklogItems(result: Pick<RunResult, "state" | "accounts" |
       return {
         stableKey: stableKey(d.themeKey),
         themeKey: d.themeKey,
-        title: t.title,
+        title: story ? storyIssueTitle(story) : t.title,
         moscow: d.moscow,
         category,
         existingIssueId: t.backlogIssueId,

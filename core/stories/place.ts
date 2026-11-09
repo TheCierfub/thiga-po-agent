@@ -49,6 +49,11 @@ export function feedbackReference(receivedAt: string, channelLabel: string, who:
   return `${when} · ${channelLabel} · ${who}`;
 }
 
+/** « 6 nov. 2026 ». Le mois est toujours écrit. */
+export function feedbackDate(receivedAt: string): string {
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Paris" }).format(new Date(receivedAt));
+}
+
 export function byNewest<T extends { receivedAt: string }>(items: readonly T[]): T[] {
   return [...items].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 }

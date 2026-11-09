@@ -52,7 +52,7 @@ L'interface (Next.js, shadcn/ui, thème sombre) s'ouvre sur le brief du lundi. L
 | --- | --- |
 | Brief de la semaine | thèmes et tendances, alertes de capacité, signaux de churn, bugs critiques routés, quarantaine avec la raison, changements depuis lundi |
 | Priorisation | tableau RICE et MoSCoW ; une ligne dépliée montre le calcul (comptes du Reach, règle de Confidence, table des tailles). Le PO modifie l'effort ou force une catégorie avec un motif : recalcul immédiat, arbitrages gardés dans le navigateur |
-| Thèmes et stories | feedbacks du plus récent au plus ancien, message complet dans un panneau ; user story rédigée à la demande, modifiable, puis « Valider et exporter vers Linear » |
+| Thèmes et stories | feedbacks du plus récent au plus ancien, message complet dans un accordéon (entreprise, nom, sentiment, date, canal) ; user story rédigée à la demande, un seul texte modifiable, puis « Valider et exporter vers Linear » |
 | Recontact | brouillons modifiables (questions d'investigation, demande d'identifiant de compte). « Envoyer » dépose le message dans `out/outbox/` : rien n'est jamais envoyé |
 
 **Mode démo (par défaut, sans `SUPABASE_URL`).** L'interface rejoue lundi puis jeudi depuis `fixtures/llm/`, avec le même pipeline que la CLI : aucun appel LLM, aucun réseau. Le badge **Données : démo** l'indique, ainsi qu'un bandeau. Les arbitrages du PO restent dans le navigateur. Le bouton d'export écrit en Markdown dans `out/linear-export/` tant que Linear n'est pas branché (badge **Export** à côté).
@@ -145,7 +145,7 @@ La commande évalue trois profils sur lundi, jeudi et holdout, avec un plafond d
 | Profil | Étapes de texte | Décisions (type, injection, gravité, backlog) |
 | --- | --- | --- |
 | A | `anthropic/claude-sonnet-5.5` | dans la réponse de classification et de regroupement |
-| B | `anthropic/claude-sonnet-5.5` pour le texte seulement | Jev (`typesafe/jev-1.14`) seul pour le type, l'injection, la gravité, le backlog et le thème d'un ajout ; repli Sonnet 5.5 si Jev échoue |
+| B | `anthropic/claude-sonnet-5.5` pour le texte seulement | Jev (`typesafe/jev-1.14`) seul pour le type, l'injection, la gravité, le sentiment (même appel), le backlog et le thème d'un ajout ; repli Sonnet 5.5 si Jev échoue |
 | C | `openai/gpt-5.6-luna` | dans la réponse de classification et de regroupement |
 
 Options :

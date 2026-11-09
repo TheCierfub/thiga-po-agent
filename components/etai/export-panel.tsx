@@ -8,7 +8,7 @@ import { LinearMark } from "@/components/etai/linear-mark";
 import { Button } from "@/components/ui/button";
 import type { UserStoryDraft } from "@/core/schemas";
 import type { DemoBatch } from "@/lib/etai/batches";
-import type { ExportMode } from "@/lib/etai/export-mode";
+import { formatTeamLabel, type ExportMode } from "@/lib/etai/export-mode";
 import { exportBlock } from "@/lib/etai/labels";
 import { useOverrides, usePrioritization } from "@/lib/etai/overrides";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ export function ExportPanel({
   const { overrides } = useOverrides();
   const { decisionByKey } = usePrioritization();
   const block = exportBlock(decisionByKey.get(themeKey));
+  const team = formatTeamLabel(mode.team);
   const [pending, start] = useTransition();
   const [outcome, setOutcome] = useState<ExportOutcome | null>(null);
   const linear = mode.mode === "linear";
@@ -50,8 +51,12 @@ export function ExportPanel({
   return (
     <div className="w-full min-w-0">
       <Button className="h-auto w-full whitespace-normal py-2" size="lg" disabled={block !== null || pending || !hasStory} onClick={run}>
-        {pending ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : <span data-icon="inline-start" className="inline-flex items-center gap-1">{block ? <LockIcon className="size-4" /> : null}<LinearMark className="size-4" /></span>}
-        Valider et exporter vers Linear
+        <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5">
+          {pending ? <Loader2Icon className="animate-spin" /> : block ? <LockIcon className="size-4" /> : null}
+          Valider et exporter vers
+          <LinearMark className="size-4" />
+          Linear
+        </span>
       </Button>
       {block ? (
         <p className={cn("mt-3 text-xs", block.tone === "review" ? "font-medium text-warn-fg" : "text-muted-foreground")}>{block.message}</p>
@@ -68,7 +73,7 @@ export function ExportPanel({
         {linear ? <CheckCircle2Icon className="mt-px size-3.5 shrink-0" /> : <FileTextIcon className="mt-px size-3.5 shrink-0" />}
         <span>
           {linear
-            ? "Linear connecté : l'export écrit dans l'équipe LINEAR_TEAM_ID."
+            ? `Linear connecté : l'export écrit dans l'équipe ${team ?? "configurée"}.`
             : `Linear non connecté (${mode.missing.join(" et ")} absent${mode.missing.length > 1 ? "s" : ""}) : l'export est écrit en Markdown dans out/linear-export/. Rien n'est envoyé.`}
         </span>
       </div>

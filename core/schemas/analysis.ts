@@ -16,6 +16,11 @@ export type FeedbackType = z.infer<typeof FeedbackTypeSchema>;
 export const SeveritySchema = z.enum(["critique", "majeure", "mineure"]);
 export type Severity = z.infer<typeof SeveritySchema>;
 
+/** Sentiment d'un feedback. « indetermine » : confiance Jev sous 0,8, ou pas encore décidé. */
+export const SENTIMENTS = ["positif", "neutre", "negatif", "frustre", "indetermine"] as const;
+export const SentimentSchema = z.enum(SENTIMENTS);
+export type Sentiment = z.infer<typeof SentimentSchema>;
+
 /**
  * Sortie brute du LLM de classification. Champs tous requis (nullable plutôt qu'optionnel)
  * pour rester compatible avec les sorties structurées strictes des fournisseurs.
@@ -76,6 +81,8 @@ export const FeedbackClassificationSchema = z.object({
   }),
   quotes: z.array(QuoteSchema),
   rejectedQuotes: z.array(z.string()),
+  /** Posé par Jev à l'ajout, ou par la fixture de démo au seed. Absent : indéterminé. */
+  sentiment: SentimentSchema.optional(),
   decisions: z.partialRecord(DecisionStepSchema, DecisionTraceSchema).optional(),
   /** Choix de thème par le moteur de décision, à l'ajout direct seulement. */
   themeChoice: z

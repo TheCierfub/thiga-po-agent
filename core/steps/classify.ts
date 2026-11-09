@@ -134,6 +134,7 @@ export async function classifyFeedback(
       ...quotes.rejected.map((q) => q.text),
       ...(out.injection.excerpt !== null && !excerptOk ? [out.injection.excerpt] : []),
     ],
+    ...(decided.sentiment ? { sentiment: decided.sentiment } : {}),
   };
 }
 
@@ -167,6 +168,7 @@ function classificationFromExtraction(
     },
     quotes: quotes.accepted,
     rejectedQuotes: quotes.rejected.map((quote) => quote.text),
+    ...(decided.sentiment ? { sentiment: decided.sentiment } : {}),
   };
 }
 
@@ -197,6 +199,7 @@ function classificationFromDecisions(
     },
     quotes: quote ? [{ feedbackId: feedback.id, text: quote }] : [],
     rejectedQuotes: [],
+    ...(decided.sentiment ? { sentiment: decided.sentiment } : {}),
   };
 }
 
