@@ -438,6 +438,8 @@ Le profil par défaut de l'ajout direct est B (`ETAI_LLM_PROFILE` vide). A et C 
 
 Latence et coût attendus pour un rattachement sûr : un appel Jev, aucun Sonnet, de l'ordre du centime et de quelques secondes au lieu de trois fois 11 s. Un thème nouveau : un Jev, un regroupement Sonnet, une évaluation Sonnet, et un Jev de backlog.
 
+La fenêtre du lot ne glisse pas à l'ajout. Le seed s'arrête au 6 novembre. Un feedback du 9 novembre, s'il décalait la fin de fenêtre, ferait sortir `fb-lundi-07` (Tuile) du thème épingle photo : Reach 2 → 1, confiance 80 % → 50 %, RICE 0,80 → 0,25, sans que ce thème ait reçu le message. Le nouveau feedback est compté dans le Reach du thème qu'il rejoint, même daté après la revue. Les autres thèmes gardent exactement le score du seed. Une confirmation déjà « à revoir » le reste tant que les preuves de ce thème n'ont pas changé.
+
 ### Risques
 
 - L'API Decisions est alpha : la forme de la réponse peut changer. Une réponse illisible part en repli, elle n'est pas inventée.

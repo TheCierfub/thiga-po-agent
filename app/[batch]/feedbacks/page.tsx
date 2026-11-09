@@ -36,7 +36,12 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
           {feedbacks.length} feedbacks sur la fenêtre de 28 jours, texte masqué (e-mails, téléphones et adresses remplacés).
         </p>
       </div>
-      <AddFeedbackForm accounts={accounts} live={dataMode === "live"} detail={dataModeDetail} />
+      <AddFeedbackForm
+        accounts={accounts}
+        live={dataMode === "live"}
+        detail={dataModeDetail}
+        profile={process.env.ETAI_LLM_PROFILE?.trim() || "B"}
+      />
       <ul className="space-y-2">
         {feedbacks.map((f) => {
           const m = matches.get(f.id);

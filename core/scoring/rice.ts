@@ -18,6 +18,8 @@ export interface ReachInput {
   accounts: ReadonlyMap<string, Account>;
   window: Window;
   mode: ReachMode;
+  /** Feedbacks ajoutés en direct : ils comptent même s'ils sont datés après la fin de fenêtre du lot. */
+  includeIds?: ReadonlySet<string>;
 }
 
 /**
@@ -33,7 +35,7 @@ export function computeReach(input: ReachInput): RiceScore["reach"] & { channels
   for (const id of input.feedbackIds) {
     const feedback = input.feedbacks.get(id);
     if (!feedback) throw new Error(`Feedback inconnu dans un thème : ${id}`);
-    if (!inWindow(feedback.receivedAt, input.window)) {
+    if (!inWindow(feedback.receivedAt, input.window) && !input.includeIds?.has(id)) {
       excluded.push({ feedbackId: id, reason: "hors fenêtre de 4 semaines" });
       continue;
     }

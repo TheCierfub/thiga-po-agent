@@ -4,11 +4,12 @@ import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { addFeedback, type AddFeedbackOutcome } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { STEP_LABEL, formatUsd } from "@/core/pipeline/ingest-trace";
+import { STEP_LABEL, formatUsd, type IngestCall, type IngestStep } from "@/core/pipeline/ingest-trace";
 import { CHANNEL_LABEL } from "@/lib/etai/labels";
 import { CHANNELS, type Channel } from "@/core/schemas";
 
@@ -18,10 +19,12 @@ export function AddFeedbackForm({
   accounts,
   live,
   detail,
+  profile = "B",
 }: {
   accounts: { id: string; nom: string }[];
   live: boolean;
   detail: string;
+  profile?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -168,7 +171,11 @@ export function AddFeedbackForm({
           {pending ? `Analyse en cours · ${elapsed.toFixed(1)} s` : "Analyser et enregistrer"}
         </Button>
         {pending ? (
-          <p className="text-sm text-muted-foreground">Classification, rattachement au thème, puis recalcul du RICE.</p>
+          <p className="text-sm text-muted-foreground">
+            {profile === "B"
+              ? "Jev choisit le thème, puis le RICE est recalculé. Sonnet n'est appelé que si le rattachement n'est pas sûr."
+              : "Classification, rattachement au thème, puis recalcul du RICE."}
+          </p>
         ) : null}
         {!live ? <p className="text-sm text-warn-fg">{detail}</p> : null}
       </div>
@@ -203,10 +210,33 @@ function IngestReport({ outcome }: { outcome: AddFeedbackOutcome }) {
         ))}
       </ul>
       <p className="text-muted-foreground">
-        {trace.steps.map((step) => `${STEP_LABEL[step.name] ?? step.name} ${(step.durationMs / 1000).toFixed(1)} s`).join(" · ")}
+        {trace.steps.map((step) => `${STEP_LABEL[step.name] ?? step.name} ${stepLabel(step)}`).join(" · ")}
         {" · "}
         {trace.costUsd === null ? "coût non communiqué" : `coût estimé ${formatUsd(trace.costUsd)}`}
       </p>
+      <Collapsible>
+        <CollapsibleTrigger className="text-sm text-muted-foreground underline-offset-4 hover:underline">Trace</CollapsibleTrigger>
+        <CollapsibleContent className="mt-2 space-y-2 rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+          {trace.decision?.engine ? <p>Moteur de décision : {trace.decision.engine}</p> : null}
+          {trace.calls.length === 0 ? <p>Aucun appel de modèle.</p> : null}
+          <ul className="space-y-1">
+            {trace.calls.map((call, index) => (
+              <li key={`${call.task}-${call.key}-${index}`}>{formatCall(call)}</li>
+            ))}
+          </ul>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
+}
+
+function stepLabel(step: IngestStep): string {
+  return step.durationMs === 0 ? "sautée" : `${(step.durationMs / 1000).toFixed(1)} s`;
+}
+
+function formatCall(call: IngestCall): string {
+  const tokens = (value: number | null) => (value === null ? "—" : String(value));
+  const cost = call.costUsd === null ? "coût —" : formatUsd(call.costUsd);
+  const who = call.key ? `${call.task} / ${call.key}` : call.task;
+  return `${who} · ${(call.durationMs / 1000).toFixed(1)} s · entrée ${tokens(call.promptTokens)} · sortie ${tokens(call.completionTokens)} · raisonnement ${tokens(call.reasoningTokens)} · ${cost}`;
 }

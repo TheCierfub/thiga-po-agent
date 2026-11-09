@@ -95,6 +95,34 @@ export function themeQuestion(themes: readonly ThemeOption[]): DecisionQuestion 
   };
 }
 
+export function formatConfidence(value: number): string {
+  return value.toFixed(2).replace(".", ",");
+}
+
+/** Phrase pour le PO. Jev ne justifie pas : on s'appuie sur le titre du thème et les probabilités. */
+export function formatAttachmentReason(input: {
+  themeKey: string;
+  themeTitle: string;
+  confidence: number | null;
+  probability: number | null;
+  probabilities: Record<string, number> | null;
+  titles: ReadonlyMap<string, string>;
+}): string {
+  const score = input.confidence ?? input.probability;
+  const conf = score === null ? "" : ` (confiance ${formatConfidence(score)})`;
+  let second = "";
+  if (input.probabilities) {
+    const next = Object.entries(input.probabilities)
+      .filter(([key]) => key !== input.themeKey)
+      .sort((a, b) => b[1] - a[1])[0];
+    if (next) {
+      const label = next[0] === AUCUN_THEME ? "aucun thème existant" : (input.titles.get(next[0]) ?? next[0]);
+      second = ` 2e choix : ${label}, ${formatConfidence(next[1])}.`;
+    }
+  }
+  return `Rattaché par Jev${conf} : même problème que les feedbacks du thème « ${input.themeTitle} ».${second}`;
+}
+
 export function themeChoiceIsConfident(choice: ThemeChoice, threshold: number): boolean {
   if (choice.fallbackUsed || choice.themeKey === null) return false;
   const score = choice.confidence ?? choice.probability;

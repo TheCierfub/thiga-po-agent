@@ -34,14 +34,16 @@ function scripted(responses: Record<string, unknown>) {
   return new ScriptedProvider(responses);
 }
 
-function jevEngine(theme: string, confidence: number | null, fail = false) {
+function jevEngine(theme: string, confidence: number | null, fail = false, probabilities?: Record<string, number>) {
   const calls: DecisionRequest[] = [];
   const fallbacks = { n: 0 };
   const answer = (request: DecisionRequest, conf: number | null, fallbackUsed: boolean): DecisionResult => {
     const answers: DecisionResult["answers"] = {};
     for (const [id, question] of Object.entries(request.questions)) {
       if (question.type === "noul") answers[id] = { type: "noul", probability: 0.05 };
-      else if (id === "theme") answers[id] = { type: "choice", choice: theme, probabilities: { [theme]: conf ?? 0.4 }, confidence: conf };
+      else if (id === "theme") {
+        answers[id] = { type: "choice", choice: theme, probabilities: probabilities ?? { [theme]: conf ?? 0.4 }, confidence: conf };
+      }
       else if (id === "type") answers[id] = { type: "choice", choice: "bug", probabilities: null, confidence: 0.9 };
       else if (id === "critical") answers[id] = { type: "choice", choice: "majeure", probabilities: null, confidence: 0.9 };
       else answers[id] = { type: "choice", choice: Object.keys(question.options)[0]!, probabilities: null, confidence: 0.9 };
@@ -286,6 +288,45 @@ describe("ajout d'un feedback en direct", async () => {
     expect(move?.rationale).toContain("notifications");
     expect(move?.riceBefore).not.toBeNull();
     expect(move?.moscowAfter).toBeTruthy();
+  });
+
+  it("un rattachement à notifications ne change pas le RICE des autres thèmes", async () => {
+    const store = await seeded();
+    const feedback = buildDirectFeedback(
+      {
+        channel: "email",
+        sourceAccountId: "acc-quai",
+        authorName: "Nadia",
+        language: "fr",
+        text: "Depuis la dernière mise à jour, toutes les notifications de retard de tâche m'arrivent en double. Mon équipe ne les lit plus. Est-ce qu'on peut au moins choisir quelles alertes on reçoit selon le rôle ?",
+      },
+      new Date("2026-11-09T18:11:22.000Z"),
+      "1ehbym",
+    );
+    const { plan } = jevEngine("notifications", 1, false, { notifications: 1, epingle_photo: 0.04, aucun: 0.01 });
+    const provider = scripted({});
+    const { result } = await ingestDirectFeedback({ store, feedback, provider, decisions, context, decider: plan, log: () => undefined });
+
+    expect(result.state.referenceDate).toBe(jeudi.state.referenceDate);
+    expect(provider.requests).toEqual([]);
+    for (const theme of jeudi.state.themes) {
+      if (theme.key === "notifications") continue;
+      expect(result.state.themes.find((item) => item.key === theme.key)).toEqual(theme);
+    }
+    for (const score of jeudi.state.rice) {
+      if (score.themeKey === "notifications") continue;
+      expect(result.state.rice.find((item) => item.themeKey === score.themeKey)).toEqual(score);
+    }
+    for (const decision of jeudi.state.allocation.decisions) {
+      if (decision.themeKey === "notifications") continue;
+      expect(result.state.allocation.decisions.find((item) => item.themeKey === decision.themeKey)).toEqual(decision);
+    }
+    expect(result.changes?.ingest?.themes.map((theme) => theme.key)).not.toContain("epingle_photo");
+    const rationale = result.state.attachments?.find((item) => item.feedbackId === feedback.id)?.rationale ?? "";
+    expect(rationale).toContain("Rattaché par Jev (confiance 1,00)");
+    expect(rationale).toContain("Régler la fréquence des notifications selon le rôle");
+    expect(rationale).toContain("2e choix : Montrer l'endroit d'une réserve sur la photo, 0,04");
+    expect(rationale).not.toContain("typesafe");
   });
 
   it("rattache par Jev sans appel de regroupement quand la confiance suffit", async () => {
