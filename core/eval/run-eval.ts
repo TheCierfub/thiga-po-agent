@@ -78,9 +78,9 @@ export async function runEvaluation(options: {
   const decider = capture.wrapPlan(main.decider);
 
   options.onStage?.("lundi");
-  const lundi = await runBatch({ root, batch: "lundi", provider, decider, reachMode: "comptes", decisions, previous: null });
+  const lundi = await runBatch({ root, batch: "lundi", provider, decider, reachMode: "comptes", decisions, previous: null, draftStory: true });
   options.onStage?.("jeudi");
-  const jeudi = await runBatch({ root, batch: "jeudi", provider, decider, reachMode: "comptes", decisions, previous: lundi.state });
+  const jeudi = await runBatch({ root, batch: "jeudi", provider, decider, reachMode: "comptes", decisions, previous: lundi.state, draftStory: true });
 
   let holdout: RunResult | null = null;
   if (options.withHoldout) {

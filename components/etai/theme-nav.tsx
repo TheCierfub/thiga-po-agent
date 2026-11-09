@@ -17,9 +17,9 @@ export function ThemeNav({ current }: { current: string }) {
   );
   return (
     <nav aria-label="Thèmes" className="lg:sticky lg:top-32 lg:self-start">
-      <ul className="-mx-1 flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-col lg:overflow-visible">
+      <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-1">
         {themes.map((t) => (
-          <li key={t.key} className="shrink-0">
+          <li key={t.key} className="min-w-0">
             <Link
               href={`/${view.batch}/themes/${t.key}`}
               aria-current={t.key === current ? "page" : undefined}
@@ -28,7 +28,7 @@ export function ThemeNav({ current }: { current: string }) {
                 t.key === current ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
               )}
             >
-              <span className="min-w-0 flex-1 truncate lg:line-clamp-2 lg:whitespace-normal">{t.title}</span>
+              <span className="min-w-0 flex-1 lg:line-clamp-2">{t.title}</span>
               {stories.has(t.key) ? <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">story</span> : null}
               <MoscowBadge value={decisionByKey.get(t.key)!.moscow} forced={Boolean(overrides.forced[t.key])} />
             </Link>

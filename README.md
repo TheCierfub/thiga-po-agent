@@ -30,7 +30,7 @@ Ce que produit chaque lot, dans `out/` (ignoré par git) :
 | --- | --- |
 | `out/<lot>/brief.md` | Brief de la semaine : à décider, tendances, quarantaine, churn, cas flous |
 | `out/<lot>/priorisation.md` | Tableau RICE et MoSCoW, alertes de capacité, détail du Reach |
-| `out/<lot>/story-<thème>.md` | User story du premier élément retenu (Given/When/Then, taille, INVEST, questions) |
+| `out/<lot>/story-<thème>.md` | User story, seulement si la rédaction a été demandée explicitement |
 | `out/lundi/investigation-fb-lundi-12.md` | Questions et brouillon de réponse pour le cas flou, non envoyé |
 | `out/jeudi/changements.md` | Ce qui a bougé depuis lundi, et pourquoi |
 | `out/backlog/` | Export local idempotent (`MarkdownSink`), une entrée par clé stable |
@@ -52,7 +52,7 @@ L'interface (Next.js, shadcn/ui, thème sombre) s'ouvre sur le brief du lundi. L
 | --- | --- |
 | Brief de la semaine | thèmes et tendances, alertes de capacité, signaux de churn, bugs critiques routés, quarantaine avec la raison, changements depuis lundi |
 | Priorisation | tableau RICE et MoSCoW ; une ligne dépliée montre le calcul (comptes du Reach, règle de Confidence, table des tailles). Le PO modifie l'effort ou force une catégorie avec un motif : recalcul immédiat, arbitrages gardés dans le navigateur |
-| Thèmes et stories | feedbacks sources avec citations vérifiées surlignées, user story, critères, complexité relative, bouton « Valider et exporter vers Linear », bloqué si le thème est « à revoir » |
+| Thèmes et stories | feedbacks du plus récent au plus ancien, message complet dans un panneau ; user story rédigée à la demande, modifiable, puis « Valider et exporter vers Linear » |
 | Recontact | brouillons modifiables (questions d'investigation, demande d'identifiant de compte). « Envoyer » dépose le message dans `out/outbox/` : rien n'est jamais envoyé |
 
 **Mode démo (par défaut, sans `SUPABASE_URL`).** L'interface rejoue lundi puis jeudi depuis `fixtures/llm/`, avec le même pipeline que la CLI : aucun appel LLM, aucun réseau. Le badge **Données : démo** l'indique, ainsi qu'un bandeau. Les arbitrages du PO restent dans le navigateur. Le bouton d'export écrit en Markdown dans `out/linear-export/` tant que Linear n'est pas branché (badge **Export** à côté).

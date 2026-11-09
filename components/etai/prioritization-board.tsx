@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { engagedEffortLabel } from "@/core/stories/place";
 import { CHANNEL_LABEL, CONSTRAINT_LABEL, MOSCOW_ORDER, eur, num, pct } from "@/lib/etai/labels";
 import { useOverrides, usePrioritization } from "@/lib/etai/overrides";
 import type { BatchView } from "@/lib/etai/view";
@@ -147,7 +148,7 @@ function ThemeRow({
           <MoscowBadge value={decision.moscow} forced={forcedMotif !== null} />
         </div>
 
-        <dl className="col-span-2 grid grid-cols-4 gap-3 text-sm lg:contents">
+        <dl className="col-span-2 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 lg:contents">
           <Cell label="Reach">
             <Tooltip>
               <TooltipTrigger render={<span className="cursor-help tabular-nums underline decoration-dotted underline-offset-4" />}>
@@ -170,7 +171,16 @@ function ThemeRow({
             </Tooltip>
           </Cell>
           <Cell label="Effort">
-            {committed ? (
+            {engagedEffortLabel(decision.moscow, theme.backlogIssueId) ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={<span className="inline-flex cursor-help rounded-md bg-muted px-1.5 py-0.5 text-xs text-foreground" />}
+                >
+                  {engagedEffortLabel(decision.moscow, theme.backlogIssueId)}
+                </TooltipTrigger>
+                <TooltipContent className="max-w-64">Les points sont déjà comptés dans la capacité engagée.</TooltipContent>
+              </Tooltip>
+            ) : committed ? (
               <span className="text-muted-foreground">{rice.effort.size}</span>
             ) : (
               <Select
@@ -180,7 +190,7 @@ function ThemeRow({
                   setEffort(theme.key, size === baseRice.effort.size ? null : size);
                 }}
               >
-                <SelectTrigger size="sm" aria-label={`Effort de ${theme.title}`} className={cn("w-[5.5rem] font-mono", rice.effort.source === "po" && "border-(--moscow-should)/50")}>
+                <SelectTrigger size="sm" aria-label={`Effort de ${theme.title}`} className={cn("w-full max-w-[5.5rem] font-mono", rice.effort.source === "po" && "border-(--moscow-should)/50")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

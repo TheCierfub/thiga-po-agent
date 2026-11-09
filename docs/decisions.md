@@ -474,3 +474,22 @@ Le jeton `TREG_TOKEN` reste sur le serveur. Il n'est ni envoyé au navigateur, n
 ### Production
 
 Un worker ou un cron, sur une instance qui ne s'endort pas, interrogerait Treg ou recevrait un flux. Mieux : un webhook, ou le filtered stream de l'API X, pour ne plus dépendre d'une page ouverte. Le plafond de session et la marge de 2 minutes sont des garde-fous de démo, pas le régime cible.
+
+## ADR-020 — La story se rédige à la demande
+
+- **Statut :** acceptée
+- **Date :** 2026-11-09
+
+### Contexte
+
+Le pipeline rédigeait automatiquement la story du premier thème retenu de chaque lot. Les autres thèmes affichaient « Pas de story rédigée… l'export reste possible ». La PO veut décider quand une story existe, la relire, la modifier, puis envoyer cette version à Linear.
+
+### Décision
+
+Un lot ne rédige plus de story tout seul. Sur chaque thème, « Générer la user story » appelle le même passage Sonnet que `draftStory` : feedbacks masqués, citations déjà vérifiées, feedbacks en quarantaine exclus. Le titre, le récit, les critères et la taille sont des champs modifiables. « Valider et exporter vers Linear » envoie cette version.
+
+En mode direct, la story générée ou éditée est écrite dans l'analyse du lot (Supabase). `pnpm db:seed` recharge le corpus et retire ces éditions. Les stories déjà en base avant ce changement y restent jusqu'au prochain seed. En mode démo, la rédaction rejoue une réponse déjà écrite si elle existe, et reste dans l'écran.
+
+### Conséquences
+
+L'évaluation comparative peut encore demander une story (`draftStory: true`) pour mesurer le modèle. Le chemin produit, le seed et la commande, ne le font plus.

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2Icon, FileTextIcon, Loader2Icon, LockIcon, SendIcon } from "lucide-react";
+import { CheckCircle2Icon, FileTextIcon, Loader2Icon, LockIcon } from "lucide-react";
 import { toast } from "sonner";
 import { exportTheme, type ExportOutcome } from "@/app/actions";
+import { LinearMark } from "@/components/etai/linear-mark";
 import { Button } from "@/components/ui/button";
+import type { UserStoryDraft } from "@/core/schemas";
 import type { DemoBatch } from "@/lib/etai/batches";
 import type { ExportMode } from "@/lib/etai/export-mode";
 import { exportBlock } from "@/lib/etai/labels";
@@ -19,12 +21,14 @@ export function ExportPanel({
   hasStory,
   existingIssueId,
   mode,
+  story,
 }: {
   batch: DemoBatch;
   themeKey: string;
   hasStory: boolean;
   existingIssueId: string | null;
   mode: ExportMode;
+  story?: UserStoryDraft | null;
 }) {
   const { overrides } = useOverrides();
   const { decisionByKey } = usePrioritization();
@@ -35,7 +39,7 @@ export function ExportPanel({
 
   function run() {
     start(async () => {
-      const result = await exportTheme({ batch, themeKey, overrides });
+      const result = await exportTheme({ batch, themeKey, overrides, story: story ?? undefined });
       setOutcome(result);
       if (!result.ok) toast.error("Export impossible", { description: result.message });
       else if (result.result.action === "bloque") toast.warning(ACTION_LABEL.bloque, { description: result.result.reason });
@@ -44,20 +48,23 @@ export function ExportPanel({
   }
 
   return (
-    <div className="w-full shrink-0 rounded-xl border bg-card p-4 xl:w-80">
-      <Button className="w-full" size="lg" disabled={block !== null || pending} onClick={run}>
-        {pending ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : block ? <LockIcon data-icon="inline-start" /> : <SendIcon data-icon="inline-start" />}
+    <div className="w-full min-w-0">
+      <Button className="h-auto w-full whitespace-normal py-2" size="lg" disabled={block !== null || pending || !hasStory} onClick={run}>
+        {pending ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : <span data-icon="inline-start" className="inline-flex items-center gap-1">{block ? <LockIcon className="size-4" /> : null}<LinearMark className="size-4" /></span>}
         Valider et exporter vers Linear
       </Button>
       {block ? (
         <p className={cn("mt-3 text-xs", block.tone === "review" ? "font-medium text-warn-fg" : "text-muted-foreground")}>{block.message}</p>
       ) : (
         <p className="mt-3 text-xs text-muted-foreground">
-          {existingIssueId ? `Met à jour ${existingIssueId} si l'issue existe, sans doublon.` : "Crée une issue, ou met à jour celle déjà exportée."}{" "}
-          {hasStory ? "Story, critères, citations, liens vers les feedbacks, estimation et label MoSCoW." : "Problème, score, citations, liens, estimation et label MoSCoW."}
+          {hasStory
+            ? existingIssueId
+              ? `Envoie la story affichée et met à jour ${existingIssueId} si l’issue existe, sans doublon.`
+              : "Envoie la story affichée : critères, citations, liens, estimation et label MoSCoW."
+            : "Générez la story avant de la valider."}
         </p>
       )}
-      <div className={cn("mt-3 flex gap-2 rounded-lg px-2.5 py-2 text-xs", linear ? "bg-ok-bg text-ok-fg" : "bg-warn-bg text-warn-fg")}>
+      <div className={cn("mt-3 flex gap-2 rounded-lg px-2.5 py-2 text-xs break-words", linear ? "bg-ok-bg text-ok-fg" : "bg-warn-bg text-warn-fg")}>
         {linear ? <CheckCircle2Icon className="mt-px size-3.5 shrink-0" /> : <FileTextIcon className="mt-px size-3.5 shrink-0" />}
         <span>
           {linear
@@ -93,5 +100,5 @@ export function ExportPanel({
 }
 
 export function ExportPanelSkeleton() {
-  return <div className="h-36 w-full shrink-0 animate-pulse rounded-xl border bg-muted/40 xl:w-80" />;
+  return <div className="h-28 w-full animate-pulse rounded-lg bg-muted/40" />;
 }

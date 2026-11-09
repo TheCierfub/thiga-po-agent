@@ -78,8 +78,8 @@ class FakeLinear implements LinearApi {
 
 const decisions = loadPoDecisions(ROOT, "data/po-decisions.json");
 const provider = new ReplayProvider(path.join(ROOT, "fixtures/llm"));
-const lundi = await runBatch({ root: ROOT, batch: "lundi", provider, reachMode: "comptes", decisions, previous: null });
-const jeudi = await runBatch({ root: ROOT, batch: "jeudi", provider, reachMode: "comptes", decisions, previous: lundi.state });
+const lundi = await runBatch({ root: ROOT, batch: "lundi", provider, reachMode: "comptes", decisions, previous: null, draftStory: true });
+const jeudi = await runBatch({ root: ROOT, batch: "jeudi", provider, reachMode: "comptes", decisions, previous: lundi.state, draftStory: true });
 const url = (id: string) => `http://localhost:43217/lundi/feedbacks#${id}`;
 const items = (r = lundi) => buildBacklogItems(r, { feedbackUrl: url });
 const itemFor = (key: string, r = lundi): BacklogItem => items(r).find((i) => i.themeKey === key)!;

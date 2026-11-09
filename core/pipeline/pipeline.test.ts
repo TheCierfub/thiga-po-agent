@@ -36,7 +36,7 @@ describe("pipeline rejoué de bout en bout", async () => {
     expect(all).toContain("[ADRESSE]");
   });
 
-  it("lundi : allocation attendue, injections en quarantaine, story et investigation", () => {
+  it("lundi : allocation attendue, injections en quarantaine, pas de story automatique", () => {
     expect(moscowOf(lundi)).toEqual({
       synchro_2_4: "Must",
       sso_contrat: "Must",
@@ -50,7 +50,8 @@ describe("pipeline rejoué de bout en bout", async () => {
       "fb-lundi-26",
       "fb-lundi-36",
     ]);
-    expect(lundi.story?.themeKey).toBe("sso_contrat");
+    expect(lundi.story).toBeNull();
+    expect(lundi.state.stories).toEqual([]);
     expect(lundi.state.investigations.map((i) => i.feedbackId)).toEqual(["fb-lundi-12"]);
     expect(lundi.state.warnings).toEqual([]);
   });
