@@ -18,7 +18,7 @@ export function NavTabs({ batch, storyTheme, drafts }: { batch: string; storyThe
     { href: `/${batch}/recontact`, label: "Recontact", count: drafts, match: (p: string) => p.startsWith(`/${batch}/recontact`) },
   ];
   return (
-    <nav aria-label="Écrans" className="-mb-px flex gap-1 overflow-x-auto [scrollbar-width:none]">
+    <nav aria-label="Écrans" className="-mb-px flex flex-wrap gap-x-1">
       {tabs.map((t) => {
         const active = t.match(pathname);
         return (

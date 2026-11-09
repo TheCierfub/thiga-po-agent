@@ -525,7 +525,8 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
     }
   }
 
-  // 8. Rédaction à la demande : le premier élément retenu qui n'est pas un bug.
+  // 8. Les stories déjà rédigées sont reprises. Une nouvelle n'est écrite que si on le demande
+  // explicitement (évaluation). Dans l'interface, la PO lance la rédaction thème par thème.
   const decisionsByKey = new Map(allocation.decisions.map((d) => [d.themeKey, d]));
   const themeByKey = new Map(themes.map((t) => [t.key, t]));
   const target = allocation.decisions
@@ -538,7 +539,7 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
     staleStoryKeys.has(s.themeKey) ? { ...s, status: "obsolete" } : s,
   );
   let story: UserStoryDraft | null = null;
-  if (target && options.draftStory !== false) {
+  if (target && options.draftStory === true) {
     const reusable = stories.find((s) => s.themeKey === target.themeKey && s.status === "brouillon");
     if (reusable) {
       story = reusable;

@@ -16,7 +16,10 @@ import type { IngestTrace } from "@/core/pipeline/ingest-trace";
 import { DEMO_DECISIONS_FILE } from "@/core/pipeline/replay-demo";
 import { OUTBOX_DIR, buildRecontactDrafts, writeToOutbox } from "@/core/outbox/recontact";
 import { FORCEABLE_CLASSES, PoOverridesSchema, reprioritize } from "@/core/scoring/overrides";
-import { SizeSchema } from "@/core/schemas";
+import { SizeSchema, UserStoryDraftSchema, type UserStoryDraft } from "@/core/schemas";
+import { draftStory } from "@/core/steps/draft-story";
+import { placeStory } from "@/core/stories/place";
+import { ReplayProvider } from "@/core/llm/fixtures";
 import { buildBacklogItems, type SinkResult } from "@/core/sink/backlog-sink";
 import { LINEAR_EXPORT_DIR, exportTarget } from "@/core/sink/export-target";
 import { DEMO_BATCHES } from "@/lib/etai/batches";
@@ -44,6 +47,7 @@ const ExportInput = z.object({
   batch: z.enum(DEMO_BATCHES),
   themeKey: z.string().regex(/^[a-z0-9_]+$/),
   overrides: OverridesSchema,
+  story: UserStoryDraftSchema.optional(),
 });
 
 export type ExportOutcome =
@@ -53,13 +57,16 @@ export type ExportOutcome =
 export async function exportTheme(input: z.input<typeof ExportInput>): Promise<ExportOutcome> {
   const parsed = ExportInput.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Demande d'export invalide." };
-  const { batch, themeKey, overrides } = parsed.data;
+  const { batch, themeKey, overrides, story } = parsed.data;
   const view = await getBatchView(batch);
+  if (story && story.themeKey !== themeKey) return { ok: false, message: "La story ne correspond pas à ce thème." };
+  if (story) await persistStory(batch, story);
   const accounts = new Map(loadContext(ROOT).accounts.map((account) => [account.id, account]));
   const { rice, allocation } = reprioritize(view.state, view.strategy, overrides);
+  const stories = story ? placeStory(view.state.stories, story) : view.state.stories;
   const url = feedbackUrl(batch);
   const [item] = buildBacklogItems(
-    { state: { ...view.state, rice, allocation }, accounts, strategy: view.strategy },
+    { state: { ...view.state, stories, rice, allocation }, accounts, strategy: view.strategy },
     { feedbackUrl: url, themeKeys: [themeKey] },
   );
   if (!item) return { ok: false, message: "Ce thème n'est ni Must, ni Should, ni Could : il ne part pas vers le backlog." };
@@ -286,3 +293,87 @@ export async function pollXMentions(input: z.input<typeof PollInput>): Promise<P
     return { ok: false, message: scrub(error), stop };
   }
 }
+
+const ThemeInput = z.object({
+  batch: z.enum(DEMO_BATCHES),
+  themeKey: z.string().regex(/^[a-z0-9_]+$/),
+  overrides: OverridesSchema,
+});
+
+export type StoryOutcome =
+  | { ok: true; story: UserStoryDraft; elapsedMs: number; costUsd: number | null; persisted: boolean }
+  | { ok: false; message: string };
+
+async function persistStory(batch: (typeof DEMO_BATCHES)[number], story: UserStoryDraft): Promise<boolean> {
+  const mode = await resolveDataMode();
+  if (mode.kind !== "live") return false;
+  const stored = await mode.store.getRun(batch);
+  if (!stored) return false;
+  await mode.store.saveRun({
+    ...stored,
+    state: { ...stored.state, stories: placeStory(stored.state.stories, story) },
+  });
+  revalidatePath(`/${batch}`, "layout");
+  return true;
+}
+
+/** Rédige la story d'un thème, à la demande. En direct, Sonnet ; en démo, la réponse déjà écrite. */
+export async function generateThemeStory(input: z.input<typeof ThemeInput>): Promise<StoryOutcome> {
+  const parsed = ThemeInput.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "Demande de story invalide." };
+  const { batch, themeKey, overrides } = parsed.data;
+  const view = await getBatchView(batch);
+  const theme = view.state.themes.find((item) => item.key === themeKey);
+  const assessment = view.state.assessments.find((item) => item.themeKey === themeKey);
+  if (!theme || !assessment) return { ok: false, message: "Ce thème n'a pas d'évaluation à raconter." };
+  const quarantined = new Set(view.state.classifications.filter((item) => item.injection.quarantined).map((item) => item.feedbackId));
+  const usable = {
+    ...theme,
+    feedbackIds: theme.feedbackIds.filter((id) => !quarantined.has(id)),
+    quotes: theme.quotes.filter((quote) => !quarantined.has(quote.feedbackId)),
+  };
+  if (usable.feedbackIds.length === 0) return { ok: false, message: "Les feedbacks de ce thème sont en quarantaine : rien à rédiger." };
+  const { rice, allocation } = reprioritize(view.state, view.strategy, overrides);
+  const riceScore = rice.find((item) => item.themeKey === themeKey);
+  const decision = allocation.decisions.find((item) => item.themeKey === themeKey);
+  if (!riceScore || !decision) return { ok: false, message: "Ce thème n'a pas de score." };
+  const mode = await resolveDataMode();
+  const live = mode.kind === "live" ? createLiveProvider(ROOT) : null;
+  const provider = live?.provider ?? new ReplayProvider(path.join(ROOT, "fixtures/llm"), { allowStale: true });
+  const started = Date.now();
+  try {
+    const story = await draftStory(
+      {
+        batch,
+        theme: usable,
+        assessment,
+        rice: riceScore,
+        decision,
+        feedbacks: new Map(view.state.feedbacks.map((feedback) => [feedback.id, feedback])),
+        strategy: view.strategy,
+        backlogIssue: theme.backlogIssueId ? (view.backlog.find((issue) => issue.id === theme.backlogIssueId) ?? null) : null,
+        evidenceHash: view.state.evidence[themeKey] ?? theme.key,
+      },
+      provider,
+    );
+    const persisted = await persistStory(batch, story);
+    const costUsd = live ? live.meter.records.reduce((sum, call) => sum + (call.costUsd ?? 0), 0) : null;
+    return { ok: true, story, elapsedMs: Date.now() - started, costUsd, persisted };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("Aucune réponse enregistrée")) return { ok: false, message: "Pas de story déjà écrite pour ce thème en mode démo. Branchez OpenRouter pour la rédiger." };
+    return { ok: false, message: scrub(error) };
+  }
+}
+
+export async function saveThemeStory(input: { batch: (typeof DEMO_BATCHES)[number]; story: UserStoryDraft }): Promise<{ ok: true; persisted: boolean } | { ok: false; message: string }> {
+  const story = UserStoryDraftSchema.safeParse(input.story);
+  if (!story.success || !DEMO_BATCHES.includes(input.batch)) return { ok: false, message: "Story illisible." };
+  try {
+    const persisted = await persistStory(input.batch, story.data);
+    return { ok: true, persisted };
+  } catch (error) {
+    return { ok: false, message: scrub(error) };
+  }
+}
+

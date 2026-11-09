@@ -132,7 +132,7 @@ export function XListen({
   return (
     <section className="space-y-4 rounded-xl border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="flex items-center gap-2 text-sm font-medium">
             <span className={listening ? "size-2 rounded-full bg-ok-fg" : "size-2 rounded-full bg-muted-foreground"} aria-hidden />
             {status}

@@ -36,6 +36,8 @@ export const UserStoryDraftSchema = UserStoryLlmSchema.extend({
   evidenceHash: z.string(),
   batch: z.string(),
   status: z.enum(["brouillon", "obsolete"]),
+  /** Vrai quand la PO a modifié le texte après la rédaction. */
+  editedByPo: z.boolean().optional(),
 });
 export type UserStoryDraft = z.infer<typeof UserStoryDraftSchema>;
 

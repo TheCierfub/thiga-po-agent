@@ -93,8 +93,8 @@ export async function fixtureAnswersByPrompt(root: string): Promise<Map<string, 
     },
   };
   const decisions = loadPoDecisions(root, "data/po-decisions.json");
-  const lundi = await runBatch({ root, batch: "lundi", provider: capture, reachMode: "comptes", decisions, previous: null });
-  await runBatch({ root, batch: "jeudi", provider: capture, reachMode: "comptes", decisions, previous: lundi.state });
+  const lundi = await runBatch({ root, batch: "lundi", provider: capture, reachMode: "comptes", decisions, previous: null, draftStory: true });
+  await runBatch({ root, batch: "jeudi", provider: capture, reachMode: "comptes", decisions, previous: lundi.state, draftStory: true });
   return answers;
 }
 
