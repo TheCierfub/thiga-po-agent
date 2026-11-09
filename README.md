@@ -83,9 +83,19 @@ La commande rejoue lundi et jeudi depuis les fixtures, écrit les feedbacks brut
 
 4. Pour analyser un feedback collé dans l'interface, ajouter aussi `OPENROUTER_API_KEY`. Le profil par défaut est B : Jev décide (type, injection, gravité, thème), Sonnet ne rédige que si le rattachement n'est pas assez sûr ou si le palier de confiance change. `ETAI_LLM_PROFILE=A` revient à Sonnet pour tout. `ETAI_THEME_CONFIDENCE` (défaut 0,8) est le seuil de Jev. Chaque ajout est plafonné à 1 $ (`ETAI_LLM_BUDGET_USD`).
 
-Sur Render, les mêmes variables se déclarent dans le blueprint : `SUPABASE_URL`, `SUPABASE_KEY`, `OPENROUTER_API_KEY`. Elles sont vides tant qu'on ne les remplit pas, et l'instance reste en mode démo. Le seed se lance en local, pas au démarrage du service.
+Sur Render, les mêmes variables se déclarent dans le blueprint : `SUPABASE_URL`, `SUPABASE_KEY`, `OPENROUTER_API_KEY`, et pour l'écoute X `TREG_TOKEN`. `ETAI_X_QUERY`, `ETAI_X_POLL_SECONDS`, `ETAI_X_MAX_SESSION_USD` et `ETAI_X_MAX_AGE_DAYS` sont facultatives. Elles sont vides tant qu'on ne les remplit pas, et l'instance reste en mode démo. Le seed se lance en local, pas au démarrage du service.
 
 Le rôle `anon` (celui de la clé publishable) peut lire et écrire les trois tables. C'est un compromis de démo : pas d'auth, pas de séparation entre PO. La marche à suivre pour la production est dans l'ADR-016.
+
+## Social listening (X via Treg)
+
+Nadia ne voit pas l’écoute. Un post X arrive dans ses feedbacks comme les autres, avec l’icône X, le @handle et le lien. La liste du jeudi se rafraîchit seule.
+
+L’interrogation est sur `/ops/ecoute`, absente de la navigation. Cette page appelle une action serveur toutes les 20 secondes tant qu’elle est ouverte. Fermer l’onglet arrête l’écoute. Elle s’arrête aussi au bout de 30 minutes, ou à 0,50 $ de coût Treg cumulé. Treg ne pousse rien, et l’offre gratuite de Render endort le service : il n’y a pas de cron.
+
+Treg plutôt que l’API X officielle : pas de compte développeur, et une recherche routée coûte de 0,00075 $ à 0,015 $ contre 0,005 $ par résultat chez X. L’indexation peut prendre un moment. Plan B, sur `/ops/ecoute` : inclure les dernières heures au lieu du seul point de départ (ouverture de la page, moins 2 minutes).
+
+L’appel préfère AnyAPI en direct (`query` + `queryType: Latest`, environ 0,00054 $). La recherche routée ne sert qu’en repli. `TREG_TOKEN` reste côté serveur. La requête par défaut est `#etai OR @etai` (`ETAI_X_QUERY`). Les posts déjà vus (`fb-x-<id>`) ne sont pas repris. Les trois horodatages (publié, détecté, traité) sont gardés avec le feedback : le tableau des délais de `/ops/ecoute` les relit après un rechargement. Le détail est dans l’ADR-019.
 
 ## Brancher Linear
 

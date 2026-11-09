@@ -25,6 +25,7 @@ export const CHANNEL_LABEL: Record<Channel, string> = {
   forum_produit: "Forum produit",
   reddit: "Reddit",
   x: "X",
+  social: "X",
 };
 
 export const REPLY_LABEL = {

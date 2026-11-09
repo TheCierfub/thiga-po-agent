@@ -3,6 +3,9 @@ import { PageSkeleton } from "@/components/etai/page-skeleton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddFeedbackForm } from "@/components/etai/add-feedback";
+import { ArrivalItem, ArrivalWatch } from "@/components/etai/arrival-watch";
+import { SocialMark } from "@/components/etai/social-mark";
+import { readPollSeconds } from "@/core/sources/x-listen";
 import { isDemoBatch } from "@/lib/etai/batches";
 import { CHANNEL_LABEL, MATCH_LABEL, TYPE_LABEL, feedbackWho } from "@/lib/etai/labels";
 import { getBatchView } from "@/lib/etai/view";
@@ -42,6 +45,10 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
         detail={dataModeDetail}
         profile={process.env.ETAI_LLM_PROFILE?.trim() || "B"}
       />
+      <ArrivalWatch
+        ids={feedbacks.map((feedback) => feedback.id)}
+        intervalMs={batch === "jeudi" ? readPollSeconds(process.env.ETAI_X_POLL_SECONDS) * 1000 : 0}
+      >
       <ul className="space-y-2">
         {feedbacks.map((f) => {
           const m = matches.get(f.id);
@@ -50,7 +57,7 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
           const account = m?.accountId ? accountsById[m.accountId] : undefined;
           const attachment = state.attachments?.find((item) => item.feedbackId === f.id);
           return (
-            <li
+            <ArrivalItem
               key={f.id}
               id={f.id}
               className="scroll-mt-32 rounded-xl border bg-card p-4 transition-[box-shadow] duration-300 target:ring-2 target:ring-(--moscow-should)/50"
@@ -61,6 +68,7 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
                   {feedbackWho(f.author, account?.nom, MATCH_LABEL[m?.confidence ?? "non_rapproche"])}
                 </span>
                 <span>{CHANNEL_LABEL[f.channel]}</span>
+                {f.channel === "social" ? <SocialMark url={f.sourceUrl} /> : null}
                 <span>{new Date(f.receivedAt).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" })}</span>
                 {c ? <span>{TYPE_LABEL[c.type]}</span> : null}
                 {c?.injection.quarantined ? <span className="font-medium text-warn-fg">quarantaine</span> : null}
@@ -75,10 +83,11 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
                 {f.maskedText}
               </p>
               {attachment ? <p className="mt-2 text-xs text-muted-foreground">{attachment.rationale}</p> : null}
-            </li>
+            </ArrivalItem>
           );
         })}
       </ul>
+      </ArrivalWatch>
     </div>
   );
 }

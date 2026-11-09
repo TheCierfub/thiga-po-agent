@@ -21,3 +21,13 @@ services:
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: TREG_TOKEN
+        sync: false
+      - key: ETAI_X_QUERY
+        sync: false
+      - key: ETAI_X_POLL_SECONDS
+        sync: false
+      - key: ETAI_X_MAX_SESSION_USD
+        sync: false
+      - key: ETAI_X_MAX_AGE_DAYS
+        sync: false

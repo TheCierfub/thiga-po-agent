@@ -9,6 +9,14 @@ export const AuthorSchema = z.object({
 });
 export type Author = z.infer<typeof AuthorSchema>;
 
+/** Trois horodatages d'un post X : publication, détection, fin de traitement. */
+export const ListeningSchema = z.object({
+  publishedAt: z.iso.datetime({ offset: true }),
+  detectedAt: z.iso.datetime({ offset: true }),
+  processedAt: z.iso.datetime({ offset: true }).nullable(),
+});
+export type Listening = z.infer<typeof ListeningSchema>;
+
 export const FeedbackSchema = z.object({
   id: z.string().min(1),
   batch: z.string().min(1),
@@ -19,6 +27,9 @@ export const FeedbackSchema = z.object({
   sourceAccountId: z.string().nullable(),
   language: z.enum(["fr", "en"]),
   text: z.string().min(1),
+  /** URL du post d'origine, pour le canal social. */
+  sourceUrl: z.string().nullable().optional(),
+  listening: ListeningSchema.optional(),
 });
 export type Feedback = z.infer<typeof FeedbackSchema>;
 

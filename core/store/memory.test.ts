@@ -17,6 +17,23 @@ const feedback = {
 };
 
 describe("stockage en mémoire", () => {
+  it("relit les horodatages d'un post X après écriture", () => {
+    const social = {
+      ...feedback,
+      id: "fb-x-1851",
+      channel: "social" as const,
+      author: { name: "@quai17", email: null, handle: "@quai17", anonymous: false },
+      sourceAccountId: "x:@quai17",
+      sourceUrl: "https://x.com/i/web/status/1851",
+      listening: {
+        publishedAt: "2026-11-09T18:50:00.000Z",
+        detectedAt: "2026-11-09T18:51:00.000Z",
+        processedAt: "2026-11-09T18:51:02.000Z",
+      },
+    };
+    expect(rowToFeedback(feedbackToRow(social, "direct")).feedback.listening).toEqual(social.listening);
+  });
+
   it("conserve le feedback brut, y compris l'e-mail, et le relit via le schéma", () => {
     const row = feedbackToRow(feedback, "direct");
     expect(row.body).toBe(feedback.text);

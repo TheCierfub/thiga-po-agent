@@ -19,6 +19,7 @@ export const REPLY_MODE_BY_CHANNEL: Record<Channel, ReplyMode> = {
   forum_produit: "message_prive",
   reddit: "message_prive",
   x: "message_prive",
+  social: "message_prive",
   avis_g2: "reponse_publique",
   avis_capterra: "reponse_publique",
 };

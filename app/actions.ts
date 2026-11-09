@@ -23,10 +23,16 @@ import { DEMO_BATCHES } from "@/lib/etai/batches";
 import { resolveDataMode } from "@/lib/etai/data-mode";
 import { ROOT, feedbackUrl } from "@/lib/etai/runs";
 import { getBatchView } from "@/lib/etai/view";
+import { DEFAULT_X_QUERY, capMicro, readMaxAgeDays, readSessionCapUsd } from "@/core/sources/x-listen";
+import { TregError, runXPoll, type PollPostResult, type TregCallTrace } from "@/core/sources/x";
 
 function scrub(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.replace(/sk-or-[\w-]+/g, "[clé]").replace(/sb_(?:publishable|secret)_[\w-]+/g, "[clé]").slice(0, 400);
+  const token = process.env.TREG_TOKEN?.trim();
+  const message = (error instanceof Error ? error.message : String(error))
+    .replace(/sk-or-[\w-]+/g, "[clé]")
+    .replace(/sb_(?:publishable|secret)_[\w-]+/g, "[clé]");
+  const hidden = token ? message.split(token).join("[clé]") : message;
+  return hidden.slice(0, 400);
 }
 
 const OverridesSchema = z.object({
@@ -172,5 +178,111 @@ export async function addFeedback(input: z.input<typeof DirectFeedbackInputSchem
   } catch (error) {
     const message = error instanceof DirectIngestError ? error.message : scrub(error);
     return { ok: false, message };
+  }
+}
+
+const PollInput = z.object({
+  activatedAt: z.iso.datetime({ offset: true }),
+  lookbackHours: z.number().min(0).max(72),
+  spentMicro: z.number().int().nonnegative(),
+});
+
+export type PollXOutcome =
+  | {
+      ok: true;
+      query: string;
+      found: number;
+      created: PollPostResult[];
+      ignored: number;
+      errors: string[];
+      treg: TregCallTrace;
+      spentMicro: number;
+      stop: null | "cout";
+    }
+  | { ok: false; message: string; stop: boolean };
+
+/** Un passage d'écoute. Le navigateur le rappelle tant que la page est ouverte. */
+export async function pollXMentions(input: z.input<typeof PollInput>): Promise<PollXOutcome> {
+  const parsed = PollInput.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "Demande d'écoute invalide.", stop: false };
+  const token = process.env.TREG_TOKEN?.trim();
+  if (!token) return { ok: false, message: "TREG_TOKEN est absent : l'écoute X est désactivée.", stop: true };
+  const mode = await resolveDataMode();
+  if (mode.kind !== "live") return { ok: false, message: "Mode démo : rien n'est enregistré et aucun modèle n'est appelé.", stop: true };
+  const capUsd = readSessionCapUsd(process.env.ETAI_X_MAX_SESSION_USD);
+  if (parsed.data.spentMicro >= capMicro(capUsd)) {
+    return { ok: false, message: "Plafond de la session atteint.", stop: true };
+  }
+  const query = process.env.ETAI_X_QUERY?.trim() || DEFAULT_X_QUERY;
+  const rows = await mode.store.listFeedbacks(LIVE_BATCH);
+  const run = await mode.store.getRun(LIVE_BATCH);
+  const existingIds = new Set([...rows.map((row) => row.feedback.id), ...(run?.state.feedbacks.map((item) => item.id) ?? [])]);
+  const context = loadContext(ROOT);
+  const decisions = (await mode.store.getArbitrages(LIVE_BATCH))?.decisions ?? loadPoDecisions(ROOT, DEMO_DECISIONS_FILE);
+
+  try {
+    const result = await runXPoll({
+      query,
+      token,
+      now: new Date(),
+      activatedAt: new Date(parsed.data.activatedAt),
+      lookbackHours: parsed.data.lookbackHours,
+      spentMicro: parsed.data.spentMicro,
+      capUsd,
+      maxAgeDays: readMaxAgeDays(process.env.ETAI_X_MAX_AGE_DAYS),
+      existingIds,
+      ingest: async (feedback) => {
+        const live = createLiveProvider(ROOT);
+        const { result: ingested, trace } = await ingestDirectFeedback({
+          store: mode.store,
+          feedback,
+          provider: live.provider,
+          decisions,
+          context,
+          decider: live.decider,
+          usage: () =>
+            live.meter.records.map((call) => ({
+              task: call.step,
+              key: "",
+              durationMs: call.latencyMs,
+              promptTokens: call.promptTokens,
+              completionTokens: call.completionTokens,
+              reasoningTokens: call.reasoningTokens,
+              costUsd: call.costUsd,
+            })),
+        });
+        const processedAt = new Date().toISOString();
+        const stamped = feedback.listening ? { ...feedback, listening: { ...feedback.listening, processedAt } } : feedback;
+        const state = {
+          ...ingested.state,
+          feedbacks: ingested.state.feedbacks.map((item) =>
+            item.id === feedback.id && item.listening ? { ...item, listening: { ...item.listening, processedAt } } : item,
+          ),
+        };
+        await mode.store.upsertFeedbacks([{ feedback: stamped, origin: "direct" }]);
+        await mode.store.saveRun({ state, newFeedbackIds: ingested.newFeedbackIds, changes: ingested.changes });
+        const classification = state.classifications.find((item) => item.feedbackId === feedback.id);
+        return { trace, quarantined: Boolean(classification?.injection.quarantined), processedAt };
+      },
+    });
+    if (result.created.length > 0) {
+      revalidatePath("/lundi", "layout");
+      revalidatePath("/jeudi", "layout");
+    }
+    const spentMicro = parsed.data.spentMicro + (result.treg.costMicro ?? 0);
+    return {
+      ok: true,
+      query,
+      found: result.found,
+      created: result.created,
+      ignored: result.ignored.length,
+      errors: result.errors.map((item) => scrub(new Error(item))),
+      treg: result.treg,
+      spentMicro,
+      stop: spentMicro >= capMicro(capUsd) ? "cout" : null,
+    };
+  } catch (error) {
+    const stop = error instanceof TregError && (error.status === 401 || error.status === 402);
+    return { ok: false, message: scrub(error), stop };
   }
 }
