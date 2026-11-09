@@ -8,7 +8,7 @@ import { ExportPanel, ExportPanelSkeleton } from "@/components/etai/export-panel
 import { ThemeMoscow, ThemeNav } from "@/components/etai/theme-nav";
 import { DEMO_BATCHES, isDemoBatch } from "@/lib/etai/batches";
 import { readExportMode } from "@/lib/etai/export-mode";
-import { CHANNEL_LABEL, MATCH_LABEL, highlightQuotes } from "@/lib/etai/labels";
+import { CHANNEL_LABEL, MATCH_LABEL, feedbackWho, highlightQuotes } from "@/lib/etai/labels";
 import { getBatchView, getDemoBatchView } from "@/lib/etai/view";
 import { cn } from "@/lib/utils";
 
@@ -89,6 +89,23 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
             </div>
             <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{theme.title}</h1>
             <p className="max-w-2xl text-sm text-muted-foreground">{theme.problem}</p>
+            {theme.creationRationale ? <p className="max-w-2xl text-sm">{theme.creationRationale}</p> : null}
+            {theme.relatedThemeIds?.length ? (
+              <p className="text-sm text-muted-foreground">
+                Lié à{" "}
+                {theme.relatedThemeIds.map((id, index) => {
+                  const linked = view.state.themes.find((item) => item.key === id);
+                  return (
+                    <span key={id}>
+                      {index > 0 ? ", " : null}
+                      <Link href={`/${batch}/themes/${id}`} className="hover:text-foreground hover:underline">
+                        {linked?.title ?? id}
+                      </Link>
+                    </span>
+                  );
+                })}
+              </p>
+            ) : null}
           </div>
           <Suspense fallback={<ExportPanelSkeleton />}>
             <ExportPanelWithMode batch={batch} themeKey={key} hasStory={story !== undefined} existingIssueId={theme.backlogIssueId} />
@@ -201,7 +218,9 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
               return (
                 <li key={id} id={id} className="rounded-xl border bg-card p-4">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">{account?.nom ?? MATCH_LABEL[m?.confidence ?? "non_rapproche"]}</span>
+                    <span className="font-medium text-foreground">
+                      {f ? feedbackWho(f.author, account?.nom, MATCH_LABEL[m?.confidence ?? "non_rapproche"]) : MATCH_LABEL[m?.confidence ?? "non_rapproche"]}
+                    </span>
                     <span>{CHANNEL_LABEL[f.channel]}</span>
                     <span>{new Date(f.receivedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" })}</span>
                     {theme.relatedSignalIds.includes(id) && !theme.feedbackIds.includes(id) ? <span>signal lié</span> : null}

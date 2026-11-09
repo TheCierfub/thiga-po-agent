@@ -14,7 +14,13 @@ export interface CallRecord {
   costUsd: number | null;
   httpStatus: number;
   ok: boolean;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  reasoningTokens: number | null;
 }
+
+type CallInput = Omit<CallRecord, "promptTokens" | "completionTokens" | "reasoningTokens"> &
+  Partial<Pick<CallRecord, "promptTokens" | "completionTokens" | "reasoningTokens">>;
 
 export interface MeterStats {
   calls: number;
@@ -73,9 +79,15 @@ export class Meter {
     if (spent >= root.budgetUsd) throw new BudgetExceededError(spent, root.budgetUsd);
   }
 
-  record(call: CallRecord): void {
-    this.records.push(call);
-    this.options.parent?.record(call);
+  record(call: CallInput): void {
+    const full: CallRecord = {
+      promptTokens: null,
+      completionTokens: null,
+      reasoningTokens: null,
+      ...call,
+    };
+    this.records.push(full);
+    this.options.parent?.record(full);
   }
 
   addSchemaError(): void {

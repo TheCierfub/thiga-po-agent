@@ -43,6 +43,17 @@ export const TYPE_LABEL: Record<FeedbackType, string> = {
   hors_sujet: "Hors sujet",
 };
 
+/** Nom saisi, puis compte. Les feedbacks seed ont déjà un nom d'auteur ; un ajout direct doit montrer le sien. */
+export function feedbackWho(
+  author: { name: string | null; anonymous: boolean },
+  accountName: string | undefined,
+  fallback: string,
+): string {
+  const person = author.anonymous ? null : author.name?.trim() || null;
+  if (person && accountName) return `${person} · ${accountName}`;
+  return person ?? accountName ?? fallback;
+}
+
 export const MATCH_LABEL: Record<IdentityConfidence, string> = {
   certaine: "Compte certain",
   probable: "Compte probable",

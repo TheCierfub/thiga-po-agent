@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddFeedbackForm } from "@/components/etai/add-feedback";
 import { isDemoBatch } from "@/lib/etai/batches";
-import { CHANNEL_LABEL, MATCH_LABEL, TYPE_LABEL } from "@/lib/etai/labels";
+import { CHANNEL_LABEL, MATCH_LABEL, TYPE_LABEL, feedbackWho } from "@/lib/etai/labels";
 import { getBatchView } from "@/lib/etai/view";
 
 export default function FeedbacksPage({ params }: PageProps<"/[batch]/feedbacks">) {
@@ -43,6 +43,7 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
           const c = classes.get(f.id);
           const theme = themeOf(f.id);
           const account = m?.accountId ? accountsById[m.accountId] : undefined;
+          const attachment = state.attachments?.find((item) => item.feedbackId === f.id);
           return (
             <li
               key={f.id}
@@ -51,7 +52,9 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
             >
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                 <span className="font-mono">{f.id}</span>
-                <span className="font-medium text-foreground">{account?.nom ?? MATCH_LABEL[m?.confidence ?? "non_rapproche"]}</span>
+                <span className="font-medium text-foreground">
+                  {feedbackWho(f.author, account?.nom, MATCH_LABEL[m?.confidence ?? "non_rapproche"])}
+                </span>
                 <span>{CHANNEL_LABEL[f.channel]}</span>
                 <span>{new Date(f.receivedAt).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" })}</span>
                 {c ? <span>{TYPE_LABEL[c.type]}</span> : null}
@@ -66,6 +69,7 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
               <p className={c?.injection.quarantined ? "mt-2 font-mono text-xs leading-relaxed whitespace-pre-line text-muted-foreground" : "mt-2 text-sm leading-relaxed whitespace-pre-line"}>
                 {f.maskedText}
               </p>
+              {attachment ? <p className="mt-2 text-xs text-muted-foreground">{attachment.rationale}</p> : null}
             </li>
           );
         })}

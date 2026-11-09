@@ -39,6 +39,30 @@ export interface OpenRouterClientOptions {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function readUsage(json: Record<string, unknown>): {
+  promptTokens: number | null;
+  completionTokens: number | null;
+  reasoningTokens: number | null;
+  costUsd: number | null;
+} {
+  const usage = json.usage as
+    | {
+        prompt_tokens?: unknown;
+        completion_tokens?: unknown;
+        cost?: unknown;
+        reasoning_tokens?: unknown;
+        completion_tokens_details?: { reasoning_tokens?: unknown };
+      }
+    | undefined;
+  const num = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : null);
+  return {
+    promptTokens: num(usage?.prompt_tokens),
+    completionTokens: num(usage?.completion_tokens),
+    reasoningTokens: num(usage?.completion_tokens_details?.reasoning_tokens ?? usage?.reasoning_tokens),
+    costUsd: num(usage?.cost),
+  };
+}
+
 export class OpenRouterClient {
   readonly meter: Meter;
   private readonly baseUrl: string;
@@ -112,8 +136,18 @@ export class OpenRouterClient {
         this.logRaw({ step: meta.step, key: "", model: meta.model, error: "corps non JSON", raw: text.slice(0, 5000) });
         throw new OpenRouterHttpError(response.status, route, `corps non JSON : ${text.slice(0, 200)}`);
       }
-      const costUsd = await this.costOf(json);
-      this.meter.record({ ...meta, latencyMs, costUsd, httpStatus: response.status, ok: true });
+      const usage = readUsage(json);
+      const costUsd = usage.costUsd ?? (await this.costOf(json));
+      this.meter.record({
+        ...meta,
+        latencyMs,
+        costUsd,
+        httpStatus: response.status,
+        ok: true,
+        promptTokens: usage.promptTokens,
+        completionTokens: usage.completionTokens,
+        reasoningTokens: usage.reasoningTokens,
+      });
       return { json, latencyMs };
     }
     throw lastError;

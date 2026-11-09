@@ -77,6 +77,17 @@ export const FeedbackClassificationSchema = z.object({
   quotes: z.array(QuoteSchema),
   rejectedQuotes: z.array(z.string()),
   decisions: z.partialRecord(DecisionStepSchema, DecisionTraceSchema).optional(),
+  /** Choix de thème par le moteur de décision, à l'ajout direct seulement. */
+  themeChoice: z
+    .object({
+      themeKey: z.string().nullable(),
+      confidence: z.number().nullable(),
+      probability: z.number().nullable(),
+      probabilities: z.record(z.string(), z.number()).nullable(),
+      fallbackUsed: z.boolean(),
+      engine: z.string(),
+    })
+    .optional(),
 });
 export type FeedbackClassification = z.infer<typeof FeedbackClassificationSchema>;
 
@@ -103,6 +114,47 @@ export const GroupingLlmSchema = z.object({
 });
 export type GroupingLlm = z.infer<typeof GroupingLlmSchema>;
 
+/** Décision de rattachement d'un seul feedback à des thèmes déjà ouverts. */
+export const AttachmentLlmSchema = z.object({
+  comparisons: z
+    .array(
+      z.object({
+        themeKey: z.string(),
+        sameProblem: z
+          .boolean()
+          .describe("Vrai si le feedback parle du même problème, même s'il décrit aussi un bug, une régression ou une autre solution."),
+        why: z.string().min(8),
+      }),
+    )
+    .describe("Une entrée par thème existant, avant toute création."),
+  decision: z.object({
+    action: z.enum(["rattacher", "creer"]),
+    themeKey: z.string().regex(/^[a-z0-9_]+$/),
+    title: z.string().min(3),
+    problem: z.string().min(3),
+    rationale: z.string().min(8),
+    relatedThemeIds: z.array(z.string().regex(/^[a-z0-9_]+$/)),
+    backlogIssueId: z.string().nullable(),
+    backlogRelation: z.enum(BACKLOG_RELATIONS),
+    quotes: z.array(QuoteSchema).max(4),
+  }),
+});
+export type AttachmentLlm = z.infer<typeof AttachmentLlmSchema>;
+
+export const FeedbackAttachmentSchema = z.object({
+  feedbackId: z.string(),
+  action: z.enum(["rattacher", "creer"]),
+  themeKey: z.string(),
+  rationale: z.string(),
+  relatedThemeIds: z.array(z.string()),
+  /** Vrai si le code a refusé un thème isolé et imposé le rattachement. */
+  forced: z.boolean(),
+  engine: z.string().optional(),
+  confidence: z.number().nullable().optional(),
+  probability: z.number().nullable().optional(),
+});
+export type FeedbackAttachment = z.infer<typeof FeedbackAttachmentSchema>;
+
 export const TREND_KINDS = ["tendance", "recurrent", "ponctuel"] as const;
 export const TrendSchema = z.object({
   kind: z.enum(TREND_KINDS),
@@ -126,6 +178,10 @@ export const ThemeSchema = z.object({
   hasCriticalBug: z.boolean(),
   firstSeenBatch: z.string(),
   backlogDecision: DecisionTraceSchema.optional(),
+  /** Thèmes proches, quand celui-ci est un bug ou une facette d'un problème déjà ouvert. */
+  relatedThemeIds: z.array(z.string()).optional(),
+  /** Pourquoi ce thème a été créé plutôt que rattaché. Absent si le thème est ancien. */
+  creationRationale: z.string().optional(),
 });
 export type Theme = z.infer<typeof ThemeSchema>;
 

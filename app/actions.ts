@@ -12,6 +12,7 @@ import {
   buildDirectFeedback,
   ingestDirectFeedback,
 } from "@/core/pipeline/direct";
+import type { IngestTrace } from "@/core/pipeline/ingest-trace";
 import { DEMO_DECISIONS_FILE } from "@/core/pipeline/replay-demo";
 import { OUTBOX_DIR, buildRecontactDrafts, writeToOutbox } from "@/core/outbox/recontact";
 import { FORCEABLE_CLASSES, PoOverridesSchema, reprioritize } from "@/core/scoring/overrides";
@@ -125,18 +126,7 @@ export async function saveArbitrages(input: z.input<typeof ArbitrageInput>): Pro
 }
 
 export type AddFeedbackOutcome =
-  | {
-      ok: true;
-      elapsedMs: number;
-      feedbackId: string;
-      themeKey: string | null;
-      themeTitle: string | null;
-      createdTheme: boolean;
-      riceBefore: number | null;
-      riceAfter: number | null;
-      moscowBefore: string | null;
-      moscowAfter: string | null;
-    }
+  | { ok: true; elapsedMs: number; feedbackId: string; trace: IngestTrace }
   | { ok: false; message: string };
 
 /**
@@ -158,32 +148,27 @@ export async function addFeedback(input: z.input<typeof DirectFeedbackInputSchem
   const decisions = (await mode.store.getArbitrages(LIVE_BATCH))?.decisions ?? loadPoDecisions(ROOT, DEMO_DECISIONS_FILE);
   try {
     const live = createLiveProvider(ROOT);
-    const { result, elapsedMs } = await ingestDirectFeedback({
+    const { elapsedMs, trace } = await ingestDirectFeedback({
       store: mode.store,
       feedback,
       provider: live.provider,
       decisions,
       context,
       decider: live.decider,
+      usage: () =>
+        live.meter.records.map((call) => ({
+          task: call.step,
+          key: "",
+          durationMs: call.latencyMs,
+          promptTokens: call.promptTokens,
+          completionTokens: call.completionTokens,
+          reasoningTokens: call.reasoningTokens,
+          costUsd: call.costUsd,
+        })),
     });
     revalidatePath("/lundi", "layout");
     revalidatePath("/jeudi", "layout");
-    const theme = result.state.themes.find(
-      (item) => item.feedbackIds.includes(feedback.id) || item.relatedSignalIds.includes(feedback.id),
-    );
-    const change = theme ? result.changes?.themes.find((item) => item.key === theme.key) : undefined;
-    return {
-      ok: true,
-      elapsedMs,
-      feedbackId: feedback.id,
-      themeKey: theme?.key ?? null,
-      themeTitle: theme?.title ?? null,
-      createdTheme: theme ? (result.changes?.plan.newThemes.includes(theme.key) ?? false) : false,
-      riceBefore: change?.riceBefore ?? null,
-      riceAfter: change?.riceAfter ?? null,
-      moscowBefore: change?.moscowBefore ?? null,
-      moscowAfter: change?.moscowAfter ?? null,
-    };
+    return { ok: true, elapsedMs, feedbackId: feedback.id, trace };
   } catch (error) {
     const message = error instanceof DirectIngestError ? error.message : scrub(error);
     return { ok: false, message };

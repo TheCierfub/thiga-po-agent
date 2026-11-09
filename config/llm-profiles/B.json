@@ -1,6 +1,6 @@
 {
   "name": "B",
-  "description": "Jev (modèle de décision TypeSafe, API Decisions) pour le type, l'injection, la gravité d'un bug et le rattachement au backlog ; Claude Sonnet 5.5 pour le texte et en repli.",
+  "description": "Jev (typesafe/jev-1.14, API Decisions) décide seul du type, de l'injection, de la gravité, du backlog et, à l'ajout direct, du thème. Sonnet 5.5 ne rédige que le texte qui reste : regroupement si Jev n'est pas sûr, évaluation si le palier change, story, investigation. Repli Sonnet si Jev échoue.",
   "steps": {
     "classify": "anthropic/claude-sonnet-5.5",
     "group": "anthropic/claude-sonnet-5.5",

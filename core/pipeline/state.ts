@@ -9,6 +9,7 @@ import {
   MaskedFeedbackSchema,
   ReachModeSchema,
   RiceScoreSchema,
+  FeedbackAttachmentSchema,
   ThemeAssessmentSchema,
   ThemeSchema,
   UserStoryDraftSchema,
@@ -32,6 +33,8 @@ export const RunStateSchema = z.object({
   stories: z.array(UserStoryDraftSchema),
   investigations: z.array(InvestigationDraftSchema),
   warnings: z.array(z.string()),
+  /** Rattachements décidés lors d'un ajout en direct. Absent des lots rejoués. */
+  attachments: z.array(FeedbackAttachmentSchema).optional(),
 });
 export type RunState = z.infer<typeof RunStateSchema>;
 

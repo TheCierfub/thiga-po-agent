@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CHANNEL_LABEL, num } from "@/lib/etai/labels";
+import { STEP_LABEL, formatUsd } from "@/core/pipeline/ingest-trace";
+import { CHANNEL_LABEL } from "@/lib/etai/labels";
 import { CHANNELS, type Channel } from "@/core/schemas";
 
 const SOURCE_ORDER: Channel[] = ["email", "ticket_support", "forum_produit", ...CHANNELS.filter((channel) => !["email", "ticket_support", "forum_produit"].includes(channel))];
@@ -60,6 +61,8 @@ export function AddFeedbackForm({
       setStartedAt(null);
       if (result.ok) {
         setText("");
+        setAuthorName("");
+        setAccountId("none");
         router.push(`/jeudi/feedbacks#${result.feedbackId}`);
         router.refresh();
       }
@@ -78,7 +81,12 @@ export function AddFeedbackForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="feedback-source">Source</Label>
-          <Select value={channel} onValueChange={(value) => setChannel(value as Channel)} disabled={!live || pending}>
+          <Select
+            items={Object.fromEntries(SOURCE_ORDER.map((item) => [item, CHANNEL_LABEL[item]]))}
+            value={channel}
+            onValueChange={(value) => setChannel(value as Channel)}
+            disabled={!live || pending}
+          >
             <SelectTrigger id="feedback-source" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -93,7 +101,12 @@ export function AddFeedbackForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="feedback-account">Compte client</Label>
-          <Select value={accountId} onValueChange={(value) => setAccountId(value ?? "none")} disabled={!live || pending}>
+          <Select
+            items={{ none: "Non indiqué", ...Object.fromEntries(accounts.map((account) => [account.id, account.nom])) }}
+            value={accountId}
+            onValueChange={(value) => setAccountId(value ?? "none")}
+            disabled={!live || pending}
+          >
             <SelectTrigger id="feedback-account" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -120,7 +133,12 @@ export function AddFeedbackForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="feedback-language">Langue</Label>
-          <Select value={language} onValueChange={(value) => setLanguage(value as "fr" | "en")} disabled={!live || pending}>
+          <Select
+            items={{ fr: "Français", en: "Anglais" }}
+            value={language}
+            onValueChange={(value) => setLanguage(value as "fr" | "en")}
+            disabled={!live || pending}
+          >
             <SelectTrigger id="feedback-language" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -154,26 +172,41 @@ export function AddFeedbackForm({
         ) : null}
         {!live ? <p className="text-sm text-warn-fg">{detail}</p> : null}
       </div>
-      {outcome && !pending ? (
-        <p role="status" className={outcome.ok ? "text-sm text-foreground" : "text-sm text-warn-fg"}>
-          {outcome.ok ? summary(outcome) : outcome.message}
-        </p>
-      ) : null}
+      {outcome && !pending ? <IngestReport outcome={outcome} /> : null}
     </form>
   );
 }
 
-function summary(outcome: Extract<AddFeedbackOutcome, { ok: true }>): string {
-  const seconds = (outcome.elapsedMs / 1000).toFixed(1);
-  if (!outcome.themeTitle) return `Enregistré en ${seconds} s, sans thème (quarantaine ou hors sujet).`;
-  const where = outcome.createdTheme ? `nouveau thème « ${outcome.themeTitle} »` : `thème « ${outcome.themeTitle} »`;
-  const rice =
-    outcome.riceBefore !== null && outcome.riceAfter !== null
-      ? ` RICE ${num(outcome.riceBefore, 2)} → ${num(outcome.riceAfter, 2)}.`
-      : "";
-  const moscow =
-    outcome.moscowBefore && outcome.moscowAfter && outcome.moscowBefore !== outcome.moscowAfter
-      ? ` MoSCoW ${outcome.moscowBefore} → ${outcome.moscowAfter}.`
-      : "";
-  return `Traité en ${seconds} s, rattaché au ${where}.${rice}${moscow}`;
+function IngestReport({ outcome }: { outcome: AddFeedbackOutcome }) {
+  if (!outcome.ok) return <p className="text-sm text-warn-fg">{outcome.message}</p>;
+  const { trace } = outcome;
+  return (
+    <div role="status" className="space-y-2 text-sm">
+      <p>
+        Traité en {(outcome.elapsedMs / 1000).toFixed(1)} s.
+        {trace.decision?.attached
+          ? ` Rattaché par ${/jev|decisions/i.test(trace.decision.engine) ? "Jev" : trace.decision.engine}, confiance ${
+              trace.decision.confidence === null ? "inconnue" : trace.decision.confidence.toFixed(2).replace(".", ",")
+            }.`
+          : ""}
+      </p>
+      {trace.themes.length === 0 ? <p>Aucun thème touché (quarantaine ou hors sujet).</p> : null}
+      <ul className="space-y-1">
+        {trace.themes.map((theme) => (
+          <li key={theme.key}>
+            {theme.created ? "Nouveau thème" : "Thème existant"} « {theme.title} ». RICE{" "}
+            {theme.riceBefore === null ? "—" : theme.riceBefore.toFixed(2)} → {theme.riceAfter.toFixed(2)}. MoSCoW{" "}
+            {theme.moscowBefore ?? "—"} → {theme.moscowAfter}.
+            {theme.relatedThemeIds.length > 0 ? ` Lié à ${theme.relatedThemeIds.join(", ")}.` : ""}
+            {theme.rationale ? ` ${theme.rationale}` : ""}
+          </li>
+        ))}
+      </ul>
+      <p className="text-muted-foreground">
+        {trace.steps.map((step) => `${STEP_LABEL[step.name] ?? step.name} ${(step.durationMs / 1000).toFixed(1)} s`).join(" · ")}
+        {" · "}
+        {trace.costUsd === null ? "coût non communiqué" : `coût estimé ${formatUsd(trace.costUsd)}`}
+      </p>
+    </div>
+  );
 }

@@ -2,12 +2,15 @@ import { z } from "zod";
 import type { Context } from "../data/load";
 import type { PoDecisions } from "../decisions/po-decisions";
 import type { DecisionPlan } from "../llm/profiles";
-import type { LlmProvider } from "../llm/provider";
+import type { DecisionEngine, DecisionRequest, DecisionResult } from "../llm/decisions";
+import type { LlmProvider, LlmRequest } from "../llm/provider";
 import { ChannelSchema, FeedbackSchema, type Feedback } from "../schemas";
 import { localDate } from "../scoring/window";
 import type { AnalysisStore } from "../store/types";
+import { costOf, stepDurations, themeMoves, type IngestCall, type IngestDecision, type IngestTrace, type TimedCall } from "./ingest-trace";
+import { readThemeConfidence } from "../steps/decide";
 import type { RunState } from "./state";
-import { advanceRun, type RunResult } from "./run";
+import { advanceRun, type ChangeReport, type RunResult } from "./run";
 
 export const LIVE_BATCH = "jeudi";
 
@@ -61,6 +64,7 @@ export function appendFeedback(options: {
   context: Context;
   decider?: DecisionPlan;
   draftStory?: boolean;
+  themeConfidence?: number;
 }): Promise<RunResult> {
   const received = localDate(options.feedback.receivedAt);
   const referenceDate = received > options.previous.referenceDate ? received : options.previous.referenceDate;
@@ -73,13 +77,108 @@ export function appendFeedback(options: {
     decisions: options.decisions,
     previous: options.previous,
     context: options.context,
-    draftStory: options.draftStory,
+    draftStory: false,
     decider: options.decider,
     trustDeclaredAccount: true,
+    strictAttachment: true,
+    themeConfidence: options.themeConfidence,
   });
 }
 
-/** Analyse puis enregistre. Si l'analyse échoue, rien n'est écrit. */
+class TimingProvider implements LlmProvider {
+  readonly name: string;
+  readonly spans: TimedCall[] = [];
+
+  constructor(private readonly inner: LlmProvider) {
+    this.name = inner.name;
+  }
+
+  async generate<S extends z.ZodType>(request: LlmRequest<S>): Promise<z.infer<S>> {
+    const started = Date.now();
+    try {
+      return await this.inner.generate(request);
+    } finally {
+      this.spans.push({ task: request.task, key: request.key, durationMs: Date.now() - started });
+    }
+  }
+}
+
+export interface UsageRecord {
+  task: string;
+  key: string;
+  durationMs: number;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  reasoningTokens: number | null;
+  costUsd: number | null;
+}
+
+function callsFrom(spans: TimedCall[], usage: UsageRecord[]): IngestCall[] {
+  if (usage.length === 0) {
+    return spans.map((span) => ({
+      task: span.task,
+      key: span.key,
+      durationMs: span.durationMs,
+      promptTokens: null,
+      completionTokens: null,
+      reasoningTokens: null,
+      costUsd: null,
+    }));
+  }
+  return usage.map((call) => ({ ...call }));
+}
+
+function timeDecisions(plan: DecisionPlan | undefined, spans: TimedCall[]): DecisionPlan | undefined {
+  if (!plan) return plan;
+  const cache = new Map<DecisionEngine, DecisionEngine>();
+  const wrap = (engine: DecisionEngine | undefined) => {
+    if (!engine) return undefined;
+    const existing = cache.get(engine);
+    if (existing) return existing;
+    const timed: DecisionEngine = {
+      name: engine.name,
+      async decide(request: DecisionRequest): Promise<DecisionResult> {
+        const started = Date.now();
+        try {
+          return await engine.decide(request);
+        } finally {
+          spans.push({ task: request.step, key: request.key, durationMs: Date.now() - started });
+        }
+      },
+    };
+    cache.set(engine, timed);
+    return timed;
+  };
+  return {
+    type: wrap(plan.type),
+    injection: wrap(plan.injection),
+    critical: wrap(plan.critical),
+    backlog: wrap(plan.backlog),
+    theme: wrap(plan.theme),
+  };
+}
+
+function buildTrace(input: {
+  feedbackId: string;
+  spans: TimedCall[];
+  usage: UsageRecord[];
+  writeMs: number;
+  changes: ChangeReport | null;
+  rationaleFor: (key: string) => { rationale: string | null; relatedThemeIds: string[] };
+  decision: IngestDecision | null;
+}): IngestTrace {
+  const calls = callsFrom(input.spans, input.usage);
+  return {
+    feedbackId: input.feedbackId,
+    steps: stepDurations(input.spans, input.writeMs),
+    calls,
+    costUsd: costOf(calls),
+    themes: themeMoves(input.changes?.themes ?? [], input.rationaleFor),
+    decision: input.decision,
+  };
+}
+
+/** Analyse puis enregistre. Si l'analyse échoue, rien n'est écrit. Une ligne JSON est loguée, sans clé ni texte brut. */
 export async function ingestDirectFeedback(options: {
   store: AnalysisStore;
   feedback: Feedback;
@@ -87,7 +186,11 @@ export async function ingestDirectFeedback(options: {
   decisions: PoDecisions;
   context: Context;
   decider?: DecisionPlan;
-}): Promise<{ result: RunResult; elapsedMs: number }> {
+  themeConfidence?: number;
+  /** Jetons et coût par appel HTTP, lus après l'analyse. Absent avec un faux client. */
+  usage?: () => UsageRecord[];
+  log?: (line: string) => void;
+}): Promise<{ result: RunResult; elapsedMs: number; trace: IngestTrace }> {
   const started = Date.now();
   const stored = await options.store.getRun(options.feedback.batch);
   if (!stored) {
@@ -96,24 +199,67 @@ export async function ingestDirectFeedback(options: {
   if (stored.state.feedbacks.some((f) => f.id === options.feedback.id)) {
     throw new DirectIngestError(`Ce feedback est déjà enregistré (${options.feedback.id}).`);
   }
+  const timer = new TimingProvider(options.provider);
   const result = await appendFeedback({
     feedback: options.feedback,
     previous: stored.state,
-    provider: options.provider,
+    provider: timer,
     decisions: options.decisions,
     context: options.context,
-    decider: options.decider,
+    decider: timeDecisions(options.decider, timer.spans),
+    themeConfidence: options.themeConfidence ?? readThemeConfidence(),
   });
+  const rationaleFor = (key: string) => {
+    const attachment = result.state.attachments?.find((item) => item.feedbackId === options.feedback.id && item.themeKey === key);
+    const theme = result.state.themes.find((item) => item.key === key);
+    return {
+      rationale: attachment?.rationale ?? theme?.creationRationale ?? null,
+      relatedThemeIds: theme?.relatedThemeIds ?? attachment?.relatedThemeIds ?? [],
+    };
+  };
+  const persistStarted = Date.now();
   await options.store.upsertFeedbacks([{ feedback: options.feedback, origin: "direct" }]);
+  const classification = result.state.classifications.find((item) => item.feedbackId === options.feedback.id);
+  const attachment = result.state.attachments?.find((item) => item.feedbackId === options.feedback.id);
+  const choice = classification?.themeChoice;
+  const decision: IngestDecision | null = choice
+    ? {
+        engine: choice.engine,
+        choice: choice.themeKey ?? "aucun",
+        confidence: choice.confidence,
+        probability: choice.probability,
+        fallbackUsed: choice.fallbackUsed,
+        attached: attachment?.action === "rattacher" && Boolean(attachment.engine),
+      }
+    : null;
+  const draft = buildTrace({
+    feedbackId: options.feedback.id,
+    spans: timer.spans,
+    usage: options.usage?.() ?? [],
+    writeMs: 0,
+    changes: result.changes,
+    rationaleFor,
+    decision,
+  });
+  const changes = result.changes ? { ...result.changes, ingest: draft } : result.changes;
   try {
     await options.store.saveRun({
       state: result.state,
       newFeedbackIds: result.newFeedbackIds,
-      changes: result.changes,
+      changes,
     });
   } catch (error) {
     await options.store.deleteFeedback(options.feedback.id);
     throw error;
   }
-  return { result, elapsedMs: Date.now() - started };
+  const trace = { ...draft, steps: stepDurations(timer.spans, Date.now() - persistStarted) };
+  const saved = changes ? { ...changes, ingest: trace } : null;
+  if (saved) {
+    await options.store
+      .saveRun({ state: result.state, newFeedbackIds: result.newFeedbackIds, changes: saved })
+      .catch(() => undefined);
+  }
+  const line = JSON.stringify({ event: "feedback.ingest", ...trace });
+  (options.log ?? console.log)(line.replace(/sk-or-[\w-]+/g, "[clé]").replace(/sb_(?:publishable|secret)_[\w-]+/g, "[clé]"));
+  return { result: saved ? { ...result, changes: saved } : result, elapsedMs: Date.now() - started, trace };
 }

@@ -394,3 +394,52 @@ Les comptes, le backlog et la stratégie restent des fichiers du dépôt : ce ne
 ### Conséquences
 
 Le mode démo reste rejouable sans réseau. Le mode direct survit aux redéploiements Render. Tant que les politiques `anon` sont en place, toute personne qui obtient la clé publishable peut lire et modifier les feedbacks : ne pas la publier, et ne pas la considérer comme un contrôle d'accès.
+
+## ADR-017 — Rattachement d'un feedback à un thème déjà ouvert
+
+- **Statut :** acceptée
+- **Date :** 2026-11-09
+
+### Contexte
+
+Le premier ajout réel (9 novembre, `fb-direct-20261109174137-tu63k0`) décrivait des notifications de retard en double et redemandait de choisir les alertes selon le rôle. Le regroupement a ouvert un thème neuf, « Notifications de retard reçues en double depuis la dernière mise à jour », à côté de `notifications` (« Régler la fréquence des notifications selon le rôle »). Le prompt ne montrait que le titre et le résumé des thèmes, et rien n'empêchait un thème isolé.
+
+### Décision
+
+Lors d'un ajout en direct, le rattachement compare le feedback à chaque thème ouvert : titre, résumé, deux citations. Le modèle rend une comparaison par thème et une décision (`rattacher` ou `creer`) avec une raison.
+
+Le code tranche ensuite :
+
+- si une comparaison dit que c'est le même problème et que le nouveau thème n'est pas lié à ce thème, le feedback rejoint le thème existant. La raison le dit, et `forced` est vrai ;
+- un thème nouveau n'est gardé, dans ce cas, que s'il cite le thème proche dans `relatedThemeIds` (un bug distinct, visible sur la page du thème) ;
+- la création sans lien n'est acceptée que si aucune comparaison ne reconnaît le problème. La raison est alors `creationRationale`.
+
+Les lots rejoués (lundi, jeudi) gardent l'ancien regroupement : leurs fixtures ne portent pas ces comparaisons.
+
+Le compte-rendu (durées de classification, rattachement, réévaluation et écriture, jetons, coût, RICE et MoSCoW des thèmes touchés) est un champ facultatif `ingest` du JSON `changes`. Pas de migration SQL : les lignes déjà en base restent lisibles. Une ligne JSON est écrite dans les logs du serveur, sans clé et sans texte brut.
+
+## ADR-018 — Jev décide, Sonnet rédige
+
+- **Statut :** acceptée pour l'ajout direct ; à confirmer par le premier passage en prod
+- **Date :** 2026-11-09
+
+### Contexte
+
+Le 8 novembre, Jev (`typesafe/jev-1.14`, `POST /api/alpha/decisions`) a pris 49 décisions sans réponse illisible ni repli, pour 0,002 $. Le profil B coûtait quand même 0,52 $ parce que Sonnet refaisait une classification complète (type, injection, gravité) avant que Jev ne décide la même chose. En prod, avec le profil A, un ajout prend 33,8 s : trois appels Sonnet d'environ 11 s, en série.
+
+### Décision
+
+Le profil par défaut de l'ajout direct est B (`ETAI_LLM_PROFILE` vide). A et C restent sélectionnables.
+
+- Type, injection, gravité et rattachement au backlog : Jev seul. Sonnet n'est plus interrogé là-dessus. La citation affichée est la première phrase du texte, sous-chaîne exacte vérifiée par le code : pas d'appel pour l'extraire.
+- Thème, à l'ajout seulement : une question `choice` de plus, dans le même appel Jev. Les options sont les thèmes ouverts (identifiant, titre, résumé dans le `state`) et « aucun ». Si la confiance, ou à défaut la probabilité de l'option, atteint `ETAI_THEME_CONFIDENCE` (défaut 0,8) et que Jev n'est pas tombé en repli, on rattache sans appel `group`. Sinon Sonnet compare les thèmes comme dans l'ADR-017 et nomme un thème nouveau s'il le faut.
+- Erreur Jev : repli Sonnet, compté. La confiance du repli n'est pas calibrée, donc on ne rattache pas sur elle seule.
+- Évaluation : Sonnet reste le modèle. Il n'est appelé que pour un thème nouveau, ou si le palier de confiance change (2 comptes → 80 %, 3 comptes et 2 canaux → 100 %). Sinon RICE et MoSCoW sont recalculés en code avec l'impact et l'effort déjà connus.
+
+Latence et coût attendus pour un rattachement sûr : un appel Jev, aucun Sonnet, de l'ordre du centime et de quelques secondes au lieu de trois fois 11 s. Un thème nouveau : un Jev, un regroupement Sonnet, une évaluation Sonnet, et un Jev de backlog.
+
+### Risques
+
+- L'API Decisions est alpha : la forme de la réponse peut changer. Une réponse illisible part en repli, elle n'est pas inventée.
+- Les questions sont en français. Jev a tenu ce jour-là, ce n'est pas une garantie.
+- La citation automatique est la première phrase, pas le meilleur extrait choisi par un modèle. Elle reste une sous-chaîne exacte.

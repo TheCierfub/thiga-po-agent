@@ -72,6 +72,15 @@ export const CONFIDENCE_RULE = {
   medium: { minAccounts: 2 },
 } as const;
 
+/**
+ * Un thème déjà évalué n'est renvoyé au modèle que si son palier de confiance change.
+ * Ce palier franchit 2 comptes (80 %) ou 3 comptes et 2 canaux (100 %).
+ */
+export function shouldReassessTheme(isNew: boolean, previousConfidence: number | null, nextConfidence: number): boolean {
+  if (isNew || previousConfidence === null) return true;
+  return previousConfidence !== nextConfidence;
+}
+
 export function computeConfidence(accountCount: number, channels: readonly string[]): RiceScore["confidence"] {
   const distinctChannels = new Set(channels).size;
   const { full, medium } = CONFIDENCE_RULE;
