@@ -394,3 +394,26 @@ Les comptes, le backlog et la stratégie restent des fichiers du dépôt : ce ne
 ### Conséquences
 
 Le mode démo reste rejouable sans réseau. Le mode direct survit aux redéploiements Render. Tant que les politiques `anon` sont en place, toute personne qui obtient la clé publishable peut lire et modifier les feedbacks : ne pas la publier, et ne pas la considérer comme un contrôle d'accès.
+
+## ADR-017 — Rattachement d'un feedback à un thème déjà ouvert
+
+- **Statut :** acceptée
+- **Date :** 2026-11-09
+
+### Contexte
+
+Le premier ajout réel (9 novembre, `fb-direct-20261109174137-tu63k0`) décrivait des notifications de retard en double et redemandait de choisir les alertes selon le rôle. Le regroupement a ouvert un thème neuf, « Notifications de retard reçues en double depuis la dernière mise à jour », à côté de `notifications` (« Régler la fréquence des notifications selon le rôle »). Le prompt ne montrait que le titre et le résumé des thèmes, et rien n'empêchait un thème isolé.
+
+### Décision
+
+Lors d'un ajout en direct, le rattachement compare le feedback à chaque thème ouvert : titre, résumé, deux citations. Le modèle rend une comparaison par thème et une décision (`rattacher` ou `creer`) avec une raison.
+
+Le code tranche ensuite :
+
+- si une comparaison dit que c'est le même problème et que le nouveau thème n'est pas lié à ce thème, le feedback rejoint le thème existant. La raison le dit, et `forced` est vrai ;
+- un thème nouveau n'est gardé, dans ce cas, que s'il cite le thème proche dans `relatedThemeIds` (un bug distinct, visible sur la page du thème) ;
+- la création sans lien n'est acceptée que si aucune comparaison ne reconnaît le problème. La raison est alors `creationRationale`.
+
+Les lots rejoués (lundi, jeudi) gardent l'ancien regroupement : leurs fixtures ne portent pas ces comparaisons.
+
+Le compte-rendu (durées de classification, rattachement, réévaluation et écriture, jetons, coût, RICE et MoSCoW des thèmes touchés) est un champ facultatif `ingest` du JSON `changes`. Pas de migration SQL : les lignes déjà en base restent lisibles. Une ligne JSON est écrite dans les logs du serveur, sans clé et sans texte brut.

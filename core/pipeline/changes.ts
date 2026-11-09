@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MoscowClassSchema } from "../schemas";
+import { IngestTraceSchema } from "./ingest-trace";
 
 /** Contrat de persistance du rapport de changements. Aligné sur ChangeReport. */
 export const ChangeReportSchema = z.object({
@@ -33,4 +34,6 @@ export const ChangeReportSchema = z.object({
   ),
   newQuarantines: z.array(z.string()),
   newInvestigations: z.array(z.string()),
+  /** Compte-rendu d'un ajout en direct. Absent des lots rejoués. */
+  ingest: IngestTraceSchema.optional(),
 });

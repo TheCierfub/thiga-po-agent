@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`rattachement à un thème existant > met dans le prompt chaque thème, ses citations et la règle qui interdit un thème isolé 1`] = `
+"Avant de créer un thème, compare ce feedback à chaque thème déjà ouvert (titre, résumé, citations).
+- sameProblem est vrai quand c'est le même problème vécu, même si le client signale aussi un bug, une régression, des doublons, ou une solution déjà demandée par le thème.
+- Un bug et une demande déjà couverte par un thème ne font pas un thème isolé. Soit action vaut « rattacher » et themeKey est la clé existante, soit action vaut « creer » et relatedThemeIds contient la clé du thème proche.
+- Ne crée un thème que si aucun thème existant n'est le même problème. La rationale dit alors pourquoi, en une phrase.
+- relatedThemeIds reste vide seulement dans ce dernier cas.
+
+Thèmes déjà ouverts, à comparer un par un :
+
+Thème notifications : Régler la fréquence des notifications selon le rôle
+Résumé : Les notifications ne correspondent pas au rôle.
+Issue : LIN-27
+Citations :
+- « trop de mails pour les uns »
+
+Thème theme_sombre : Thème sombre pour la saisie du soir
+Résumé : L'écran blanc éblouit.
+Pas d'issue liée.
+Citations :
+- « l'écran blanc m'éblouit »
+
+Backlog Linear :
+
+- LIN-27 [À faire] Réglage des notifications
+
+Feedback à rattacher :
+
+<donnees id="fb-direct-1" type="bug" probleme="Les notifications de retard arrivent en double.">
+Les notifications arrivent en double.
+</donnees>"
+`;

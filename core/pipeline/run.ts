@@ -9,6 +9,7 @@ import type {
   AuthorMatch,
   BacklogIssue,
   Feedback,
+  FeedbackAttachment,
   FeedbackClassification,
   InvestigationDraft,
   MaskedFeedback,
@@ -28,7 +29,9 @@ import { assumptionsHash, evidenceHash, planInvalidation, type InvalidationPlan 
 import { assessTheme } from "../steps/assess";
 import { classifyAll, isRelatedSignal, isThemeEligible, needsInvestigation } from "../steps/classify";
 import { draftStory } from "../steps/draft-story";
+import { attachFeedback, type ExistingThemeBrief } from "../steps/attach";
 import { groupThemes, type GroupedTheme } from "../steps/group";
+import type { IngestTrace } from "./ingest-trace";
 import { draftInvestigation } from "../steps/investigate";
 import { decideBacklog } from "../steps/decide";
 import type { DecisionPlan } from "../llm/profiles";
@@ -64,6 +67,8 @@ export interface AdvanceOptions {
    * avec certitude. Réservé à la saisie directe : les fichiers de lot ne l'activent pas.
    */
   trustDeclaredAccount?: boolean;
+  /** Compare le feedback à chaque thème ouvert et refuse un thème isolé. */
+  strictAttachment?: boolean;
 }
 
 export interface ThemeChange {
@@ -88,6 +93,7 @@ export interface ChangeReport {
   themes: ThemeChange[];
   newQuarantines: string[];
   newInvestigations: string[];
+  ingest?: IngestTrace;
 }
 
 export interface RunResult {
@@ -133,6 +139,8 @@ function buildTheme(
     backlogRelation: grouped.backlogRelation,
     quotes: grouped.quotes,
     rejectedQuotes: grouped.rejectedQuotes,
+    ...(grouped.relatedThemeIds?.length ? { relatedThemeIds: grouped.relatedThemeIds } : {}),
+    ...(grouped.creationRationale ? { creationRationale: grouped.creationRationale } : {}),
     trend: computeTrend(
       grouped.feedbackIds.map((id) => feedbacks.get(id)!.receivedAt),
       window,
@@ -157,6 +165,8 @@ function mergeThemes(previous: Theme[], grouped: GroupedTheme[]): { merged: Grou
         backlogRelation: t.backlogRelation,
         quotes: [...t.quotes],
         rejectedQuotes: [...t.rejectedQuotes],
+        ...(t.relatedThemeIds?.length ? { relatedThemeIds: [...t.relatedThemeIds] } : {}),
+        ...(t.creationRationale ? { creationRationale: t.creationRationale } : {}),
         ...(t.backlogDecision ? { backlogDecision: t.backlogDecision } : {}),
       },
     ]),
@@ -176,6 +186,9 @@ function mergeThemes(previous: Theme[], grouped: GroupedTheme[]): { merged: Grou
     }
     existing.quotes.push(...g.quotes);
     existing.rejectedQuotes.push(...g.rejectedQuotes);
+    if (g.relatedThemeIds?.length) {
+      existing.relatedThemeIds = [...new Set([...(existing.relatedThemeIds ?? []), ...g.relatedThemeIds])];
+    }
   }
   return { merged: [...byKey.values()], firstSeen };
 }
@@ -258,24 +271,41 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
   const pair = (c: FeedbackClassification) => ({ feedback: feedbacks.get(c.feedbackId)!, classification: c });
   const members = freshClassifications.filter(isThemeEligible).map(pair);
   const signals = freshClassifications.filter(isRelatedSignal).map(pair);
+  const attachmentRecords: FeedbackAttachment[] = [];
   const grouping =
-    members.length + signals.length > 0
-      ? await groupThemes(
-          {
-            batch,
-            members,
-            signals,
-            backlog,
-            existingThemes: (previous?.themes ?? []).map((t) => ({
-              key: t.key,
-              title: t.title,
-              problem: t.problem,
-              backlogIssueId: t.backlogIssueId,
-            })),
-          },
-          provider,
-        )
-      : { themes: [], unassigned: [], warnings: [] };
+    options.strictAttachment && members.length === 1 && signals.length === 0
+      ? await (async () => {
+          const existingThemes: ExistingThemeBrief[] = (previous?.themes ?? []).map((theme) => ({
+            key: theme.key,
+            title: theme.title,
+            problem: theme.problem,
+            backlogIssueId: theme.backlogIssueId,
+            quotes: theme.quotes.slice(0, 2).map((quote) => quote.text),
+          }));
+          const attached = await attachFeedback(
+            { batch, feedback: members[0]!.feedback, classification: members[0]!.classification, backlog, existingThemes },
+            provider,
+          );
+          attachmentRecords.push(attached.attachment);
+          return { themes: [attached.grouped], unassigned: [] as string[], warnings: attached.warnings };
+        })()
+      : members.length + signals.length > 0
+        ? await groupThemes(
+            {
+              batch,
+              members,
+              signals,
+              backlog,
+              existingThemes: (previous?.themes ?? []).map((t) => ({
+                key: t.key,
+                title: t.title,
+                problem: t.problem,
+                backlogIssueId: t.backlogIssueId,
+              })),
+            },
+            provider,
+          )
+        : { themes: [], unassigned: [], warnings: [] };
   warnings.push(...grouping.warnings);
 
   // Rattachement au backlog par un moteur dédié : seulement pour les thèmes nouveaux,
@@ -478,6 +508,9 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
     stories,
     investigations,
     warnings,
+    ...((previous?.attachments?.length ?? 0) + attachmentRecords.length > 0
+      ? { attachments: [...(previous?.attachments ?? []), ...attachmentRecords] }
+      : {}),
   };
 
   let changes: ChangeReport | null = null;

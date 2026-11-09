@@ -50,6 +50,8 @@ export interface GroupedTheme {
   quotes: Quote[];
   rejectedQuotes: Quote[];
   backlogDecision?: DecisionTrace;
+  relatedThemeIds?: string[];
+  creationRationale?: string;
 }
 
 export interface GroupingResult {

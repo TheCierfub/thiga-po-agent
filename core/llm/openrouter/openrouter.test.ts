@@ -88,6 +88,28 @@ describe("chat OpenRouter", () => {
 });
 
 describe("client : coût, nouvelles tentatives, budget", () => {
+  it("retient les jetons d'entrée, de sortie et de raisonnement", async () => {
+    server = await startFakeOpenRouter(() => ({
+      body: {
+        ...chatCompletion({ label: "ok", score: 1 }, { cost: 0.002 }),
+        usage: {
+          prompt_tokens: 120,
+          completion_tokens: 40,
+          completion_tokens_details: { reasoning_tokens: 15 },
+          cost: 0.002,
+        },
+      },
+    }));
+    const meter = new Meter();
+    await new OpenRouterChatProvider(client(meter), "m").generate(request);
+    expect(meter.records[0]).toMatchObject({
+      promptTokens: 120,
+      completionTokens: 40,
+      reasoningTokens: 15,
+      costUsd: 0.002,
+    });
+  });
+
   it("prend usage.cost, sinon interroge /v1/generation", async () => {
     server = await startFakeOpenRouter((req) =>
       req.path.startsWith("/api/v1/generation")

@@ -32,6 +32,23 @@ function scripted(responses: Record<string, unknown>) {
   return new ScriptedProvider(responses);
 }
 
+function attachToNotifications(feedbackId: string, quote: string) {
+  return {
+    comparisons: [{ themeKey: "notifications", sameProblem: true, why: "Même problème : le volume et le rôle des notifications." }],
+    decision: {
+      action: "rattacher" as const,
+      themeKey: "notifications",
+      title: "Régler la fréquence des notifications selon le rôle",
+      problem: "Les notifications ne correspondent pas au rôle.",
+      rationale: "Le feedback redemande un réglage des alertes par rôle.",
+      relatedThemeIds: [],
+      backlogIssueId: null,
+      backlogRelation: "aucun" as const,
+      quotes: [{ feedbackId, text: quote }],
+    },
+  };
+}
+
 describe("ajout d'un feedback en direct", async () => {
   const replay = new ReplayProvider(path.join(ROOT, "fixtures/llm"));
   const lundi = await runBatch({ root: ROOT, batch: "lundi", provider: replay, reachMode: "comptes", decisions, previous: null });
@@ -74,30 +91,27 @@ describe("ajout d'un feedback en direct", async () => {
         actionable: true,
         quotes: ["Il nous faut un résumé quotidien par rôle"],
       },
-      "group/jeudi": {
-        themes: [
-          {
-            key: "notifications",
-            title: "Notifications par rôle",
-            problem: "Les notifications ne correspondent pas au rôle.",
-            feedbackIds: [feedback.id],
-            relatedSignalIds: [],
-            backlogIssueId: null,
-            backlogRelation: "aucun",
-            quotes: [{ feedbackId: feedback.id, text: "Il nous faut un résumé quotidien par rôle" }],
-          },
-        ],
-      },
+      [`group/${feedback.id}`]: attachToNotifications(feedback.id, "Il nous faut un résumé quotidien par rôle"),
       "assess/jeudi--notifications": ASSESS,
     });
 
-    const { result } = await ingestDirectFeedback({ store, feedback, provider, decisions, context });
+    const logs: string[] = [];
+    const { result, trace } = await ingestDirectFeedback({ store, feedback, provider, decisions, context, log: (line) => logs.push(line) });
     const tasks = provider.requests.map((request) => `${request.task}/${request.key}`);
     expect(tasks.filter((task) => task.startsWith("classify/"))).toEqual([`classify/${feedback.id}`]);
     expect(tasks.filter((task) => task.startsWith("assess/"))).toEqual(["assess/jeudi--notifications"]);
     expect(tasks.some((task) => task.startsWith("story/"))).toBe(false);
     const prompts = provider.requests.map((request) => request.prompt).join("\n");
-    expect(prompts).not.toContain("l'écran blanc m'éblouit");
+    expect(prompts).not.toContain("Je prépare les métrés le soir dans la camionnette");
+    expect(prompts).toContain("Thème notifications");
+    expect(result.state.feedbacks.find((item) => item.id === feedback.id)?.author.name).toBe("Jean Marée");
+    expect((await store.listFeedbacks()).find((row) => row.feedback.id === feedback.id)?.feedback.author.name).toBe("Jean Marée");
+    expect(result.state.attachments?.find((item) => item.feedbackId === feedback.id)?.action).toBe("rattacher");
+    expect(trace.steps.map((step) => step.name)).toEqual(["classification", "rattachement", "reevaluation", "ecriture"]);
+    expect(trace.steps.every((step) => step.durationMs >= 0)).toBe(true);
+    expect(JSON.parse(logs[0] ?? "{}")).toMatchObject({ event: "feedback.ingest", feedbackId: feedback.id });
+    expect(logs[0]).not.toMatch(/sk-or-|sb_publishable_|sb_secret_/);
+    expect((await store.getRun("jeudi"))?.changes?.ingest?.feedbackId).toBe(feedback.id);
 
     const theme = result.state.themes.find((item) => item.key === "notifications");
     expect(theme?.feedbackIds).toContain(feedback.id);
@@ -147,19 +161,19 @@ describe("ajout d'un feedback en direct", async () => {
         actionable: true,
         quotes: ["cocher l'avancement hors ligne"],
       },
-      "group/jeudi": {
-        themes: [
-          {
-            key: "hors_ligne",
-            title: "Saisie hors ligne",
-            problem: "La saisie de l'avancement exige un réseau.",
-            feedbackIds: [feedback.id],
-            relatedSignalIds: [],
-            backlogIssueId: null,
-            backlogRelation: "aucun",
-            quotes: [{ feedbackId: feedback.id, text: "cocher l'avancement hors ligne" }],
-          },
-        ],
+      [`group/${feedback.id}`]: {
+        comparisons: [{ themeKey: "notifications", sameProblem: false, why: "La saisie hors ligne n'est pas le réglage des notifications." }],
+        decision: {
+          action: "creer",
+          themeKey: "hors_ligne",
+          title: "Saisie hors ligne",
+          problem: "La saisie de l'avancement exige un réseau.",
+          rationale: "Aucun thème ouvert ne parle de travailler sans réseau.",
+          relatedThemeIds: [],
+          backlogIssueId: null,
+          backlogRelation: "aucun",
+          quotes: [{ feedbackId: feedback.id, text: "cocher l'avancement hors ligne" }],
+        },
       },
       "assess/jeudi--hors_ligne": ASSESS,
     });
@@ -173,6 +187,68 @@ describe("ajout d'un feedback en direct", async () => {
     expect(result.state.allocation.decisions.find((decision) => decision.themeKey === "hors_ligne")?.moscow).toBeTruthy();
     expect(previous.get("notifications")).toBe(result.state.allocation.decisions.find((d) => d.themeKey === "notifications")?.moscow);
     expect(moved.map((theme) => theme.key)).not.toContain("epingle_photo");
+  });
+
+  it("refuse un thème isolé quand le feedback est un bug du thème notifications", async () => {
+    const store = await seeded();
+    const feedback = buildDirectFeedback(
+      {
+        channel: "email",
+        sourceAccountId: "acc-quai",
+        authorName: "Inès Quai",
+        language: "fr",
+        text: "Depuis la dernière mise à jour, toutes les notifications de retard de tâche m'arrivent en double. Mon équipe ne les lit plus. Est-ce qu'on peut au moins choisir quelles alertes on reçoit selon le rôle ?",
+      },
+      new Date("2026-11-09T17:41:37.000Z"),
+      "tu63k0",
+    );
+    const quote = "choisir quelles alertes on reçoit selon le rôle";
+    const provider = scripted({
+      [`classify/${feedback.id}`]: {
+        type: "bug",
+        severity: "majeure",
+        injection: { suspected: false, excerpt: null },
+        underlyingProblem: "Les notifications de retard arrivent en double, et le rôle ne peut pas choisir ses alertes.",
+        actionable: true,
+        quotes: [quote],
+      },
+      [`group/${feedback.id}`]: {
+        comparisons: [
+          {
+            themeKey: "notifications",
+            sameProblem: true,
+            why: "Doublons de retard et choix des alertes par rôle : c'est le thème notifications.",
+          },
+        ],
+        decision: {
+          action: "creer",
+          themeKey: "notifications_doublon",
+          title: "Notifications de retard reçues en double depuis la dernière mise à jour",
+          problem: "Les notifications de retard arrivent en double.",
+          rationale: "Le modèle voudrait un thème neuf pour le doublon.",
+          relatedThemeIds: [],
+          backlogIssueId: null,
+          backlogRelation: "aucun",
+          quotes: [{ feedbackId: feedback.id, text: quote }],
+        },
+      },
+      "assess/jeudi--notifications": ASSESS,
+    });
+
+    const { result } = await ingestDirectFeedback({ store, feedback, provider, decisions, context, log: () => undefined });
+    expect(result.state.themes.map((theme) => theme.key)).not.toContain("notifications_doublon");
+    expect(result.state.themes.find((theme) => theme.key === "notifications")?.feedbackIds).toContain(feedback.id);
+    expect(result.state.attachments?.find((item) => item.feedbackId === feedback.id)).toMatchObject({
+      action: "rattacher",
+      themeKey: "notifications",
+      forced: true,
+    });
+    expect(result.state.feedbacks.find((item) => item.id === feedback.id)?.author.name).toBe("Inès Quai");
+    const move = result.changes?.ingest?.themes.find((theme) => theme.key === "notifications");
+    expect(move?.created).toBe(false);
+    expect(move?.rationale).toContain("notifications");
+    expect(move?.riceBefore).not.toBeNull();
+    expect(move?.moscowAfter).toBeTruthy();
   });
 
   it("n'écrit rien si le modèle ne répond pas", async () => {
@@ -220,20 +296,7 @@ describe("ajout d'un feedback en direct", async () => {
         actionable: true,
         quotes: ["Il nous faut un résumé quotidien par rôle"],
       },
-      "group/jeudi": {
-        themes: [
-          {
-            key: "notifications",
-            title: "Notifications par rôle",
-            problem: "Les notifications ne correspondent pas au rôle.",
-            feedbackIds: [feedback.id],
-            relatedSignalIds: [],
-            backlogIssueId: null,
-            backlogRelation: "aucun",
-            quotes: [{ feedbackId: feedback.id, text: "Il nous faut un résumé quotidien par rôle" }],
-          },
-        ],
-      },
+      [`group/${feedback.id}`]: attachToNotifications(feedback.id, "Il nous faut un résumé quotidien par rôle"),
       "assess/jeudi--notifications": ASSESS,
     });
     await expect(ingestDirectFeedback({ store, feedback, provider, decisions, context })).rejects.toBeInstanceOf(StoreError);
