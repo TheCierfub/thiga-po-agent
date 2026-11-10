@@ -57,9 +57,23 @@ describe("export enregistré", () => {
     );
     expect(before.decisions.find((item) => item.themeKey === "petit")?.moscow).toBe("Won't");
     const state = { themes, rice, assessments: [], allocation: before } as unknown as RunState;
-    const recorded = recordThemeExport(state, "gros", { id: "uuid-1", identifier: "THI-20", url: "https://linear.app/thiga/issue/THI-20" }, strategy, "2026-11-10T12:00:00.000Z");
+    const recorded = recordThemeExport(
+      state,
+      "gros",
+      { id: "uuid-1", identifier: "THI-20", url: "https://linear.app/thiga/issue/THI-20", workspaceId: "ws-acme", workspaceName: "Acme", teamId: "team-1" },
+      strategy,
+      "2026-11-10T12:00:00.000Z",
+    );
     const exported = recorded.state.themes.find((item) => item.key === "gros")?.linearExport;
-    expect(exported).toMatchObject({ identifier: "THI-20", url: "https://linear.app/thiga/issue/THI-20", feedbackIds: ["fb-gros"] });
+    expect(exported).toMatchObject({
+      identifier: "THI-20",
+      url: "https://linear.app/thiga/issue/THI-20",
+      feedbackIds: ["fb-gros"],
+      workspaceId: "ws-acme",
+      workspaceName: "Acme",
+      teamId: "team-1",
+    });
+    expect(JSON.stringify(exported)).not.toContain("lin_api_");
     expect(recorded.state.allocation.decisions.find((item) => item.themeKey === "gros")?.moscow).toBe("Hors arbitrage");
     expect(recorded.state.allocation.decisions.find((item) => item.themeKey === "petit")?.moscow).toBe("Should");
     expect(recorded.rises).toEqual([{ key: "petit", title: "petit", from: "Won't", to: "Should" }]);

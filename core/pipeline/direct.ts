@@ -194,6 +194,8 @@ export async function ingestDirectFeedback(options: {
   log?: (line: string) => void;
   /** null : Linear injoignable, le commentaire est mis en attente. Absent : pas de commentaire (tests, démo). */
   linear?: LinearComments | null;
+  /** Espace et équipe de la connexion qui tente le commentaire. */
+  linearScope?: { workspaceId: string; teamId: string } | null;
 }): Promise<{ result: RunResult; elapsedMs: number; trace: IngestTrace }> {
   const started = Date.now();
   const stored = await options.store.getRun(options.feedback.batch);
@@ -257,6 +259,7 @@ export async function ingestDirectFeedback(options: {
       options.context.accounts,
       joined ? (previousReach.get(joined.key) ?? 0) : 0,
       options.linear,
+      options.linearScope,
     );
   }
   const changes = result.changes ? { ...result.changes, ingest: draft } : result.changes;

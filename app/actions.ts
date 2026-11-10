@@ -27,21 +27,25 @@ import { LINEAR_EXPORT_DIR, exportTarget } from "@/core/sink/export-target";
 import { SdkLinearApi } from "@/core/sink/linear-api";
 import { DEMO_BATCHES } from "@/lib/etai/batches";
 import { resolveDataMode } from "@/lib/etai/data-mode";
-import { readExportMode } from "@/lib/etai/export-mode";
+import { beginLinearConnect, disconnectLinear, finishLinearConnect, inspectLinearAccount } from "@/core/linear/connect";
+import { activeLinearKey } from "@/lib/etai/export-mode";
+import { linearCookieJar, readLinearCookieSecret } from "@/lib/etai/linear-cookie";
 import { ROOT, feedbackUrl } from "@/lib/etai/runs";
 import { getBatchView } from "@/lib/etai/view";
 import { DEFAULT_X_QUERY, capMicro, readMaxAgeDays, readSessionCapUsd } from "@/core/sources/x-listen";
 import { TregError, runXPoll, type PollPostResult, type TregCallTrace } from "@/core/sources/x";
 
-/** Commentaires seulement sur l'équipe THI. Une autre équipe, ou Linear injoignable, laisse le feedback en attente. */
-async function linearForIngest(): Promise<LinearComments | null> {
-  const status = await readExportMode();
-  const key = process.env.LINEAR_API_KEY?.trim();
-  if (!status.connected || status.team?.key !== "THI" || !key) return null;
-  const api = SdkLinearApi.fromKey(key);
+/** Commentaires sur l'équipe de la connexion active (session, sinon défaut). */
+async function linearForIngest(): Promise<{ comments: LinearComments; scope: { workspaceId: string; teamId: string } } | null> {
+  const active = await activeLinearKey();
+  if (!active) return null;
+  const api = SdkLinearApi.fromKey(active.apiKey);
   return {
-    listComments: (issueId) => api.listComments(issueId),
-    createComment: (input) => api.createComment(input),
+    comments: {
+      listComments: (issueId) => api.listComments(issueId),
+      createComment: (input) => api.createComment(input),
+    },
+    scope: { workspaceId: active.workspaceId, teamId: active.teamId },
   };
 }
 
@@ -49,7 +53,8 @@ function scrub(error: unknown): string {
   const token = process.env.TREG_TOKEN?.trim();
   const message = (error instanceof Error ? error.message : String(error))
     .replace(/sk-or-[\w-]+/g, "[clé]")
-    .replace(/sb_(?:publishable|secret)_[\w-]+/g, "[clé]");
+    .replace(/sb_(?:publishable|secret)_[\w-]+/g, "[clé]")
+    .replace(/lin_api_[\w-]+/g, "[clé]");
   const hidden = token ? message.split(token).join("[clé]") : message;
   return hidden.slice(0, 400);
 }
@@ -87,7 +92,16 @@ export async function exportTheme(input: z.input<typeof ExportInput>): Promise<E
   );
   if (!item) return { ok: false, message: "Ce thème n'est ni Must, ni Should, ni Could : il ne part pas vers le backlog." };
 
-  const target = exportTarget({ root: ROOT, feedbackUrl: url });
+  const active = await activeLinearKey();
+  const target = exportTarget({
+    root: ROOT,
+    feedbackUrl: url,
+    env: {
+      LINEAR_API_KEY: active?.apiKey ?? process.env.LINEAR_API_KEY,
+      LINEAR_TEAM_ID: active?.teamId ?? process.env.LINEAR_TEAM_ID,
+      LINEAR_CUSTOMER_REQUESTS: process.env.LINEAR_CUSTOMER_REQUESTS,
+    },
+  });
   try {
     const [result] = await target.sink.push([item]);
     if (!result) return { ok: false, message: "L'export n'a renvoyé aucun résultat." };
@@ -99,7 +113,17 @@ export async function exportTheme(input: z.input<typeof ExportInput>): Promise<E
           const recorded = recordThemeExport(
             stored.state,
             themeKey,
-            { id: result.issueId ?? result.target, identifier: result.target, url: result.url },
+            {
+              id: result.issueId ?? result.target,
+              identifier: result.target,
+              url: result.url,
+              ...(active
+                ? {
+                    teamId: active.teamId,
+                    ...(active.workspaceId ? { workspaceId: active.workspaceId, workspaceName: active.workspaceName } : {}),
+                  }
+                : {}),
+            },
             view.strategy,
             new Date().toISOString(),
           );
@@ -112,9 +136,44 @@ export async function exportTheme(input: z.input<typeof ExportInput>): Promise<E
       target.mode === "markdown" && result.target ? `${LINEAR_EXPORT_DIR}/${result.target}` : (result.url ?? result.target ?? null);
     return { ok: true, mode: target.mode, label: target.label, reason: target.reason, result, location };
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    return { ok: false, message: `${target.label} a refusé l'export : ${detail}` };
+    return { ok: false, message: `${target.label} a refusé l'export : ${scrub(error)}` };
   }
+}
+
+export type LinearTeamsOutcome =
+  | { ok: true; viewerName: string; workspaceName: string; teams: { id: string; key: string; name: string }[] }
+  | { ok: false; message: string };
+
+/** Vérifie la clé et prépare le choix d'équipe. La clé ne revient pas. */
+export async function verifyLinearKey(apiKey: string): Promise<LinearTeamsOutcome> {
+  const secret = readLinearCookieSecret();
+  if (!secret) return { ok: false, message: "Le serveur ne peut pas garder la clé pour l'instant." };
+  const inspected = await inspectLinearAccount(apiKey, async (key) => SdkLinearApi.fromKey(key).inspectAccount());
+  if (!inspected.ok) return inspected;
+  beginLinearConnect(inspected.account, apiKey, await linearCookieJar(), secret);
+  return {
+    ok: true,
+    viewerName: inspected.account.viewerName,
+    workspaceName: inspected.account.workspaceName,
+    teams: inspected.account.teams,
+  };
+}
+
+/** Enregistre l'équipe choisie dans le cookie de session. */
+export async function chooseLinearTeam(teamId: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const secret = readLinearCookieSecret();
+  if (!secret) return { ok: false, message: "Le serveur ne peut pas garder la clé pour l'instant." };
+  const chosen = finishLinearConnect(teamId, await linearCookieJar(), secret);
+  if (!chosen.ok) return chosen;
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Oublie la clé du navigateur. La connexion du serveur, s'il y en a une, reprend. */
+export async function disconnectLinearSession(): Promise<{ ok: true }> {
+  disconnectLinear(await linearCookieJar());
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 const OutboxInput = z.object({
@@ -194,6 +253,7 @@ export async function addFeedback(input: z.input<typeof DirectFeedbackInputSchem
   const decisions = (await mode.store.getArbitrages(LIVE_BATCH))?.decisions ?? loadPoDecisions(ROOT, DEMO_DECISIONS_FILE);
   try {
     const live = createLiveProvider(ROOT);
+    const linear = await linearForIngest();
     const { elapsedMs, trace } = await ingestDirectFeedback({
       store: mode.store,
       feedback,
@@ -201,7 +261,8 @@ export async function addFeedback(input: z.input<typeof DirectFeedbackInputSchem
       decisions,
       context,
       decider: live.decider,
-      linear: await linearForIngest(),
+      linear: linear?.comments ?? null,
+      linearScope: linear?.scope ?? null,
       usage: () =>
         live.meter.records.map((call) => ({
           task: call.step,
@@ -274,6 +335,7 @@ export async function pollXMentions(input: z.input<typeof PollInput>): Promise<P
       existingIds,
       ingest: async (feedback) => {
         const live = createLiveProvider(ROOT);
+        const linear = await linearForIngest();
         const { result: ingested, trace } = await ingestDirectFeedback({
           store: mode.store,
           feedback,
@@ -281,7 +343,8 @@ export async function pollXMentions(input: z.input<typeof PollInput>): Promise<P
           decisions,
           context,
           decider: live.decider,
-          linear: await linearForIngest(),
+          linear: linear?.comments ?? null,
+          linearScope: linear?.scope ?? null,
           usage: () =>
             live.meter.records.map((call) => ({
               task: call.step,

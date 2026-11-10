@@ -13,7 +13,7 @@ import type { UserStoryDraft } from "@/core/schemas";
 import { formatUsd } from "@/core/pipeline/ingest-trace";
 import { storyIssueSize, storyIssueTitle, storyText } from "@/core/stories/text";
 import type { DemoBatch } from "@/lib/etai/batches";
-import type { ExportMode } from "@/lib/etai/export-mode";
+import type { ExportMode } from "@/lib/etai/export-mode-view";
 import { useOverrides } from "@/lib/etai/overrides";
 
 export function StoryPanel({

@@ -83,6 +83,7 @@ export async function annotateEngagedFeedback(
   accounts: readonly Account[],
   reachBefore: number,
   linear: LinearComments | null,
+  scope?: { workspaceId: string; teamId: string } | null,
 ): Promise<RunState> {
   const theme = state.themes.find(
     (item) => item.linearExport && (item.feedbackIds.includes(feedback.id) || item.relatedSignalIds.includes(feedback.id)),
@@ -101,9 +102,14 @@ export async function annotateEngagedFeedback(
     reachAfter,
   });
   const already = exp.comments.some((item) => item.feedbackId === feedback.id);
+  const otherSpace = Boolean(
+    scope && ((exp.workspaceId && exp.workspaceId !== scope.workspaceId) || (exp.teamId && exp.teamId !== scope.teamId)),
+  );
   let posted = already;
-  let message = "Linear déconnecté : le commentaire est en attente.";
-  if (!already && linear) {
+  let message = otherSpace
+    ? "Ce thème a été exporté dans un autre espace Linear. Le commentaire reste en attente."
+    : "Linear déconnecté : le commentaire est en attente.";
+  if (!already && !otherSpace && linear) {
     try {
       const existing = await linear.listComments(exp.id);
       if (existing.some((comment) => comment.body.includes(feedbackMarker(feedback.id)))) posted = true;

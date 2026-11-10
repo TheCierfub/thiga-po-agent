@@ -123,7 +123,30 @@ describe("commentaire après export", () => {
     expect(created).toBe(0);
     expect(next.themes[0]?.linearExport?.comments).toHaveLength(1);
   });
+
+  it("laisse en attente un thème exporté dans un autre espace, sans appeler Linear", async () => {
+    const themed = theme();
+    themed.linearExport = { ...themed.linearExport!, workspaceId: "ws-a", teamId: "team-a" };
+    let calls = 0;
+    const linear: LinearComments = {
+      async listComments() {
+        calls += 1;
+        return [];
+      },
+      async createComment() {
+        calls += 1;
+      },
+    };
+    const next = await annotateEngagedFeedback(stateWith(themed), feedback(), [], 1, linear, { workspaceId: "ws-b", teamId: "team-b" });
+    expect(calls).toBe(0);
+    expect(next.themes[0]?.linearExport?.pending[0]?.message).toMatch(/autre espace/);
+  });
 });
+
+function stateWith(value: Theme): RunState {
+  const base = state();
+  return { ...base, themes: [value] };
+}
 
 describe("thème non exporté", () => {
   it("ne marque pas le feedback", () => {

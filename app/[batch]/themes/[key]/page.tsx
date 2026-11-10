@@ -99,7 +99,9 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
         <div className="min-w-0 space-y-2 animate-enter">
             <div className="flex flex-wrap items-center gap-2">
               <ThemeMoscow themeKey={key} />
-              {theme.linearExport ? <EngagedLink identifier={theme.linearExport.identifier} url={theme.linearExport.url} /> : null}
+              {theme.linearExport ? (
+                <EngagedLink identifier={theme.linearExport.identifier} url={theme.linearExport.url} workspaceName={theme.linearExport.workspaceName} />
+              ) : null}
               {assessment ? <CategoryBadge value={assessment.category} rationale={assessment.categoryRationale} /> : null}
               <TrendBars trend={theme.trend} />
               {issue ? (

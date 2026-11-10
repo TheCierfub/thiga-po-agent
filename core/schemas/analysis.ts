@@ -184,6 +184,10 @@ export const LinearExportSchema = z.object({
   comments: z.array(z.object({ feedbackId: z.string(), at: z.string() })),
   /** Commentaire non envoyé. L'ingestion continue. */
   pending: z.array(z.object({ feedbackId: z.string(), message: z.string() })),
+  /** Espace et équipe au moment de l'export. Absents pour un export antérieur. */
+  workspaceId: z.string().optional(),
+  workspaceName: z.string().optional(),
+  teamId: z.string().optional(),
 });
 export type LinearExport = z.infer<typeof LinearExportSchema>;
 

@@ -16,6 +16,9 @@ export interface RecordedIssue {
   id: string;
   identifier: string;
   url: string;
+  workspaceId?: string;
+  workspaceName?: string;
+  teamId?: string;
 }
 
 /** Identifiant qui sort le thème de l'arbitrage : l'export, sinon le backlog déjà engagé. */
@@ -74,6 +77,9 @@ export function recordThemeExport(
     feedbackIds: members,
     comments: theme.linearExport?.comments ?? [],
     pending: theme.linearExport?.pending ?? [],
+    ...(issue.workspaceId ? { workspaceId: issue.workspaceId } : {}),
+    ...(issue.workspaceName ? { workspaceName: issue.workspaceName } : {}),
+    ...(issue.teamId ? { teamId: issue.teamId } : {}),
   };
   const withExport: RunState = {
     ...state,
