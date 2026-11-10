@@ -12,6 +12,7 @@ export interface LinearTeamLabel {
   id?: string;
   workspaceId?: string;
   workspaceName?: string;
+  viewerName?: string;
 }
 
 export type LinearStatus =
@@ -73,6 +74,7 @@ export async function resolveLinearStatus(input: {
         ...(team.id ? { id: team.id } : {}),
         ...(team.workspaceId ? { workspaceId: team.workspaceId } : {}),
         ...(team.workspaceName ? { workspaceName: team.workspaceName } : {}),
+        ...(team.viewerName ? { viewerName: team.viewerName } : {}),
       },
     });
   } catch {

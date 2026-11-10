@@ -545,7 +545,7 @@ Seule l'équipe configurée reçoit les commentaires. Le code ne parle à Linear
 
 ### Contexte
 
-Le jury doit pouvoir exporter vers son propre espace Linear, sans qu'on stocke sa clé dans Supabase et sans qu'elle parte vers l'équipe THI par défaut.
+Chacun doit pouvoir exporter vers son propre espace Linear, sans qu'on stocke sa clé dans Supabase et sans qu'elle parte vers l'équipe configurée par défaut.
 
 ### Décision
 

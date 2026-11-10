@@ -1,4 +1,5 @@
 import { openJson, sealJson } from "./seal";
+import { sortTeams } from "./teams";
 
 export const LINEAR_SESSION_COOKIE = "etai_linear_session";
 export const LINEAR_PENDING_COOKIE = "etai_linear_pending";
@@ -25,6 +26,7 @@ export interface LinearSession {
   teamName: string;
   workspaceId: string;
   workspaceName: string;
+  viewerName: string;
 }
 
 interface PendingKey {
@@ -62,7 +64,7 @@ export async function inspectLinearAccount(
         viewerName: account.viewerName,
         workspaceId: account.workspaceId,
         workspaceName: account.workspaceName,
-        teams: account.teams.map((team) => ({ id: team.id, key: team.key, name: team.name })),
+        teams: sortTeams(account.teams.map((team) => ({ id: team.id, key: team.key, name: team.name }))),
       },
     };
   } catch {
@@ -91,6 +93,7 @@ export function finishLinearConnect(teamId: string, jar: CookieJar, key: Buffer)
     teamName: team.name,
     workspaceId: pending.workspaceId,
     workspaceName: pending.workspaceName,
+    viewerName: pending.viewerName,
   };
   jar.set(LINEAR_SESSION_COOKIE, sealJson(session, key), LINEAR_SESSION_MAX_AGE);
   jar.delete(LINEAR_PENDING_COOKIE);
@@ -102,6 +105,7 @@ export function finishLinearConnect(teamId: string, jar: CookieJar, key: Buffer)
       teamName: session.teamName,
       workspaceId: session.workspaceId,
       workspaceName: session.workspaceName,
+      viewerName: session.viewerName,
     },
   };
 }
@@ -115,7 +119,7 @@ export function readLinearSession(token: string | undefined, key: Buffer | null)
   if (!token || !key) return null;
   const session = openJson<LinearSession>(token, key);
   if (!session?.apiKey || !session.teamId || !session.workspaceId) return null;
-  return session;
+  return { ...session, viewerName: session.viewerName ?? "" };
 }
 
 /** Session du navigateur, sinon la clé du serveur. Jamais les deux mélangées. */

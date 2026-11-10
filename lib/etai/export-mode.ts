@@ -18,7 +18,14 @@ async function probeTeam(apiKey: string, teamId: string, signal: AbortSignal): P
   if (!team) return null;
   try {
     const account = await api.inspectAccount();
-    return { id: team.id, key: team.key, name: team.name, workspaceId: account.workspaceId, workspaceName: account.workspaceName };
+    return {
+      id: team.id,
+      key: team.key,
+      name: team.name,
+      workspaceId: account.workspaceId,
+      workspaceName: account.workspaceName,
+      viewerName: account.viewerName,
+    };
   } catch {
     return { id: team.id, key: team.key, name: team.name };
   }
@@ -44,7 +51,13 @@ export async function readExportMode(): Promise<ExportMode> {
     return { mode: "markdown", connected: false, source: credentials.source, team: null, scope: null };
   }
   const team = session
-    ? { ...status.team, id: session.teamId, workspaceId: session.workspaceId, workspaceName: session.workspaceName }
+    ? {
+        ...status.team,
+        id: status.team.id ?? session.teamId,
+        workspaceId: status.team.workspaceId || session.workspaceId,
+        workspaceName: status.team.workspaceName || session.workspaceName,
+        ...(status.team.viewerName || session.viewerName ? { viewerName: status.team.viewerName || session.viewerName } : {}),
+      }
     : status.team;
   const scope = team.workspaceId && team.id ? { workspaceId: team.workspaceId, teamId: team.id } : team.id ? { workspaceId: "", teamId: team.id } : null;
   return { mode: "linear", connected: true, source: credentials.source, team, scope };

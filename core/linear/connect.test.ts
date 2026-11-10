@@ -28,12 +28,12 @@ function jar(): CookieJar & { values: Map<string, string> } {
 }
 
 const account: LinearAccount = {
-  viewerName: "Valentin",
-  workspaceId: "ws-jury",
-  workspaceName: "Jury",
+  viewerName: "Camille Martin",
+  workspaceId: "ws-acme",
+  workspaceName: "Acme",
   teams: [
-    { id: "team-1", key: "JURY", name: "Produit" },
-    { id: "team-2", key: "AUT", name: "Autre" },
+    { id: "team-1", key: "PRO", name: "Produit" },
+    { id: "team-2", key: "MOB", name: "Mobile" },
   ],
 };
 
@@ -58,7 +58,7 @@ describe("connexion Linear personnelle", () => {
     const chosen = finishLinearConnect("team-1", store, cookieKey);
     expect(chosen).toEqual({
       ok: true,
-      session: { teamId: "team-1", teamKey: "JURY", teamName: "Produit", workspaceId: "ws-jury", workspaceName: "Jury" },
+      session: { teamId: "team-1", teamKey: "PRO", teamName: "Produit", workspaceId: "ws-acme", workspaceName: "Acme", viewerName: "Camille Martin" },
     });
     expect(JSON.stringify(chosen)).not.toContain(KEY);
     expect(store.values.get(LINEAR_SESSION_COOKIE)).not.toContain(KEY);

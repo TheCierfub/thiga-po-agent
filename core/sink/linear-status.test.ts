@@ -9,11 +9,11 @@ describe("statut Linear", () => {
     let calls = 0;
     const probe = async (): Promise<LinearTeamLabel> => {
       calls += 1;
-      return { key: "THI", name: "Thiga_case_study" };
+      return { key: "PRO", name: "Produit" };
     };
     const first = await resolveLinearStatus({ apiKey: KEY, teamId: "THI", now: 1_000, cache, probe });
     const second = await resolveLinearStatus({ apiKey: KEY, teamId: "THI", now: 30_000, cache, probe });
-    expect(first).toEqual({ connected: true, team: { key: "THI", name: "Thiga_case_study" } });
+    expect(first).toEqual({ connected: true, team: { key: "PRO", name: "Produit" } });
     expect(second).toEqual(first);
     expect(calls).toBe(1);
     expect(JSON.stringify(first)).not.toContain(KEY);
@@ -26,11 +26,11 @@ describe("statut Linear", () => {
       teamId: "team-1",
       now: 0,
       cache,
-      probe: async () => ({ id: "team-1", key: "JURY", name: "Produit", workspaceId: "ws-jury", workspaceName: "Jury" }),
+      probe: async () => ({ id: "team-1", key: "PRO", name: "Produit", workspaceId: "ws-acme", workspaceName: "Acme", viewerName: "Camille Martin" }),
     });
     expect(status).toEqual({
       connected: true,
-      team: { id: "team-1", key: "JURY", name: "Produit", workspaceId: "ws-jury", workspaceName: "Jury" },
+      team: { id: "team-1", key: "PRO", name: "Produit", workspaceId: "ws-acme", workspaceName: "Acme", viewerName: "Camille Martin" },
     });
     expect(JSON.stringify(status)).not.toContain(KEY);
   });

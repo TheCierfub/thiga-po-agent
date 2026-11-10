@@ -60,7 +60,7 @@ describe("export enregistré", () => {
     const recorded = recordThemeExport(
       state,
       "gros",
-      { id: "uuid-1", identifier: "THI-20", url: "https://linear.app/thiga/issue/THI-20", workspaceId: "ws-jury", workspaceName: "Jury", teamId: "team-1" },
+      { id: "uuid-1", identifier: "THI-20", url: "https://linear.app/thiga/issue/THI-20", workspaceId: "ws-acme", workspaceName: "Acme", teamId: "team-1" },
       strategy,
       "2026-11-10T12:00:00.000Z",
     );
@@ -69,8 +69,8 @@ describe("export enregistré", () => {
       identifier: "THI-20",
       url: "https://linear.app/thiga/issue/THI-20",
       feedbackIds: ["fb-gros"],
-      workspaceId: "ws-jury",
-      workspaceName: "Jury",
+      workspaceId: "ws-acme",
+      workspaceName: "Acme",
       teamId: "team-1",
     });
     expect(JSON.stringify(exported)).not.toContain("lin_api_");

@@ -1,4 +1,5 @@
 import { LinearClient, type Issue } from "@linear/sdk";
+import { collectTeamPages } from "../linear/teams";
 import type { LinearApi, LinearIssueRef } from "./linear-sink";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -117,12 +118,19 @@ export class SdkLinearApi implements LinearApi {
   async inspectAccount(): Promise<{ viewerName: string; workspaceId: string; workspaceName: string; teams: { id: string; key: string; name: string }[] }> {
     const viewer = await this.client.viewer;
     const organization = await viewer.organization;
-    const teams = await this.client.teams({ first: 50 });
+    const teams = await collectTeamPages(async (after) => {
+      const page = await this.client.teams({ first: 50, after });
+      return {
+        nodes: page.nodes.map((team) => ({ id: team.id, key: team.key, name: team.name })),
+        hasNextPage: page.pageInfo.hasNextPage,
+        endCursor: page.pageInfo.endCursor ?? null,
+      };
+    });
     return {
       viewerName: viewer.name,
       workspaceId: organization.id,
       workspaceName: organization.name,
-      teams: teams.nodes.map((team) => ({ id: team.id, key: team.key, name: team.name })),
+      teams,
     };
   }
 }

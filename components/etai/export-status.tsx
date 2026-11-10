@@ -10,6 +10,8 @@ export async function ExportStatus() {
       teamName={mode.team?.name ?? null}
       workspaceName={mode.team?.workspaceName ?? null}
       teamKey={mode.team?.key ?? null}
+      teamId={mode.team?.id ?? null}
+      viewerName={mode.team?.viewerName ?? null}
     />
   );
 }
