@@ -1,24 +1,31 @@
+import { LinearMark } from "@/components/etai/linear-mark";
 import { formatTeamLabel, readExportMode } from "@/lib/etai/export-mode";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export async function ExportStatus() {
-  const { mode, missing, team } = await readExportMode();
-  const linear = mode === "linear";
+  const { connected, team } = await readExportMode();
   const label = formatTeamLabel(team);
   return (
     <Tooltip>
       <TooltipTrigger
         render={
-          <span className="inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs text-muted-foreground" />
+          <span
+            className={
+              connected
+                ? "inline-flex h-7 items-center gap-1.5 rounded-full border border-ok-fg/30 bg-ok-bg px-2.5 text-xs text-foreground"
+                : "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs text-muted-foreground"
+            }
+          />
         }
       >
-        <span className={linear ? "size-1.5 rounded-full bg-ok-fg" : "size-1.5 rounded-full bg-warn-fg"} />
-        {linear ? "Export : Linear" : "Export : Markdown local"}
+        <span className={connected ? "size-1.5 rounded-full bg-ok-fg" : "size-1.5 rounded-full bg-muted-foreground"} />
+        <LinearMark className={connected ? "size-3.5" : "size-3.5 opacity-45"} />
+        {connected ? "Linear connecté" : "Linear déconnecté"}
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-72 leading-relaxed">
-        {linear
+        {connected
           ? `Les exports créent ou mettent à jour des issues dans l'équipe ${label ?? "Linear"}.`
-          : `${missing.join(" et ")} absent(s) : les exports sont écrits dans out/linear-export/, rien n'est envoyé à Linear.`}
+          : "Linear ne répond pas. Rien n'est envoyé."}
       </TooltipContent>
     </Tooltip>
   );
