@@ -12,7 +12,7 @@ export async function ExportStatus() {
           <span
             className={
               connected
-                ? "inline-flex h-7 items-center gap-1.5 rounded-full border border-ok-fg/30 bg-ok-bg px-2.5 text-xs text-ok-fg"
+                ? "inline-flex h-7 items-center gap-1.5 rounded-full border border-ok-fg/30 bg-ok-bg px-2.5 text-xs text-foreground"
                 : "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs text-muted-foreground"
             }
           />
