@@ -112,4 +112,17 @@ export class SdkLinearApi implements LinearApi {
     const payload = await this.client.createComment({ issueId: issue.id, body: input.body });
     if (!payload.success) throw new Error("Linear n'a pas créé le commentaire.");
   }
+
+  /** Lecture du compte : qui, quel espace, quelles équipes. Aucune écriture. */
+  async inspectAccount(): Promise<{ viewerName: string; workspaceId: string; workspaceName: string; teams: { id: string; key: string; name: string }[] }> {
+    const viewer = await this.client.viewer;
+    const organization = await viewer.organization;
+    const teams = await this.client.teams({ first: 50 });
+    return {
+      viewerName: viewer.name,
+      workspaceId: organization.id,
+      workspaceName: organization.name,
+      teams: teams.nodes.map((team) => ({ id: team.id, key: team.key, name: team.name })),
+    };
+  }
 }

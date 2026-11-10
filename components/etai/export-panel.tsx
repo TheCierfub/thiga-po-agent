@@ -8,7 +8,7 @@ import { LinearMark } from "@/components/etai/linear-mark";
 import { Button } from "@/components/ui/button";
 import type { UserStoryDraft } from "@/core/schemas";
 import type { DemoBatch } from "@/lib/etai/batches";
-import { formatTeamLabel, type ExportMode } from "@/lib/etai/export-mode";
+import { formatTeamLabel, type ExportMode } from "@/lib/etai/export-mode-view";
 import { exportBlock } from "@/lib/etai/labels";
 import { useOverrides, usePrioritization } from "@/lib/etai/overrides";
 import { cn } from "@/lib/utils";

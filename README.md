@@ -59,11 +59,17 @@ L'interface (Next.js, shadcn/ui, thème sombre) s'ouvre sur le brief du lundi. L
 
 **Mode direct.** Avec `SUPABASE_URL` et `SUPABASE_KEY`, et après `pnpm db:seed`, les feedbacks bruts, l'analyse et les arbitrages sont lus et écrits dans Postgres. L'écran de Nadia ne nomme pas la base. L'écran Feedbacks permet de coller un e-mail, un ticket ou un commentaire : OpenRouter classe ce seul texte, le rattache à un thème existant ou en ouvre un, puis le RICE et le MoSCoW sont recalculés. Le temps passé est affiché pendant l'attente et à la fin. Si la base est absente, vide ou injoignable, l'interface revient au mode démo. Sans `OPENROUTER_API_KEY`, l'ajout est refusé et rien n'est enregistré. La page `/ops/ecoute` garde le détail technique quand l'écoute ne peut pas démarrer.
 
-**Mode Linear.** L'en-tête affiche « Linear connecté » seulement si l'API répond pour `LINEAR_TEAM_ID` (lecture d'équipe, cache d'une minute, expiration de 3 secondes). Sinon « Linear déconnecté », et le bouton d'export est fermé. La clé ne sort pas du serveur. Redémarrer `pnpm dev` suffit, sans rebuild.
+**Mode Linear.** L'en-tête affiche « Linear connecté · équipe · espace » seulement si l'API répond (lecture d'équipe, cache d'une minute, expiration de 3 secondes). Sinon « Linear déconnecté », et le bouton d'export est fermé. La clé du serveur (`LINEAR_API_KEY`, équipe `LINEAR_TEAM_ID`) sert par défaut.
+
+Le badge ouvre une modale : chacun peut coller une clé personnelle, choisie dans [Security & access](https://linear.app/settings/account/security). La clé reste dans un cookie httpOnly chiffré (AES-256-GCM, 7 jours), jamais en base, jamais renvoyée au navigateur. Il faut `LINEAR_KEY_COOKIE_SECRET` : 32 octets en base64 (`openssl rand -base64 32`). En production le cookie est marqué Secure.
+
+Pour un essai, limiter la clé : permissions **Read**, **Create issues** et **Create comments**, et une seule équipe. Mettre à jour une issue déjà créée, poser un label ou une demande client demande en plus **Write**, parce que Linear ne couvre pas ces mutations par les permissions étroites. La clé agit comme le compte qui l'a créée : la révoquer dans Linear coupe l'accès. « Déconnecter » oublie la clé du navigateur et revient à la clé du serveur, ou à « déconnecté » s'il n'y en a pas.
+
+Un commentaire n'est posté que sur l'équipe de la connexion en cours. Un thème exporté dans un autre espace reste « En attente ».
 
 ## Déployer sur Render
 
-`render.yaml` décrit le service web : build `pnpm build`, démarrage `next start` sur le port fourni par Render, contrôle de santé sur `/lundi`, redéploiement à chaque commit sur `main`. Dans Render : *New → Blueprint*, puis choisir ce dépôt. `LINEAR_API_KEY` et `LINEAR_TEAM_ID` sont demandées à la création ; vides, l'instance reste en mode démo. Les liens vers les feedbacks utilisent l'URL publique du service (`RENDER_EXTERNAL_URL`), sauf si `ETAI_PUBLIC_URL` est défini.
+`render.yaml` décrit le service web : build `pnpm build`, démarrage `next start` sur le port fourni par Render, contrôle de santé sur `/lundi`, redéploiement à chaque commit sur `main`. Dans Render : *New → Blueprint*, puis choisir ce dépôt. `LINEAR_API_KEY`, `LINEAR_TEAM_ID` et `LINEAR_KEY_COOKIE_SECRET` sont demandées à la création. Sans les deux premières, l'instance reste en mode démo pour l'export. Sans la troisième, une clé personnelle ne peut pas être gardée : 32 octets en base64, par exemple `openssl rand -base64 32`. Les liens vers les feedbacks utilisent l'URL publique du service (`RENDER_EXTERNAL_URL`), sauf si `ETAI_PUBLIC_URL` est défini.
 
 Sur l'offre gratuite, le service s'endort après une période sans visite : le premier affichage prend alors quelques dizaines de secondes. Le dossier `out/` n'y est pas conservé entre deux déploiements. Les feedbacks et les arbitrages, eux, restent dans Supabase une fois la base branchée.
 

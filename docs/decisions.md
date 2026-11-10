@@ -537,3 +537,26 @@ Un feedback saisi ensuite, ou venu de X, et rattaché à ce thème ne le remet p
 ### Conséquences
 
 Seule l'équipe configurée reçoit les commentaires. Le code ne parle à Linear que pour l'issue enregistrée. La clé reste sur le serveur.
+
+## ADR-023 — Une clé Linear par navigateur
+
+- **Statut :** acceptée
+- **Date :** 2026-11-10
+
+### Contexte
+
+Le jury doit pouvoir exporter vers son propre espace Linear, sans qu'on stocke sa clé dans Supabase et sans qu'elle parte vers l'équipe THI par défaut.
+
+### Décision
+
+Le badge de l'en-tête ouvre une modale. La clé est vérifiée (viewer et organisation), puis l'utilisateur choisit une équipe. Elle est chiffrée en AES-256-GCM dans un cookie httpOnly, SameSite=Lax, Secure dès que la page est en HTTPS, pour 7 jours. Le secret est `LINEAR_KEY_COOKIE_SECRET` : 32 octets en base64. La clé ne revient pas au client, n'est pas journalisée, et n'est pas en base.
+
+S'il y a un cookie, l'export et les commentaires l'utilisent. Sinon, `LINEAR_API_KEY` et `LINEAR_TEAM_ID`. « Déconnecter » efface le cookie. Le garde-fou n'est plus « seulement THI » : c'est l'équipe choisie pour cette connexion. `linearExport` retient l'id de l'espace et de l'équipe. Un feedback sur un thème exporté ailleurs reste en attente, avec un message, plutôt que d'échouer.
+
+### Limites et risque
+
+Une clé personnelle agit comme le compte qui l'a créée, et elle ne expire pas tant qu'on ne la révoque pas dans Linear. Pour un essai : permissions Read, Create issues et Create comments, limitées à une équipe. Write est nécessaire pour mettre à jour une issue, un label ou une demande client. Le cookie peut être volé si le navigateur l'est : le chiffrement protège la base et les logs, pas un poste compromis. Le secret serveur doit rester hors du dépôt.
+
+### Conséquences
+
+Sans `LINEAR_KEY_COOKIE_SECRET`, la modale refuse de garder une clé. Le statut reste en cache 60 secondes, par clé et par équipe.

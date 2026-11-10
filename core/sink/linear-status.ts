@@ -9,6 +9,9 @@ export const LINEAR_STATUS_TTL_MS = 60_000;
 export interface LinearTeamLabel {
   key: string;
   name: string;
+  id?: string;
+  workspaceId?: string;
+  workspaceName?: string;
 }
 
 export type LinearStatus =
@@ -62,7 +65,16 @@ export async function resolveLinearStatus(input: {
   try {
     const team = await Promise.race([input.probe(apiKey, teamId, controller.signal), timeout]);
     if (!team?.key) return remember({ connected: false, reason: "injoignable" });
-    return remember({ connected: true, team: { key: team.key, name: team.name } });
+    return remember({
+      connected: true,
+      team: {
+        key: team.key,
+        name: team.name,
+        ...(team.id ? { id: team.id } : {}),
+        ...(team.workspaceId ? { workspaceId: team.workspaceId } : {}),
+        ...(team.workspaceName ? { workspaceName: team.workspaceName } : {}),
+      },
+    });
   } catch {
     return remember({ connected: false, reason: "injoignable" });
   } finally {

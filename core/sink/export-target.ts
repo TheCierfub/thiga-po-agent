@@ -18,7 +18,7 @@ export interface ExportTarget {
 /** Linear si LINEAR_API_KEY et LINEAR_TEAM_ID sont définis, sinon export local dans out/linear-export/. */
 export function exportTarget(options: {
   root: string;
-  env?: Partial<Record<string, string>>;
+  env?: { LINEAR_API_KEY?: string; LINEAR_TEAM_ID?: string; LINEAR_CUSTOMER_REQUESTS?: string };
   feedbackUrl?: (feedbackId: string) => string;
   api?: (apiKey: string) => LinearApi;
 }): ExportTarget {

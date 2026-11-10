@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BugIcon, SparklesIcon, WrenchIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { MoscowClass, ThemeCategory, Trend } from "@/core/schemas";
 import { CATEGORY_LABEL, CATEGORY_SHORT_LABEL, TREND_LABEL } from "@/lib/etai/labels";
 import { cn } from "@/lib/utils";
@@ -14,15 +15,22 @@ const MOSCOW_STYLE: Record<MoscowClass, string> = {
   "Hors arbitrage": "bg-muted text-muted-foreground ring-border",
 };
 
-export function EngagedLink({ identifier, url }: { identifier: string; url: string }) {
+export function EngagedLink({ identifier, url, workspaceName }: { identifier: string; url: string; workspaceName?: string | null }) {
   const label = `Engagé (${identifier})`;
   const className = "inline-flex h-5 shrink-0 items-center rounded-md bg-muted px-1.5 text-xs text-foreground ring-1 ring-border ring-inset hover:underline";
-  return url ? (
+  const link = url ? (
     <a href={url} target="_blank" rel="noreferrer" className={className}>
       {label}
     </a>
   ) : (
     <span className={className}>{label}</span>
+  );
+  if (!workspaceName) return link;
+  return (
+    <Tooltip>
+      <TooltipTrigger render={link} />
+      <TooltipContent>Exporté dans l&apos;espace {workspaceName}.</TooltipContent>
+    </Tooltip>
   );
 }
 

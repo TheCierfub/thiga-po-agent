@@ -173,7 +173,7 @@ function ThemeRow({
           </Cell>
           <Cell label="Effort">
             {theme.linearExport ? (
-              <EngagedLink identifier={theme.linearExport.identifier} url={theme.linearExport.url} />
+              <EngagedLink identifier={theme.linearExport.identifier} url={theme.linearExport.url} workspaceName={theme.linearExport.workspaceName} />
             ) : engagedEffortLabel(decision.moscow, theme.backlogIssueId) ? (
               <Tooltip>
                 <TooltipTrigger

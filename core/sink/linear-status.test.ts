@@ -19,6 +19,22 @@ describe("statut Linear", () => {
     expect(JSON.stringify(first)).not.toContain(KEY);
   });
 
+  it("garde l'espace et l'équipe, sans la clé", async () => {
+    const cache = memoryLinearStatusCache();
+    const status = await resolveLinearStatus({
+      apiKey: KEY,
+      teamId: "team-1",
+      now: 0,
+      cache,
+      probe: async () => ({ id: "team-1", key: "JURY", name: "Produit", workspaceId: "ws-jury", workspaceName: "Jury" }),
+    });
+    expect(status).toEqual({
+      connected: true,
+      team: { id: "team-1", key: "JURY", name: "Produit", workspaceId: "ws-jury", workspaceName: "Jury" },
+    });
+    expect(JSON.stringify(status)).not.toContain(KEY);
+  });
+
   it("est déconnecté sans clé, sans appeler Linear", async () => {
     const cache = memoryLinearStatusCache();
     let calls = 0;
