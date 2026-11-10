@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { pollXMentions, type PollXOutcome } from "@/app/actions";
+import { SignInLink } from "@/components/etai/sign-in-link";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ export function XListen({
   query,
   pollSeconds,
   maxSessionUsd,
+  canSpend,
 }: {
   enabled: boolean;
   live: boolean;
@@ -32,6 +34,7 @@ export function XListen({
   query: string;
   pollSeconds: number;
   maxSessionUsd: number;
+  canSpend: boolean;
 }) {
   const router = useRouter();
   const startedAt = useRef<number | null>(null);
@@ -52,7 +55,7 @@ export function XListen({
     lookback.current = lookbackHours;
   }, [lookbackHours]);
 
-  const blocked = !enabled || !live;
+  const blocked = !enabled || !live || !canSpend;
   const listening = !blocked && !paused && stop === null;
 
   useEffect(() => {
@@ -141,9 +144,13 @@ export function XListen({
             Tant que cette page reste ouverte, elle interroge X toutes les {pollSeconds} s. Fermer la page arrête l’écoute. Les posts déjà vus ne sont pas repris.
           </p>
         </div>
-        <Button type="button" variant="outline" disabled={blocked || stop !== null} onClick={() => setPaused((value) => !value)}>
-          {paused ? "Reprendre" : "Pause"}
-        </Button>
+        {canSpend ? (
+          <Button type="button" variant="outline" disabled={blocked || stop !== null} onClick={() => setPaused((value) => !value)}>
+            {paused ? "Reprendre" : "Pause"}
+          </Button>
+        ) : (
+          <SignInLink href="/connexion?next=/ops/ecoute">Se connecter pour écouter</SignInLink>
+        )}
       </div>
       <p className="font-mono text-xs text-muted-foreground">{query}</p>
       <p className="text-sm text-muted-foreground">

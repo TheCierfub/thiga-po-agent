@@ -10,6 +10,7 @@ import { ThemeMoscow, ThemeNav } from "@/components/etai/theme-nav";
 import { feedbackLinearMark } from "@/core/export/comment";
 import { feedbackDate } from "@/core/stories/place";
 import { DEMO_BATCHES, isDemoBatch } from "@/lib/etai/batches";
+import { readAccess } from "@/lib/etai/access";
 import { readExportMode } from "@/lib/etai/export-mode";
 import { CHANNEL_LABEL } from "@/lib/etai/labels";
 import { getBatchView, getDemoBatchView } from "@/lib/etai/view";
@@ -90,7 +91,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
     })
     .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
   const assessment = view.state.assessments.find((a) => a.themeKey === key);
-  const exportMode = await readExportMode();
+  const [exportMode, access] = await Promise.all([readExportMode(), readAccess()]);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
@@ -141,6 +142,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
             live={view.dataMode === "live"}
             mode={exportMode}
             existingIssueId={theme.backlogIssueId}
+            canSpend={access.canSpend}
           />
         </Section>
 

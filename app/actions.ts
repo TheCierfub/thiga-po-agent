@@ -27,9 +27,14 @@ import { LINEAR_EXPORT_DIR, exportTarget } from "@/core/sink/export-target";
 import { SdkLinearApi } from "@/core/sink/linear-api";
 import { DEMO_BATCHES } from "@/lib/etai/batches";
 import { resolveDataMode } from "@/lib/etai/data-mode";
+import { MAGIC_LINK_NOTICE, magicLinkDecision, parseAllowedEmails, safeNextPath } from "@/core/auth/gate";
 import { beginLinearConnect, disconnectLinear, finishLinearConnect, inspectLinearAccount } from "@/core/linear/connect";
-import { activeLinearKey } from "@/lib/etai/export-mode";
+import { requireSpend } from "@/lib/etai/access";
+import { activeLinearKey, readKeySource } from "@/lib/etai/export-mode";
 import { linearCookieJar, readLinearCookieSecret } from "@/lib/etai/linear-cookie";
+import { createSupabaseServer } from "@/lib/etai/supabase-server";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { ROOT, feedbackUrl } from "@/lib/etai/runs";
 import { getBatchView } from "@/lib/etai/view";
 import { DEFAULT_X_QUERY, capMicro, readMaxAgeDays, readSessionCapUsd } from "@/core/sources/x-listen";
@@ -37,6 +42,11 @@ import { TregError, runXPoll, type PollPostResult, type TregCallTrace } from "@/
 
 /** Commentaires sur l'équipe de la connexion active (session, sinon défaut). */
 async function linearForIngest(): Promise<{ comments: LinearComments; scope: { workspaceId: string; teamId: string } } | null> {
+  const source = await readKeySource();
+  if (source !== "session") {
+    const gate = await requireSpend();
+    if (!gate.ok) return null;
+  }
   const active = await activeLinearKey();
   if (!active) return null;
   const api = SdkLinearApi.fromKey(active.apiKey);
@@ -92,6 +102,11 @@ export async function exportTheme(input: z.input<typeof ExportInput>): Promise<E
   );
   if (!item) return { ok: false, message: "Ce thème n'est ni Must, ni Should, ni Could : il ne part pas vers le backlog." };
 
+  const source = await readKeySource();
+  if (source === "default") {
+    const gate = await requireSpend();
+    if (!gate.ok) return { ok: false, message: gate.message };
+  }
   const active = await activeLinearKey();
   const target = exportTarget({
     root: ROOT,
@@ -241,6 +256,8 @@ export type AddFeedbackOutcome =
 export async function addFeedback(input: z.input<typeof DirectFeedbackInputSchema>): Promise<AddFeedbackOutcome> {
   const parsed = DirectFeedbackInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Feedback invalide." };
+  const gate = await requireSpend();
+  if (!gate.ok) return { ok: false, message: gate.message };
   const mode = await resolveDataMode();
   if (mode.kind !== "live") {
     return { ok: false, message: "Mode démo : rien n'est enregistré et aucun modèle n'est appelé." };
@@ -307,6 +324,8 @@ export type PollXOutcome =
 export async function pollXMentions(input: z.input<typeof PollInput>): Promise<PollXOutcome> {
   const parsed = PollInput.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Demande d'écoute invalide.", stop: false };
+  const gate = await requireSpend();
+  if (!gate.ok) return { ok: false, message: gate.message, stop: true };
   const token = process.env.TREG_TOKEN?.trim();
   if (!token) return { ok: false, message: "TREG_TOKEN est absent : l'écoute X est désactivée.", stop: true };
   const mode = await resolveDataMode();
@@ -419,6 +438,8 @@ async function persistStory(batch: (typeof DEMO_BATCHES)[number], story: UserSto
 export async function generateThemeStory(input: z.input<typeof ThemeInput>): Promise<StoryOutcome> {
   const parsed = ThemeInput.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Demande de story invalide." };
+  const gate = await requireSpend();
+  if (!gate.ok) return { ok: false, message: gate.message };
   const { batch, themeKey, overrides } = parsed.data;
   const view = await getBatchView(batch);
   const theme = view.state.themes.find((item) => item.key === themeKey);
@@ -473,5 +494,39 @@ export async function saveThemeStory(input: { batch: (typeof DEMO_BATCHES)[numbe
   } catch (error) {
     return { ok: false, message: scrub(error) };
   }
+}
+
+async function publicOrigin(): Promise<string> {
+  const configured = process.env.ETAI_PUBLIC_URL?.trim() || process.env.RENDER_EXTERNAL_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+  const headerStore = await headers();
+  const proto = headerStore.get("x-forwarded-proto") ?? "http";
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "localhost:43217";
+  return `${proto}://${host}`;
+}
+
+/** Même réponse que l'adresse soit autorisée ou non. Le lien n'est envoyé que dans la liste. */
+export async function requestMagicLink(email: string, nextPath: string): Promise<{ ok: true; message: string }> {
+  const decision = magicLinkDecision(email, parseAllowedEmails(process.env.ALLOWED_EMAILS));
+  if (!decision.send) return { ok: true, message: MAGIC_LINK_NOTICE };
+  const supabase = await createSupabaseServer();
+  if (!supabase) return { ok: true, message: MAGIC_LINK_NOTICE };
+  const next = safeNextPath(nextPath);
+  const redirectTo = `${await publicOrigin()}/auth/callback?next=${encodeURIComponent(next)}`;
+  try {
+    await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: redirectTo, shouldCreateUser: true },
+    });
+  } catch {
+    return { ok: true, message: MAGIC_LINK_NOTICE };
+  }
+  return { ok: true, message: MAGIC_LINK_NOTICE };
+}
+
+export async function signOut(): Promise<void> {
+  const supabase = await createSupabaseServer();
+  if (supabase) await supabase.auth.signOut();
+  redirect("/lundi");
 }
 

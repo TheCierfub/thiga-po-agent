@@ -3,6 +3,7 @@ import { XListen } from "@/components/etai/x-listen";
 import { PageSkeleton } from "@/components/etai/page-skeleton";
 import { DEFAULT_X_QUERY, formatDelay, readPollSeconds, readSessionCapUsd } from "@/core/sources/x-listen";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { readAccess } from "@/lib/etai/access";
 import { getBatchView } from "@/lib/etai/view";
 
 export const instant = false;
@@ -21,7 +22,7 @@ export default function OpsEcoutePage() {
 }
 
 async function OpsEcoute() {
-  const view = await getBatchView("jeudi");
+  const [view, access] = await Promise.all([getBatchView("jeudi"), readAccess()]);
   const rows = view.state.feedbacks
     .filter((feedback) => feedback.channel === "social" && feedback.listening)
     .sort((a, b) => (b.listening?.detectedAt ?? "").localeCompare(a.listening?.detectedAt ?? ""));
@@ -40,6 +41,7 @@ async function OpsEcoute() {
         query={process.env.ETAI_X_QUERY?.trim() || DEFAULT_X_QUERY}
         pollSeconds={readPollSeconds(process.env.ETAI_X_POLL_SECONDS)}
         maxSessionUsd={readSessionCapUsd(process.env.ETAI_X_MAX_SESSION_USD)}
+        canSpend={access.canSpend}
       />
       <section className="space-y-3">
         <h2 className="text-sm font-medium">Délais</h2>

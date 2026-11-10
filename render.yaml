@@ -21,6 +21,8 @@ services:
         sync: false
       - key: SUPABASE_KEY
         sync: false
+      - key: ALLOWED_EMAILS
+        sync: false
       - key: OPENROUTER_API_KEY
         sync: false
       - key: TREG_TOKEN

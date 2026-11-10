@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { BatchSwitcher } from "@/components/etai/batch-switcher";
 import { ExportStatus, ExportStatusFallback } from "@/components/etai/export-status";
+import { SessionMenu, SessionMenuFallback } from "@/components/etai/session-menu";
 import { NavTabs } from "@/components/etai/nav-tabs";
 import { DEMO_BATCHES, isDemoBatch } from "@/lib/etai/batches";
 import { OverridesProvider } from "@/lib/etai/overrides";
@@ -48,6 +49,9 @@ async function BatchShell({ children, params }: LayoutProps<"/[batch]">) {
           <div className="flex flex-wrap items-center gap-2">
             <Suspense fallback={<ExportStatusFallback />}>
               <ExportStatus />
+            </Suspense>
+            <Suspense fallback={<SessionMenuFallback />}>
+              <SessionMenu />
             </Suspense>
             <BatchSwitcher current={batch} fresh={{ lundi: lundi.newFeedbackIds.length, jeudi: jeudi.newFeedbackIds.length }} />
           </div>

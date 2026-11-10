@@ -23,6 +23,7 @@
     "@ai-sdk/openai-compatible": "^3.0.87",
     "@base-ui/react": "^1.9.0",
     "@linear/sdk": "^101.1.0",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
     "ai": "^7.0.165",
     "class-variance-authority": "^0.7.1",

@@ -67,6 +67,16 @@ Pour un essai, limiter la clé : permissions **Read**, **Create issues** et **Cr
 
 Un commentaire n'est posté que sur l'équipe de la connexion en cours. Un thème exporté dans un autre espace reste « En attente ».
 
+**Connexion.** La lecture (feedbacks, thèmes, priorisation, stories déjà écrites, sources) reste ouverte. Générer une story, ajouter un feedback, écouter X, et exporter avec `LINEAR_API_KEY` exigent un lien magique Supabase. La liste `ALLOWED_EMAILS` (virgules, casse ignorée) est vérifiée avant l'envoi du lien et à chaque action. Une adresse absente reçoit le même texte qu'une adresse acceptée. Une clé Linear personnelle, collée dans le navigateur, permet d'exporter sans ce lien. La page est `/connexion`.
+
+Réglages à faire soi-même sur le projet `ehiujaekbsyoimuqyrpv`, sans les confier au dépôt :
+
+- `SUPABASE_URL` = `https://ehiujaekbsyoimuqyrpv.supabase.co` et `SUPABASE_KEY` = la clé publishable de ce projet, sur Render comme en local. Pas de préfixe `NEXT_PUBLIC_`.
+- Authentication → Providers → Email activé, lien magique.
+- Authentication → URL Configuration : Site URL `https://thiga-po-agent.onrender.com`. Redirect URLs : `https://thiga-po-agent.onrender.com/auth/callback` et `http://localhost:43217/auth/callback`.
+- Modèle d'e-mail Magic Link : garder `{{ .ConfirmationURL }}`.
+- Render : `ALLOWED_EMAILS` avec les adresses autorisées, séparées par des virgules.
+
 ## Déployer sur Render
 
 `render.yaml` décrit le service web : build `pnpm build`, démarrage `next start` sur le port fourni par Render, contrôle de santé sur `/lundi`, redéploiement à chaque commit sur `main`. Dans Render : *New → Blueprint*, puis choisir ce dépôt. `LINEAR_API_KEY`, `LINEAR_TEAM_ID` et `LINEAR_KEY_COOKIE_SECRET` sont demandées à la création. Sans les deux premières, l'instance reste en mode démo pour l'export. Sans la troisième, une clé personnelle ne peut pas être gardée : 32 octets en base64, par exemple `openssl rand -base64 32`. Les liens vers les feedbacks utilisent l'URL publique du service (`RENDER_EXTERNAL_URL`), sauf si `ETAI_PUBLIC_URL` est défini.

@@ -560,3 +560,22 @@ Une clé personnelle agit comme le compte qui l'a créée, et elle ne expire pas
 ### Conséquences
 
 Sans `LINEAR_KEY_COOKIE_SECRET`, la modale refuse de garder une clé. Le statut reste en cache 60 secondes, par clé et par équipe.
+
+## ADR-024 — Lien magique pour les actions qui coûtent
+
+- **Statut :** acceptée
+- **Date :** 2026-11-10
+
+### Contexte
+
+La lecture du lot peut rester publique. Générer une story, classer un feedback, écouter X et écrire dans Linear avec la clé du serveur dépensent un budget ou touchent un espace partagé.
+
+### Décision
+
+Supabase Auth envoie un lien magique. Le serveur vérifie l'adresse avec `getClaims` (le cookie n'est pas cru tel quel) et la compare à `ALLOWED_EMAILS`, avant l'envoi du lien et dans chaque action protégée. Une adresse refusée reçoit le même texte qu'une adresse acceptée. Les cookies de session passent par `@supabase/ssr`. Le retour se fait vers la page d'origine, jamais vers un autre site.
+
+Une clé Linear personnelle, déjà chiffrée dans le navigateur, autorise l'export vers cet espace sans lien. La génération et l'ajout restent fermés.
+
+### Conséquences
+
+Sans `ALLOWED_EMAILS`, ou sans session, ces actions répondent qu'une connexion est requise. La clé publishable reste côté serveur. Il faut régler Site URL, les Redirect URLs et le modèle d'e-mail sur le projet Auth. Rien de cela n'est écrit dans le dépôt.
