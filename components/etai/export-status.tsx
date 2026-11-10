@@ -1,11 +1,12 @@
 import { LinearConnect } from "@/components/etai/linear-connect";
+import { readAccess } from "@/lib/etai/access";
 import { readExportMode } from "@/lib/etai/export-mode";
 
 export async function ExportStatus() {
-  const mode = await readExportMode();
+  const [mode, access] = await Promise.all([readExportMode(), readAccess()]);
   return (
     <LinearConnect
-      connected={mode.connected}
+      hasSession={access.canSpend}
       source={mode.source}
       teamName={mode.team?.name ?? null}
       workspaceName={mode.team?.workspaceName ?? null}
