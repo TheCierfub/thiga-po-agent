@@ -15,7 +15,9 @@ export async function createSupabaseServer() {
       setAll(cookiesToSet) {
         try {
           for (const { name, value, options } of cookiesToSet) cookieStore.set(name, value, options);
-        } catch {
+        } catch (error) {
+          // Sans le code verifier, le lien magique ne peut pas être échangé.
+          if (cookiesToSet.some((cookie) => cookie.name.includes("code-verifier"))) throw error;
           // Un Server Component ne peut pas écrire les cookies. Le proxy s'en charge.
         }
       },

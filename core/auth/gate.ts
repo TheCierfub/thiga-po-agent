@@ -31,9 +31,4 @@ export function canRequestMagicLink(email: string): boolean {
   return trimmed.includes("@") && trimmed.length <= 320 && !trimmed.includes(" ");
 }
 
-/** Empêche un retour vers un autre site. */
-export function safeNextPath(value: string | null | undefined): string {
-  if (!value) return "/lundi";
-  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\") || value.includes("://")) return "/lundi";
-  return value;
-}
+export { safeRelativePath as safeNextPath } from "./origin";

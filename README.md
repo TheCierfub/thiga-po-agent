@@ -67,7 +67,7 @@ Pour un essai, limiter la clé : permissions **Read**, **Create issues** et **Cr
 
 Un commentaire n'est posté que sur l'équipe de la connexion en cours. Un thème exporté dans un autre espace reste « En attente ».
 
-**Connexion.** N'importe quelle adresse peut recevoir un lien magique. La lecture (feedbacks, thèmes, priorisation, stories déjà écrites, sources) reste ouverte. Générer une story, ajouter un feedback, écouter X, et exporter avec `LINEAR_API_KEY` exigent cette session, revérifiée côté serveur. Une clé Linear personnelle, collée dans le navigateur, permet d'exporter sans ce lien. La page est `/connexion`.
+**Connexion.** N'importe quelle adresse peut recevoir un lien magique. Le retour du lien utilise `ETAI_PUBLIC_URL` (sinon les en-têtes transmis par le proxy), jamais l'hôte interne du conteneur. La lecture (feedbacks, thèmes, priorisation, stories déjà écrites, sources) reste ouverte. Générer une story, ajouter un feedback, écouter X, et exporter avec `LINEAR_API_KEY` exigent cette session, revérifiée côté serveur. Une clé Linear personnelle, collée dans le navigateur, permet d'exporter sans ce lien. La page est `/connexion`.
 
 Chaque compte a un plafond par jour, heure de Paris : 5 stories, 20 feedbacks ajoutés, 5 exports avec la clé du serveur. Tous comptes confondus : 30 stories et 20 exports. Au-delà, l'interface dit « Limite du jour atteinte, réessayez demain ». Les variables `QUOTA_*` changent ces nombres. L'envoi des liens est aussi limité par adresse et par adresse IP, en plus du plafond de Supabase. Les compteurs sont dans `usage_counters` : appliquer `supabase/migrations/20261110155933_usage_counters.sql` soi-même.
 

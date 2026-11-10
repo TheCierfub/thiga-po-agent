@@ -28,6 +28,7 @@ import { SdkLinearApi } from "@/core/sink/linear-api";
 import { DEMO_BATCHES } from "@/lib/etai/batches";
 import { resolveDataMode } from "@/lib/etai/data-mode";
 import { MAGIC_LINK_SENT, canRequestMagicLink, safeNextPath } from "@/core/auth/gate";
+import { getPublicOrigin } from "@/core/auth/origin";
 import { beginLinearConnect, disconnectLinear, finishLinearConnect, inspectLinearAccount } from "@/core/linear/connect";
 import { requireSpend } from "@/lib/etai/access";
 import { takeMagicLink } from "@/lib/etai/magic-limit";
@@ -506,13 +507,15 @@ export async function saveThemeStory(input: { batch: (typeof DEMO_BATCHES)[numbe
   }
 }
 
-async function publicOrigin(): Promise<string> {
-  const configured = process.env.ETAI_PUBLIC_URL?.trim() || process.env.RENDER_EXTERNAL_URL?.trim();
-  if (configured) return configured.replace(/\/$/, "");
+async function publicOrigin(): Promise<string | null> {
   const headerStore = await headers();
-  const proto = headerStore.get("x-forwarded-proto") ?? "http";
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "localhost:43217";
-  return `${proto}://${host}`;
+  return getPublicOrigin({
+    configuredUrl: process.env.ETAI_PUBLIC_URL,
+    forwardedHost: headerStore.get("x-forwarded-host"),
+    forwardedProto: headerStore.get("x-forwarded-proto"),
+    requestOrigin: headerStore.get("origin"),
+    nodeEnv: process.env.NODE_ENV,
+  });
 }
 
 /** Toute adresse valide peut recevoir un lien. L'e-mail et l'IP sont plafonnés. */
@@ -525,7 +528,9 @@ export async function requestMagicLink(email: string, nextPath: string): Promise
   const supabase = await createSupabaseServer();
   if (!supabase) return { ok: false, message: "L'envoi du lien est indisponible pour le moment." };
   const next = safeNextPath(nextPath);
-  const redirectTo = `${await publicOrigin()}/auth/callback?next=${encodeURIComponent(next)}`;
+  const origin = await publicOrigin();
+  if (!origin) return { ok: false, message: "L'envoi du lien est indisponible pour le moment." };
+  const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
   try {
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
@@ -541,6 +546,7 @@ export async function requestMagicLink(email: string, nextPath: string): Promise
 export async function signOut(): Promise<void> {
   const supabase = await createSupabaseServer();
   if (supabase) await supabase.auth.signOut();
-  redirect("/lundi");
+  const origin = await publicOrigin();
+  redirect(origin ? `${origin}/lundi` : "/lundi");
 }
 
