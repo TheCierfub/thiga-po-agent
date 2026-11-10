@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { getPublicOrigin } from "../auth/origin";
 import { loadPoDecisions } from "../data/load";
 import { EMPTY_PO_DECISIONS } from "../decisions/po-decisions";
 import { ReplayProvider } from "../llm/fixtures";
@@ -23,6 +24,11 @@ export async function replayDemo(root: string): Promise<{ lundi: RunResult; jeud
 }
 
 export function feedbackUrlFor(batch: string, env: Partial<Record<string, string>> = process.env): (feedbackId: string) => string {
-  const base = (env.ETAI_PUBLIC_URL ?? env.RENDER_EXTERNAL_URL ?? "http://localhost:43217").replace(/\/$/, "");
+  const base =
+    getPublicOrigin({
+      configuredUrl: env.ETAI_PUBLIC_URL,
+      requestOrigin: "http://localhost:43217",
+      nodeEnv: env.NODE_ENV ?? "development",
+    }) ?? "http://localhost:43217";
   return (id) => `${base}/${batch}/feedbacks#${id}`;
 }
