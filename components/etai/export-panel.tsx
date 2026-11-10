@@ -36,7 +36,7 @@ export function ExportPanel({
   const team = formatTeamLabel(mode.team);
   const [pending, start] = useTransition();
   const [outcome, setOutcome] = useState<ExportOutcome | null>(null);
-  const linear = mode.mode === "linear";
+  const linear = mode.connected;
 
   function run() {
     start(async () => {
@@ -50,7 +50,7 @@ export function ExportPanel({
 
   return (
     <div className="w-full min-w-0">
-      <Button className="h-auto w-full whitespace-normal py-2" size="lg" disabled={block !== null || pending || !hasStory} onClick={run}>
+      <Button className="h-auto w-full whitespace-normal py-2" size="lg" disabled={block !== null || pending || !hasStory || !linear} onClick={run}>
         <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5">
           {pending ? <Loader2Icon className="animate-spin" /> : block ? <LockIcon className="size-4" /> : null}
           Valider et exporter vers
@@ -58,7 +58,9 @@ export function ExportPanel({
           Linear
         </span>
       </Button>
-      {block ? (
+      {!linear ? (
+        <p className="mt-3 text-xs text-muted-foreground">Linear déconnecté : rien n&apos;est envoyé.</p>
+      ) : block ? (
         <p className={cn("mt-3 text-xs", block.tone === "review" ? "font-medium text-warn-fg" : "text-muted-foreground")}>{block.message}</p>
       ) : (
         <p className="mt-3 text-xs text-muted-foreground">
@@ -74,7 +76,7 @@ export function ExportPanel({
         <span>
           {linear
             ? `Linear connecté : l'export écrit dans l'équipe ${team ?? "configurée"}.`
-            : `Linear non connecté (${mode.missing.join(" et ")} absent${mode.missing.length > 1 ? "s" : ""}) : l'export est écrit en Markdown dans out/linear-export/. Rien n'est envoyé.`}
+            : "Linear déconnecté : rien n'est envoyé."}
         </span>
       </div>
       {outcome?.ok ? (
