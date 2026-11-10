@@ -21,7 +21,19 @@ services:
         sync: false
       - key: SUPABASE_KEY
         sync: false
-      - key: ALLOWED_EMAILS
+      - key: QUOTA_STORY_PER_USER
+        sync: false
+      - key: QUOTA_FEEDBACK_PER_USER
+        sync: false
+      - key: QUOTA_EXPORT_PER_USER
+        sync: false
+      - key: QUOTA_STORY_GLOBAL
+        sync: false
+      - key: QUOTA_EXPORT_GLOBAL
+        sync: false
+      - key: QUOTA_MAGIC_EMAIL
+        sync: false
+      - key: QUOTA_MAGIC_IP
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false

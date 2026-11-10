@@ -9,14 +9,16 @@ import { Label } from "@/components/ui/label";
 export function ConnexionForm({ nextPath }: { nextPath: string }) {
   const [email, setEmail] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const [pending, start] = useTransition();
 
   function submit(event: FormEvent) {
     event.preventDefault();
     start(async () => {
       const result = await requestMagicLink(email, nextPath);
+      setFailed(!result.ok);
       setNotice(result.message);
-      setEmail("");
+      if (result.ok) setEmail("");
     });
   }
 
@@ -36,7 +38,7 @@ export function ConnexionForm({ nextPath }: { nextPath: string }) {
       <Button type="submit" disabled={pending || email.trim().length < 3}>
         {pending ? "Envoi" : "Recevoir un lien de connexion"}
       </Button>
-      {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
+      {notice ? <p className={failed ? "text-sm text-warn-fg" : "text-sm text-muted-foreground"}>{notice}</p> : null}
     </form>
   );
 }

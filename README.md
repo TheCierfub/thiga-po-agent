@@ -67,15 +67,18 @@ Pour un essai, limiter la clé : permissions **Read**, **Create issues** et **Cr
 
 Un commentaire n'est posté que sur l'équipe de la connexion en cours. Un thème exporté dans un autre espace reste « En attente ».
 
-**Connexion.** La lecture (feedbacks, thèmes, priorisation, stories déjà écrites, sources) reste ouverte. Générer une story, ajouter un feedback, écouter X, et exporter avec `LINEAR_API_KEY` exigent un lien magique Supabase. La liste `ALLOWED_EMAILS` (virgules, casse ignorée) est vérifiée avant l'envoi du lien et à chaque action. Une adresse absente reçoit le même texte qu'une adresse acceptée. Une clé Linear personnelle, collée dans le navigateur, permet d'exporter sans ce lien. La page est `/connexion`.
+**Connexion.** N'importe quelle adresse peut recevoir un lien magique. La lecture (feedbacks, thèmes, priorisation, stories déjà écrites, sources) reste ouverte. Générer une story, ajouter un feedback, écouter X, et exporter avec `LINEAR_API_KEY` exigent cette session, revérifiée côté serveur. Une clé Linear personnelle, collée dans le navigateur, permet d'exporter sans ce lien. La page est `/connexion`.
+
+Chaque compte a un plafond par jour, heure de Paris : 5 stories, 20 feedbacks ajoutés, 5 exports avec la clé du serveur. Tous comptes confondus : 30 stories et 20 exports. Au-delà, l'interface dit « Limite du jour atteinte, réessayez demain ». Les variables `QUOTA_*` changent ces nombres. L'envoi des liens est aussi limité par adresse et par adresse IP, en plus du plafond de Supabase. Les compteurs sont dans `usage_counters` : appliquer `supabase/migrations/20261110155933_usage_counters.sql` soi-même.
 
 Réglages à faire soi-même sur le projet `ehiujaekbsyoimuqyrpv`, sans les confier au dépôt :
 
 - `SUPABASE_URL` = `https://ehiujaekbsyoimuqyrpv.supabase.co` et `SUPABASE_KEY` = la clé publishable de ce projet, sur Render comme en local. Pas de préfixe `NEXT_PUBLIC_`.
-- Authentication → Providers → Email activé, lien magique.
+- Authentication → Providers → Email activé, lien magique. Les inscriptions sont ouvertes : ne pas restreindre les domaines.
 - Authentication → URL Configuration : Site URL `https://thiga-po-agent.onrender.com`. Redirect URLs : `https://thiga-po-agent.onrender.com/auth/callback` et `http://localhost:43217/auth/callback`.
 - Modèle d'e-mail Magic Link : garder `{{ .ConfirmationURL }}`.
-- Render : `ALLOWED_EMAILS` avec les adresses autorisées, séparées par des virgules.
+- SQL Editor : exécuter la migration `usage_counters`. Sans elle, les actions coûteuses refusent de partir.
+- Render : les `QUOTA_*` sont facultatives. Vides, les défauts ci-dessus s'appliquent. Retirer `ALLOWED_EMAILS` si elle a été posée.
 
 ## Déployer sur Render
 

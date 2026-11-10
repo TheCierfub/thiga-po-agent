@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAllowedEmail, parseAllowedEmails, safeNextPath } from "@/core/auth/gate";
+import { safeNextPath } from "@/core/auth/gate";
 import { readActor } from "@/lib/etai/access";
 import { createSupabaseServer } from "@/lib/etai/supabase-server";
 
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) return NextResponse.redirect(back);
   const actor = await readActor();
-  if (!actor || !isAllowedEmail(actor.email, parseAllowedEmails(process.env.ALLOWED_EMAILS))) {
+  if (!actor) {
     await supabase.auth.signOut();
     return NextResponse.redirect(back);
   }

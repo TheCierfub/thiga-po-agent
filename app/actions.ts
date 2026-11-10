@@ -27,9 +27,11 @@ import { LINEAR_EXPORT_DIR, exportTarget } from "@/core/sink/export-target";
 import { SdkLinearApi } from "@/core/sink/linear-api";
 import { DEMO_BATCHES } from "@/lib/etai/batches";
 import { resolveDataMode } from "@/lib/etai/data-mode";
-import { MAGIC_LINK_NOTICE, magicLinkDecision, parseAllowedEmails, safeNextPath } from "@/core/auth/gate";
+import { MAGIC_LINK_SENT, canRequestMagicLink, safeNextPath } from "@/core/auth/gate";
 import { beginLinearConnect, disconnectLinear, finishLinearConnect, inspectLinearAccount } from "@/core/linear/connect";
 import { requireSpend } from "@/lib/etai/access";
+import { takeMagicLink } from "@/lib/etai/magic-limit";
+import { consumeQuota } from "@/lib/etai/quota";
 import { activeLinearKey, readKeySource } from "@/lib/etai/export-mode";
 import { linearCookieJar, readLinearCookieSecret } from "@/lib/etai/linear-cookie";
 import { createSupabaseServer } from "@/lib/etai/supabase-server";
@@ -106,6 +108,8 @@ export async function exportTheme(input: z.input<typeof ExportInput>): Promise<E
   if (source === "default") {
     const gate = await requireSpend();
     if (!gate.ok) return { ok: false, message: gate.message };
+    const quota = await consumeQuota("export");
+    if (!quota.ok) return { ok: false, message: quota.message };
   }
   const active = await activeLinearKey();
   const target = exportTarget({
@@ -262,6 +266,8 @@ export async function addFeedback(input: z.input<typeof DirectFeedbackInputSchem
   if (mode.kind !== "live") {
     return { ok: false, message: "Mode démo : rien n'est enregistré et aucun modèle n'est appelé." };
   }
+  const quota = await consumeQuota("feedback");
+  if (!quota.ok) return { ok: false, message: quota.message };
   const context = loadContext(ROOT);
   if (parsed.data.sourceAccountId && !context.accounts.some((account) => account.id === parsed.data.sourceAccountId)) {
     return { ok: false, message: "Compte client inconnu." };
@@ -457,6 +463,10 @@ export async function generateThemeStory(input: z.input<typeof ThemeInput>): Pro
   const decision = allocation.decisions.find((item) => item.themeKey === themeKey);
   if (!riceScore || !decision) return { ok: false, message: "Ce thème n'a pas de score." };
   const mode = await resolveDataMode();
+  if (mode.kind === "live") {
+    const quota = await consumeQuota("story");
+    if (!quota.ok) return { ok: false, message: quota.message };
+  }
   const live = mode.kind === "live" ? createLiveProvider(ROOT) : null;
   const provider = live?.provider ?? new ReplayProvider(path.join(ROOT, "fixtures/llm"), { allowStale: true });
   const started = Date.now();
@@ -505,23 +515,27 @@ async function publicOrigin(): Promise<string> {
   return `${proto}://${host}`;
 }
 
-/** Même réponse que l'adresse soit autorisée ou non. Le lien n'est envoyé que dans la liste. */
-export async function requestMagicLink(email: string, nextPath: string): Promise<{ ok: true; message: string }> {
-  const decision = magicLinkDecision(email, parseAllowedEmails(process.env.ALLOWED_EMAILS));
-  if (!decision.send) return { ok: true, message: MAGIC_LINK_NOTICE };
+/** Toute adresse valide peut recevoir un lien. L'e-mail et l'IP sont plafonnés. */
+export async function requestMagicLink(email: string, nextPath: string): Promise<{ ok: true; message: string } | { ok: false; message: string }> {
+  if (!canRequestMagicLink(email)) return { ok: false, message: "Indiquez une adresse e-mail." };
+  const headerStore = await headers();
+  const ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() || headerStore.get("x-real-ip")?.trim() || "inconnue";
+  const limited = takeMagicLink(email, ip);
+  if (!limited.ok) return limited;
   const supabase = await createSupabaseServer();
-  if (!supabase) return { ok: true, message: MAGIC_LINK_NOTICE };
+  if (!supabase) return { ok: false, message: "L'envoi du lien est indisponible pour le moment." };
   const next = safeNextPath(nextPath);
   const redirectTo = `${await publicOrigin()}/auth/callback?next=${encodeURIComponent(next)}`;
   try {
-    await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
       options: { emailRedirectTo: redirectTo, shouldCreateUser: true },
     });
+    if (error) return { ok: false, message: "L'envoi du lien est indisponible pour le moment." };
   } catch {
-    return { ok: true, message: MAGIC_LINK_NOTICE };
+    return { ok: false, message: "L'envoi du lien est indisponible pour le moment." };
   }
-  return { ok: true, message: MAGIC_LINK_NOTICE };
+  return { ok: true, message: MAGIC_LINK_SENT };
 }
 
 export async function signOut(): Promise<void> {

@@ -19,7 +19,7 @@ async function Connexion({ searchParams }: { searchParams: PageProps<"/connexion
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
       <h1 className="text-xl font-semibold tracking-tight">Connexion</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        La lecture du lot reste ouverte. La génération, l&apos;ajout d&apos;un feedback et l&apos;export avec la clé du serveur demandent un lien de connexion.
+        N&apos;importe quelle adresse peut recevoir un lien. La lecture du lot reste ouverte. La génération, l&apos;ajout d&apos;un feedback et l&apos;export avec la clé du serveur ont un plafond par jour.
       </p>
       <div className="mt-6">
         <ConnexionForm nextPath={next} />
