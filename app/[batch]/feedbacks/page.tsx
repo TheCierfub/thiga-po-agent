@@ -10,6 +10,7 @@ import { feedbackLinearMark } from "@/core/export/comment";
 import { readPollSeconds } from "@/core/sources/x-listen";
 import { isDemoBatch } from "@/lib/etai/batches";
 import { CHANNEL_LABEL, MATCH_LABEL, TYPE_LABEL, feedbackWho } from "@/lib/etai/labels";
+import { readAccess } from "@/lib/etai/access";
 import { getBatchView } from "@/lib/etai/view";
 
 export default function FeedbacksPage({ params }: PageProps<"/[batch]/feedbacks">) {
@@ -23,7 +24,10 @@ export default function FeedbacksPage({ params }: PageProps<"/[batch]/feedbacks"
 async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbacks">, "params">) {
   const { batch } = await params;
   if (!isDemoBatch(batch)) notFound();
-  const { state, accounts: accountsById, newFeedbackIds, changes, dataMode, dataModeDetail } = await getBatchView(batch);
+  const [{ state, accounts: accountsById, newFeedbackIds, changes, dataMode, dataModeDetail }, access] = await Promise.all([
+    getBatchView(batch),
+    readAccess(),
+  ]);
   const matches = new Map(state.matches.map((m) => [m.feedbackId, m]));
   const classes = new Map(state.classifications.map((c) => [c.feedbackId, c]));
   const themeOf = (id: string) => state.themes.find((t) => t.feedbackIds.includes(id) || t.relatedSignalIds.includes(id));
@@ -46,6 +50,8 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
         live={dataMode === "live"}
         detail={dataModeDetail}
         profile={process.env.ETAI_LLM_PROFILE?.trim() || "B"}
+        canSpend={access.canSpend}
+        returnPath={`/${batch}/feedbacks`}
       />
       <ArrivalWatch
         ids={feedbacks.map((feedback) => feedback.id)}

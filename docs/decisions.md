@@ -560,3 +560,28 @@ Une clé personnelle agit comme le compte qui l'a créée, et elle ne expire pas
 ### Conséquences
 
 Sans `LINEAR_KEY_COOKIE_SECRET`, la modale refuse de garder une clé. Le statut reste en cache 60 secondes, par clé et par équipe.
+
+## ADR-024 — Lien magique ouvert, plafonds de coût
+
+- **Statut :** acceptée
+- **Date :** 2026-11-10
+
+### Contexte
+
+La lecture du lot peut rester publique. Générer une story, classer un feedback, écouter X et écrire dans Linear avec la clé du serveur dépensent un budget ou touchent un espace partagé. Une liste d'adresses fermée bloque les essais légitimes.
+
+### Décision
+
+N'importe quelle adresse peut recevoir un lien magique et ouvrir une session. Le serveur vérifie le jeton avec `getClaims` (le cookie n'est pas cru tel quel) dans chaque action protégée. Les cookies passent par `@supabase/ssr`. Le retour se fait vers la page d'origine.
+
+Le coût est borné par des compteurs dans `usage_counters` (compte, action, jour, nombre). Par compte et par jour, heure de Paris : 5 stories, 20 feedbacks, 5 exports avec la clé du serveur. Tous comptes confondus : 30 stories et 20 de ces exports. Les variables `QUOTA_*` changent les nombres. Au-delà, l'action répond 429 et l'interface dit de réessayer demain. L'unité est réservée avant l'appel payant. Une clé Linear personnelle n'entre pas dans ce plafond et ne demande pas de session.
+
+L'envoi des liens est limité par adresse et par adresse IP, dans la mémoire du processus, en plus du plafond de Supabase.
+
+### Compromis
+
+L'inscription ouverte évite de tenir une liste, et laisse n'importe qui créer un compte. Les plafonds empêchent un compte, ou l'ensemble des comptes, d'épuiser OpenRouter et l'équipe Linear partagée en une journée. Ils ne remplacent pas une revue humaine : un compte peut encore dépenser son quota. La limite d'envoi en mémoire disparaît au redémarrage ; celle de Supabase reste.
+
+### Conséquences
+
+Sans la migration, les actions coûteuses s'arrêtent plutôt que de partir sans compteur. Sans session, elles répondent qu'une connexion est requise. La clé publishable reste côté serveur. Site URL, Redirect URLs et le modèle d'e-mail se règlent sur le projet Auth, pas dans le dépôt.

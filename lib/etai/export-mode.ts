@@ -63,6 +63,16 @@ export async function readExportMode(): Promise<ExportMode> {
   return { mode: "linear", connected: true, source: credentials.source, team, scope };
 }
 
+/** D'où vient la clé, sans interroger Linear. */
+export async function readKeySource(): Promise<"session" | "default" | "aucune"> {
+  await connection();
+  const session = readLinearSession(await currentLinearToken(), readLinearCookieSecret());
+  return activeLinearCredentials(session, {
+    apiKey: process.env.LINEAR_API_KEY,
+    teamId: process.env.LINEAR_TEAM_ID,
+  })?.source ?? "aucune";
+}
+
 /** Clé et équipe actives, côté serveur seulement. */
 export async function activeLinearKey(): Promise<{ apiKey: string; teamId: string; workspaceId: string; workspaceName: string; teamName: string; teamKey: string } | null> {
   await connection();

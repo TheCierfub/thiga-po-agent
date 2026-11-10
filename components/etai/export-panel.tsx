@@ -5,6 +5,7 @@ import { CheckCircle2Icon, FileTextIcon, Loader2Icon, LockIcon } from "lucide-re
 import { toast } from "sonner";
 import { exportTheme, type ExportOutcome } from "@/app/actions";
 import { LinearMark } from "@/components/etai/linear-mark";
+import { SignInLink } from "@/components/etai/sign-in-link";
 import { Button } from "@/components/ui/button";
 import type { UserStoryDraft } from "@/core/schemas";
 import type { DemoBatch } from "@/lib/etai/batches";
@@ -22,6 +23,7 @@ export function ExportPanel({
   existingIssueId,
   mode,
   story,
+  canSpend,
 }: {
   batch: DemoBatch;
   themeKey: string;
@@ -29,6 +31,7 @@ export function ExportPanel({
   existingIssueId: string | null;
   mode: ExportMode;
   story?: UserStoryDraft | null;
+  canSpend: boolean;
 }) {
   const { overrides } = useOverrides();
   const { decisionByKey } = usePrioritization();
@@ -37,6 +40,7 @@ export function ExportPanel({
   const [pending, start] = useTransition();
   const [outcome, setOutcome] = useState<ExportOutcome | null>(null);
   const linear = mode.connected;
+  const sharedKeyLocked = mode.source === "default" && !canSpend;
 
   function run() {
     start(async () => {
@@ -50,14 +54,20 @@ export function ExportPanel({
 
   return (
     <div className="w-full min-w-0">
-      <Button className="h-auto w-full whitespace-normal py-2" size="lg" disabled={block !== null || pending || !hasStory || !linear} onClick={run}>
-        <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5">
-          {pending ? <Loader2Icon className="animate-spin" /> : block ? <LockIcon className="size-4" /> : null}
-          Valider et exporter vers
-          <LinearMark className="size-4" />
-          Linear
-        </span>
-      </Button>
+      {sharedKeyLocked ? (
+        <SignInLink href={`/connexion?next=/${batch}/themes/${themeKey}`} className="h-auto w-full whitespace-normal py-2">
+          Se connecter pour exporter
+        </SignInLink>
+      ) : (
+        <Button className="h-auto w-full whitespace-normal py-2" size="lg" disabled={block !== null || pending || !hasStory || !linear} onClick={run}>
+          <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5">
+            {pending ? <Loader2Icon className="animate-spin" /> : block ? <LockIcon className="size-4" /> : null}
+            Valider et exporter vers
+            <LinearMark className="size-4" />
+            Linear
+          </span>
+        </Button>
+      )}
       {!linear ? (
         <p className="mt-3 text-xs text-muted-foreground">Linear déconnecté : rien n&apos;est envoyé.</p>
       ) : block ? (

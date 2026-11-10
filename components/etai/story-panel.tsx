@@ -6,6 +6,7 @@ import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { generateThemeStory, saveThemeStory } from "@/app/actions";
 import { ExportPanel } from "@/components/etai/export-panel";
+import { SignInLink } from "@/components/etai/sign-in-link";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +24,7 @@ export function StoryPanel({
   live,
   mode,
   existingIssueId,
+  canSpend,
 }: {
   batch: DemoBatch;
   themeKey: string;
@@ -30,6 +32,7 @@ export function StoryPanel({
   live: boolean;
   mode: ExportMode;
   existingIssueId: string | null;
+  canSpend: boolean;
 }) {
   const router = useRouter();
   const { overrides } = useOverrides();
@@ -78,10 +81,14 @@ export function StoryPanel({
     return (
       <div className="space-y-3 rounded-xl border bg-card p-4 sm:p-5">
         <p className="text-sm text-muted-foreground">Aucune story pour ce thème. La rédaction part des feedbacks du thème, avec les citations déjà vérifiées.</p>
-        <Button type="button" onClick={generate} disabled={pending}>
-          {pending ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : null}
-          {pending ? "Rédaction en cours" : "Générer la user story"}
-        </Button>
+        {canSpend ? (
+          <Button type="button" onClick={generate} disabled={pending}>
+            {pending ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : null}
+            {pending ? "Rédaction en cours" : "Générer la user story"}
+          </Button>
+        ) : (
+          <SignInLink href={`/connexion?next=/${batch}/themes/${themeKey}`}>Se connecter pour générer</SignInLink>
+        )}
         {error ? <p className="text-sm text-warn-fg">{error}</p> : null}
       </div>
     );
@@ -101,7 +108,7 @@ export function StoryPanel({
         />
       </div>
       <div className="border-t pt-4">
-        <ExportPanel batch={batch} themeKey={themeKey} hasStory existingIssueId={existingIssueId} mode={mode} story={story} />
+        <ExportPanel batch={batch} themeKey={themeKey} hasStory existingIssueId={existingIssueId} mode={mode} story={story} canSpend={canSpend} />
       </div>
       {error ? <p className="text-sm text-warn-fg">{error}</p> : null}
     </div>

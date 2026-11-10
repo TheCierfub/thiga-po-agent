@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { addFeedback, type AddFeedbackOutcome } from "@/app/actions";
+import { SignInLink } from "@/components/etai/sign-in-link";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
@@ -20,10 +21,14 @@ export function AddFeedbackForm({
   live,
   detail,
   profile = "B",
+  canSpend,
+  returnPath,
 }: {
   accounts: { id: string; nom: string }[];
   live: boolean;
   detail: string;
+  canSpend: boolean;
+  returnPath: string;
   profile?: string;
 }) {
   const router = useRouter();
@@ -167,9 +172,13 @@ export function AddFeedbackForm({
         />
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={!live || pending || text.trim().length === 0}>
-          {pending ? `Analyse en cours · ${elapsed.toFixed(1)} s` : "Analyser et enregistrer"}
-        </Button>
+        {canSpend ? (
+          <Button type="submit" disabled={!live || pending || text.trim().length === 0}>
+            {pending ? `Analyse en cours · ${elapsed.toFixed(1)} s` : "Analyser et enregistrer"}
+          </Button>
+        ) : (
+          <SignInLink href={`/connexion?next=${returnPath}`}>Se connecter pour ajouter</SignInLink>
+        )}
         {pending ? (
           <p className="text-sm text-muted-foreground">
             {profile === "B"
