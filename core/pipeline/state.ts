@@ -11,6 +11,7 @@ import {
   RiceScoreSchema,
   FeedbackAttachmentSchema,
   ThemeAssessmentSchema,
+  CapacityFreedSchema,
   ThemeSchema,
   UserStoryDraftSchema,
 } from "../schemas";
@@ -35,6 +36,8 @@ export const RunStateSchema = z.object({
   warnings: z.array(z.string()),
   /** Rattachements décidés lors d'un ajout en direct. Absent des lots rejoués. */
   attachments: z.array(FeedbackAttachmentSchema).optional(),
+  /** Montées de classe après un export. Absent des lots rejoués. */
+  capacityFreed: z.array(CapacityFreedSchema).optional(),
 });
 export type RunState = z.infer<typeof RunStateSchema>;
 

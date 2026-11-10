@@ -14,6 +14,18 @@ const MOSCOW_STYLE: Record<MoscowClass, string> = {
   "Hors arbitrage": "bg-muted text-muted-foreground ring-border",
 };
 
+export function EngagedLink({ identifier, url }: { identifier: string; url: string }) {
+  const label = `Engagé (${identifier})`;
+  const className = "inline-flex h-5 shrink-0 items-center rounded-md bg-muted px-1.5 text-xs text-foreground ring-1 ring-border ring-inset hover:underline";
+  return url ? (
+    <a href={url} target="_blank" rel="noreferrer" className={className}>
+      {label}
+    </a>
+  ) : (
+    <span className={className}>{label}</span>
+  );
+}
+
 export function MoscowBadge({ value, forced, className }: { value: MoscowClass; forced?: boolean; className?: string }) {
   return (
     <span

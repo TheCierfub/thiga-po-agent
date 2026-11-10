@@ -170,6 +170,23 @@ export const TrendSchema = z.object({
 });
 export type Trend = z.infer<typeof TrendSchema>;
 
+/** Issue Linear créée par un export. Absent tant que le thème n'a pas été envoyé. */
+export const LinearExportSchema = z.object({
+  /** UUID Linear, pour les commentaires. */
+  id: z.string().min(1),
+  /** Identifiant lisible, par exemple THI-12. */
+  identifier: z.string().min(1),
+  url: z.string().min(1),
+  exportedAt: z.string().min(1),
+  /** Feedbacks déjà dans l'issue au moment de l'export. */
+  feedbackIds: z.array(z.string()),
+  /** Commentaires postés ensuite, un par feedback. */
+  comments: z.array(z.object({ feedbackId: z.string(), at: z.string() })),
+  /** Commentaire non envoyé. L'ingestion continue. */
+  pending: z.array(z.object({ feedbackId: z.string(), message: z.string() })),
+});
+export type LinearExport = z.infer<typeof LinearExportSchema>;
+
 export const ThemeSchema = z.object({
   key: z.string(),
   title: z.string(),
@@ -189,6 +206,8 @@ export const ThemeSchema = z.object({
   relatedThemeIds: z.array(z.string()).optional(),
   /** Pourquoi ce thème a été créé plutôt que rattaché. Absent si le thème est ancien. */
   creationRationale: z.string().optional(),
+  /** Posé après un export réussi. Le seed repart sans ce champ. */
+  linearExport: LinearExportSchema.optional(),
 });
 export type Theme = z.infer<typeof ThemeSchema>;
 
@@ -277,6 +296,22 @@ export const MOSCOW_CLASSES = [
 ] as const;
 export const MoscowClassSchema = z.enum(MOSCOW_CLASSES);
 export type MoscowClass = z.infer<typeof MoscowClassSchema>;
+
+export const CapacityRiseSchema = z.object({
+  key: z.string(),
+  title: z.string(),
+  from: MoscowClassSchema,
+  to: MoscowClassSchema,
+});
+
+/** Thèmes dont la classe a monté parce qu'un export a libéré des points. */
+export const CapacityFreedSchema = z.object({
+  themeKey: z.string(),
+  title: z.string(),
+  identifier: z.string(),
+  rises: z.array(CapacityRiseSchema),
+});
+export type CapacityFreed = z.infer<typeof CapacityFreedSchema>;
 
 export const MoscowDecisionSchema = z.object({
   themeKey: z.string(),

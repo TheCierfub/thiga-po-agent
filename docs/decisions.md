@@ -514,3 +514,26 @@ Les 52 feedbacks du corpus de démo ont une valeur écrite à la main dans `fixt
 ### Conséquences
 
 Relancer le seed recharge ces 52 valeurs et retire les sentiments décidés en direct sur le corpus. Le badge est dans l'en-tête de l'accordéon des sources : entreprise, prénom et nom, sentiment, puis à droite la date et le canal.
+
+## ADR-022 — Un thème exporté sort de l'arbitrage
+
+- **Statut :** acceptée
+- **Date :** 2026-11-10
+
+### Contexte
+
+Envoyer un thème vers Linear ne changeait rien dans le lot. L'identifiant de l'issue n'était pas retenu, le thème restait dans le MoSCoW, et un feedback arrivé ensuite ne prévenait pas l'issue.
+
+### Décision
+
+L'issue (`id`, `identifier` du type THI-12, `url`) est un champ facultatif `linearExport` du thème, dans le JSON `analysis_runs.state`. Pas de nouvelle colonne, pas de migration SQL : un état déjà en base reste lisible.
+
+Après un export réussi, le thème est « Engagé (THI-xx) », hors arbitrage, sur le même principe que LIN-12 et LIN-52 : ses points ne comptent plus. Le reste du lot est réalloué. Si un thème monte d'une classe, le brief le dit (`capacityFreed`). Les feedbacks présents à l'export sont « Traité · THI-xx ».
+
+Un feedback saisi ensuite, ou venu de X, et rattaché à ce thème ne le remet pas dans l'arbitrage. Il ajoute un commentaire sur l'issue (citation, entreprise, canal, date, Reach), marqué `<!-- etai-feedback:id -->` pour qu'un second essai ne le poste pas deux fois. Si Linear ne répond pas, le feedback est « En attente » et l'ingestion continue. La description de l'issue liste toujours les feedbacks sources sous la story.
+
+`pnpm db:seed` remplace l'analyse par le corpus rejoué, donc sans ces liens. Les issues déjà dans Linear ne sont pas modifiées.
+
+### Conséquences
+
+Seule l'équipe configurée reçoit les commentaires. Le code ne parle à Linear que pour l'issue enregistrée. La clé reste sur le serveur.

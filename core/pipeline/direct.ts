@@ -5,6 +5,7 @@ import type { DecisionPlan } from "../llm/profiles";
 import type { DecisionEngine, DecisionRequest, DecisionResult } from "../llm/decisions";
 import type { LlmProvider, LlmRequest } from "../llm/provider";
 import { ChannelSchema, FeedbackSchema, type Feedback } from "../schemas";
+import { annotateEngagedFeedback, type LinearComments } from "../export/comment";
 import type { AnalysisStore } from "../store/types";
 import { costOf, stepDurations, themeMoves, type IngestCall, type IngestDecision, type IngestTrace, type TimedCall } from "./ingest-trace";
 import { readThemeConfidence } from "../steps/decide";
@@ -191,6 +192,8 @@ export async function ingestDirectFeedback(options: {
   /** Jetons et coût par appel HTTP, lus après l'analyse. Absent avec un faux client. */
   usage?: () => UsageRecord[];
   log?: (line: string) => void;
+  /** null : Linear injoignable, le commentaire est mis en attente. Absent : pas de commentaire (tests, démo). */
+  linear?: LinearComments | null;
 }): Promise<{ result: RunResult; elapsedMs: number; trace: IngestTrace }> {
   const started = Date.now();
   const stored = await options.store.getRun(options.feedback.batch);
@@ -201,6 +204,7 @@ export async function ingestDirectFeedback(options: {
     throw new DirectIngestError(`Ce feedback est déjà enregistré (${options.feedback.id}).`);
   }
   const timer = new TimingProvider(options.provider);
+  const previousReach = new Map(stored.state.rice.map((score) => [score.themeKey, score.reach.accounts.length]));
   const result = await appendFeedback({
     feedback: options.feedback,
     previous: stored.state,
@@ -242,10 +246,23 @@ export async function ingestDirectFeedback(options: {
     rationaleFor,
     decision,
   });
+  let state = result.state;
+  if (options.linear !== undefined) {
+    const joined = state.themes.find(
+      (theme) => theme.linearExport && (theme.feedbackIds.includes(options.feedback.id) || theme.relatedSignalIds.includes(options.feedback.id)),
+    );
+    state = await annotateEngagedFeedback(
+      state,
+      options.feedback,
+      options.context.accounts,
+      joined ? (previousReach.get(joined.key) ?? 0) : 0,
+      options.linear,
+    );
+  }
   const changes = result.changes ? { ...result.changes, ingest: draft } : result.changes;
   try {
     await options.store.saveRun({
-      state: result.state,
+      state,
       newFeedbackIds: result.newFeedbackIds,
       changes,
     });
@@ -257,10 +274,10 @@ export async function ingestDirectFeedback(options: {
   const saved = changes ? { ...changes, ingest: trace } : null;
   if (saved) {
     await options.store
-      .saveRun({ state: result.state, newFeedbackIds: result.newFeedbackIds, changes: saved })
+      .saveRun({ state, newFeedbackIds: result.newFeedbackIds, changes: saved })
       .catch(() => undefined);
   }
   const line = JSON.stringify({ event: "feedback.ingest", ...trace });
   (options.log ?? console.log)(line.replace(/sk-or-[\w-]+/g, "[clé]").replace(/sb_(?:publishable|secret)_[\w-]+/g, "[clé]"));
-  return { result: saved ? { ...result, changes: saved } : result, elapsedMs: Date.now() - started, trace };
+  return { result: saved ? { ...result, state, changes: saved } : { ...result, state }, elapsedMs: Date.now() - started, trace };
 }

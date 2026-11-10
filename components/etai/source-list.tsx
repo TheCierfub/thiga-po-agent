@@ -18,6 +18,8 @@ export interface SourceItem {
   rejected: string[];
   href: string;
   note: string | null;
+  mark: string | null;
+  markPending: boolean;
 }
 
 const SENTIMENT_TONE: Record<Sentiment, string> = {
@@ -50,6 +52,9 @@ export function SourceList({ items }: { items: SourceItem[] }) {
                 <span className={cn("rounded-full border px-1.5 py-px text-[11px] leading-4", SENTIMENT_TONE[item.sentiment])}>
                   {SENTIMENT_LABEL[item.sentiment]}
                 </span>
+                {item.mark ? (
+                  <span className={cn("text-[11px]", item.markPending ? "text-warn-fg" : "text-muted-foreground")}>{item.mark}</span>
+                ) : null}
               </span>
               <span className="flex shrink-0 items-center gap-2 pt-0.5 text-xs text-muted-foreground">
                 <span>{item.dateLabel}</span>

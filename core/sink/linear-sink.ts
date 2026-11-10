@@ -187,7 +187,7 @@ export class LinearSink implements BacklogSink {
     if (this.options.customerRequests !== false) {
       notes.push(...(await this.customerRequests(issue, item)));
     }
-    return { stableKey: item.stableKey, action, target: issue.identifier, url: issue.url, ...(notes.length ? { notes } : {}) };
+    return { stableKey: item.stableKey, action, target: issue.identifier, issueId: issue.id, url: issue.url, ...(notes.length ? { notes } : {}) };
   }
 
   /** Une demande client par compte, rattachée à l'issue. Un échec ici n'annule pas l'export de l'issue. */

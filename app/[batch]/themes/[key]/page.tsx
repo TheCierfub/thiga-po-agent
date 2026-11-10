@@ -3,10 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowLeftIcon } from "lucide-react";
-import { CategoryBadge, Empty, Section, TrendBars } from "@/components/etai/bits";
+import { CategoryBadge, Empty, EngagedLink, Section, TrendBars } from "@/components/etai/bits";
 import { SourceList, type SourceItem } from "@/components/etai/source-list";
 import { StoryPanel } from "@/components/etai/story-panel";
 import { ThemeMoscow, ThemeNav } from "@/components/etai/theme-nav";
+import { feedbackLinearMark } from "@/core/export/comment";
 import { feedbackDate } from "@/core/stories/place";
 import { DEMO_BATCHES, isDemoBatch } from "@/lib/etai/batches";
 import { readExportMode } from "@/lib/etai/export-mode";
@@ -68,6 +69,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
         theme.relatedSignalIds.includes(id) && !theme.feedbackIds.includes(id) ? "signal lié" : null,
         view.changes && view.newFeedbackIds.includes(id) ? "nouveau" : null,
       ].filter(Boolean).join(" · ") || null;
+      const mark = feedbackLinearMark(view.state.themes, id);
       const item: SourceItem & { receivedAt: string } = {
         id,
         receivedAt: feedback.receivedAt,
@@ -80,7 +82,9 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
         quotes,
         rejected,
         href: `/${batch}/feedbacks#${id}`,
-        note,
+        note: [note, mark?.message].filter(Boolean).join(" · ") || null,
+        mark: mark?.text ?? null,
+        markPending: mark?.tone === "attente",
       };
       return [item];
     })
@@ -95,6 +99,7 @@ async function ThemePageContent({ params }: Pick<PageProps<"/[batch]/themes/[key
         <div className="min-w-0 space-y-2 animate-enter">
             <div className="flex flex-wrap items-center gap-2">
               <ThemeMoscow themeKey={key} />
+              {theme.linearExport ? <EngagedLink identifier={theme.linearExport.identifier} url={theme.linearExport.url} /> : null}
               {assessment ? <CategoryBadge value={assessment.category} rationale={assessment.categoryRationale} /> : null}
               <TrendBars trend={theme.trend} />
               {issue ? (

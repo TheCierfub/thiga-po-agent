@@ -52,6 +52,18 @@ async function BriefPageContent({ params }: Pick<PageProps<"/[batch]">, "params"
         <Stat label="En quarantaine" value={quarantined.length} hint="consignes détectées" />
       </div>
 
+      {view.state.capacityFreed?.some((event) => event.rises.length > 0) ? (
+        <div className="space-y-2 rounded-xl border bg-card px-4 py-3 text-sm">
+          {view.state.capacityFreed.flatMap((event) =>
+            event.rises.map((rise) => (
+              <p key={`${event.identifier}-${rise.key}`}>
+                La capacité libérée par l&apos;export de « {event.title} » ({event.identifier}) fait passer « {rise.title} » de {rise.from} à {rise.to}.
+              </p>
+            )),
+          )}
+        </div>
+      ) : null}
+
       {view.changes ? (
         <Section index={2} title={`Ce qui a changé depuis ${view.changes.previousBatch}`} description="Seuls les thèmes dont les preuves ont changé ont été réévalués ; tous les scores ont été recalculés.">
           <ChangesPanel batch={batch} changes={view.changes} accounts={accounts} />
