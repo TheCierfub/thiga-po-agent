@@ -100,4 +100,16 @@ export class SdkLinearApi implements LinearApi {
     const payload = await this.client.createCustomerNeed(input);
     if (!payload.success) throw new Error("Linear n'a pas créé la demande client.");
   }
+
+  async listComments(issueId: string): Promise<{ body: string }[]> {
+    const issue = await this.client.issue(issueId);
+    const page = await issue.comments({ first: 50 });
+    return page.nodes.map((comment) => ({ body: comment.body }));
+  }
+
+  async createComment(input: { issueId: string; body: string }): Promise<void> {
+    const issue = await this.client.issue(input.issueId);
+    const payload = await this.client.createComment({ issueId: issue.id, body: input.body });
+    if (!payload.success) throw new Error("Linear n'a pas créé le commentaire.");
+  }
 }

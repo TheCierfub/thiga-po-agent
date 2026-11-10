@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EngagedLink } from "@/components/etai/bits";
 import { engagedEffortLabel } from "@/core/stories/place";
 import { CHANNEL_LABEL, CONSTRAINT_LABEL, MOSCOW_ORDER, eur, num, pct } from "@/lib/etai/labels";
 import { useOverrides, usePrioritization } from "@/lib/etai/overrides";
@@ -171,7 +172,9 @@ function ThemeRow({
             </Tooltip>
           </Cell>
           <Cell label="Effort">
-            {engagedEffortLabel(decision.moscow, theme.backlogIssueId) ? (
+            {theme.linearExport ? (
+              <EngagedLink identifier={theme.linearExport.identifier} url={theme.linearExport.url} />
+            ) : engagedEffortLabel(decision.moscow, theme.backlogIssueId) ? (
               <Tooltip>
                 <TooltipTrigger
                   render={<span className="inline-flex cursor-help rounded-md bg-muted px-1.5 py-0.5 text-xs text-foreground" />}

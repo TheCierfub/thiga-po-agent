@@ -31,6 +31,7 @@ import { classifyAll, isRelatedSignal, isThemeEligible, needsInvestigation } fro
 import { draftStory } from "../steps/draft-story";
 import { attachFeedback, type ExistingThemeBrief } from "../steps/attach";
 import { DEFAULT_THEME_CONFIDENCE, formatAttachmentReason, themeChoiceIsConfident } from "../steps/decide";
+import { committedIssueOf } from "../export/engage";
 import { groupThemes, type GroupedTheme } from "../steps/group";
 import type { IngestTrace } from "./ingest-trace";
 import { draftInvestigation } from "../steps/investigate";
@@ -376,9 +377,14 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
   }
 
   const { merged, firstSeen } = mergeThemes(previous?.themes ?? [], grouping.themes);
+  const keptExport = new Map((previous?.themes ?? []).flatMap((theme) => (theme.linearExport ? [[theme.key, theme.linearExport] as const] : [])));
   const themes = merged
     .filter((g) => g.feedbackIds.length > 0)
-    .map((g) => buildTheme(g, firstSeen.get(g.key) ?? batch, classifications, feedbacks, window));
+    .map((g) => {
+      const theme = buildTheme(g, firstSeen.get(g.key) ?? batch, classifications, feedbacks, window);
+      const linearExport = keptExport.get(g.key);
+      return linearExport ? { ...theme, linearExport } : theme;
+    });
 
   // 4. Invalidation : qu'est-ce qui dépend de preuves ou d'hypothèses modifiées ?
   const overrideOf = (key: string) => decisions.overrides.find((o) => o.themeKey === key);
@@ -492,8 +498,7 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
     const kind = llmConstraint ?? (theme.hasCriticalBug ? "coeur_casse" : null);
     const confirmation = decisions.confirmedConstraints.find((c) => c.themeKey === theme.key);
     const issue = theme.backlogIssueId ? backlogById.get(theme.backlogIssueId) : undefined;
-    const committed =
-      issue && (strategy.capacity.committedIssueIds.includes(issue.id) || issue.statut === "En cours") ? issue.id : null;
+    const committed = committedIssueOf(theme, issue, strategy.capacity.committedIssueIds);
     const previousDecision = previous?.allocation.decisions.find((decision) => decision.themeKey === theme.key);
     const evidenceUnchanged = previous !== null && previous.evidence[theme.key] === evidence[theme.key];
     const confirmationStale = evidenceUnchanged
@@ -591,6 +596,7 @@ export async function advanceRun(options: AdvanceOptions): Promise<RunResult> {
     ...((previous?.attachments?.length ?? 0) + attachmentRecords.length > 0
       ? { attachments: [...(previous?.attachments ?? []), ...attachmentRecords] }
       : {}),
+    ...(previous?.capacityFreed?.length ? { capacityFreed: previous.capacityFreed } : {}),
   };
 
   let changes: ChangeReport | null = null;

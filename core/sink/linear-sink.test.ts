@@ -102,6 +102,7 @@ describe("LinearSink", () => {
     expect(issue.description).toContain("## Critères d'acceptation");
     expect(issue.description).toContain("Étant donné");
     expect(issue.description).toContain("## Complexité relative");
+    expect(issue.description).toContain("## Feedbacks sources");
     expect(issue.description).toContain(story.text!.trim());
     expect(issue.description).toContain("etai:sso_contrat");
     expect(api.needs).toHaveLength(itemFor("sso_contrat").details.customers.length);

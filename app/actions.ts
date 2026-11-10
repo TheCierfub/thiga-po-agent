@@ -20,14 +20,30 @@ import { SizeSchema, UserStoryDraftSchema, type UserStoryDraft } from "@/core/sc
 import { draftStory } from "@/core/steps/draft-story";
 import { placeStory } from "@/core/stories/place";
 import { ReplayProvider } from "@/core/llm/fixtures";
+import { recordThemeExport } from "@/core/export/engage";
+import type { LinearComments } from "@/core/export/comment";
 import { buildBacklogItems, type SinkResult } from "@/core/sink/backlog-sink";
 import { LINEAR_EXPORT_DIR, exportTarget } from "@/core/sink/export-target";
+import { SdkLinearApi } from "@/core/sink/linear-api";
 import { DEMO_BATCHES } from "@/lib/etai/batches";
 import { resolveDataMode } from "@/lib/etai/data-mode";
+import { readExportMode } from "@/lib/etai/export-mode";
 import { ROOT, feedbackUrl } from "@/lib/etai/runs";
 import { getBatchView } from "@/lib/etai/view";
 import { DEFAULT_X_QUERY, capMicro, readMaxAgeDays, readSessionCapUsd } from "@/core/sources/x-listen";
 import { TregError, runXPoll, type PollPostResult, type TregCallTrace } from "@/core/sources/x";
+
+/** Commentaires seulement sur l'équipe THI. Une autre équipe, ou Linear injoignable, laisse le feedback en attente. */
+async function linearForIngest(): Promise<LinearComments | null> {
+  const status = await readExportMode();
+  const key = process.env.LINEAR_API_KEY?.trim();
+  if (!status.connected || status.team?.key !== "THI" || !key) return null;
+  const api = SdkLinearApi.fromKey(key);
+  return {
+    listComments: (issueId) => api.listComments(issueId),
+    createComment: (input) => api.createComment(input),
+  };
+}
 
 function scrub(error: unknown): string {
   const token = process.env.TREG_TOKEN?.trim();
@@ -75,6 +91,23 @@ export async function exportTheme(input: z.input<typeof ExportInput>): Promise<E
   try {
     const [result] = await target.sink.push([item]);
     if (!result) return { ok: false, message: "L'export n'a renvoyé aucun résultat." };
+    if (target.mode === "linear" && result.action !== "bloque" && result.target && result.url) {
+      const mode = await resolveDataMode();
+      if (mode.kind === "live") {
+        const stored = await mode.store.getRun(batch);
+        if (stored) {
+          const recorded = recordThemeExport(
+            stored.state,
+            themeKey,
+            { id: result.issueId ?? result.target, identifier: result.target, url: result.url },
+            view.strategy,
+            new Date().toISOString(),
+          );
+          await mode.store.saveRun({ ...stored, state: recorded.state });
+          revalidatePath(`/${batch}`, "layout");
+        }
+      }
+    }
     const location =
       target.mode === "markdown" && result.target ? `${LINEAR_EXPORT_DIR}/${result.target}` : (result.url ?? result.target ?? null);
     return { ok: true, mode: target.mode, label: target.label, reason: target.reason, result, location };
@@ -168,6 +201,7 @@ export async function addFeedback(input: z.input<typeof DirectFeedbackInputSchem
       decisions,
       context,
       decider: live.decider,
+      linear: await linearForIngest(),
       usage: () =>
         live.meter.records.map((call) => ({
           task: call.step,
@@ -247,6 +281,7 @@ export async function pollXMentions(input: z.input<typeof PollInput>): Promise<P
           decisions,
           context,
           decider: live.decider,
+          linear: await linearForIngest(),
           usage: () =>
             live.meter.records.map((call) => ({
               task: call.step,

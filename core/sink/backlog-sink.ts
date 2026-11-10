@@ -1,3 +1,4 @@
+import { renderFeedbackSources } from "../export/sources";
 import type { RunResult } from "../pipeline/run";
 import type { MoscowClass, Quote, Size, ThemeCategory } from "../schemas";
 import { CATEGORY_LABEL, num, pct, reachLabel } from "../report/format";
@@ -46,6 +47,8 @@ export interface SinkResult {
   stableKey: string;
   action: SinkAction;
   target: string | null;
+  /** UUID Linear, pour un commentaire ultérieur. */
+  issueId?: string;
   reason?: string;
   url?: string;
   notes?: string[];
@@ -97,7 +100,17 @@ export function buildBacklogItems(result: Pick<RunResult, "state" | "accounts" |
         `Feedbacks : ${t.feedbackIds.map(link).join(", ")}.`,
         "",
       ].join("\n");
-      const body = story ? storyText(story) : composed;
+      const sourceIds = [...t.feedbackIds, ...t.relatedSignalIds.filter((id) => !t.feedbackIds.includes(id))];
+      const sources = renderFeedbackSources({
+        feedbackIds: sourceIds,
+        feedbacks: state.feedbacks,
+        quotes: t.quotes,
+        accountName: (id) => {
+          const accountId = accountOf.get(id);
+          return accountId ? (result.accounts.get(accountId)?.nom ?? null) : null;
+        },
+      });
+      const body = story ? `${storyText(story).trimEnd()}\n\n${sources}` : `${composed.trimEnd()}\n\n${sources}`;
       const size = story ? storyIssueSize(story) : r.effort.size;
       const customers = r.reach.accounts.map((accountId) => {
         const feedbackIds = t.feedbackIds.filter((id) => accountOf.get(id) === accountId);

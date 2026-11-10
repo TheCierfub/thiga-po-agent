@@ -64,7 +64,7 @@ export function reprioritize(scoring: Scoring, strategy: Strategy, overrides: Po
       confidence: r.confidence.value,
       strategyFit: fitByKey.get(t.key) ?? "neutre",
       constraint: d?.constraint ? { ...d.constraint, rejected: false } : null,
-      committedIssueId: d?.moscow === "Hors arbitrage" ? (t.backlogIssueId ?? "engagé") : null,
+      committedIssueId: t.linearExport?.identifier ?? (d?.moscow === "Hors arbitrage" ? (t.backlogIssueId ?? "engagé") : null),
     };
   });
 

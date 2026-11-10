@@ -6,6 +6,7 @@ import { AddFeedbackForm } from "@/components/etai/add-feedback";
 import { ArrivalItem, ArrivalWatch } from "@/components/etai/arrival-watch";
 import { HashScroll } from "@/components/etai/hash-scroll";
 import { SocialMark } from "@/components/etai/social-mark";
+import { feedbackLinearMark } from "@/core/export/comment";
 import { readPollSeconds } from "@/core/sources/x-listen";
 import { isDemoBatch } from "@/lib/etai/batches";
 import { CHANNEL_LABEL, MATCH_LABEL, TYPE_LABEL, feedbackWho } from "@/lib/etai/labels";
@@ -57,6 +58,7 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
           const theme = themeOf(f.id);
           const account = m?.accountId ? accountsById[m.accountId] : undefined;
           const attachment = state.attachments?.find((item) => item.feedbackId === f.id);
+          const mark = feedbackLinearMark(state.themes, f.id);
           return (
             <ArrivalItem
               key={f.id}
@@ -72,6 +74,7 @@ async function FeedbacksPageContent({ params }: Pick<PageProps<"/[batch]/feedbac
                 {f.channel === "social" ? <SocialMark url={f.sourceUrl} /> : null}
                 <span>{new Date(f.receivedAt).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" })}</span>
                 {c ? <span>{TYPE_LABEL[c.type]}</span> : null}
+                {mark ? <span className={mark.tone === "attente" ? "font-medium text-warn-fg" : "text-foreground"}>{mark.text}</span> : null}
                 {c?.injection.quarantined ? <span className="font-medium text-warn-fg">quarantaine</span> : null}
                 {changes && fresh.has(f.id) ? <span className="font-medium text-(--moscow-must)">nouveau</span> : null}
                 {theme ? (
