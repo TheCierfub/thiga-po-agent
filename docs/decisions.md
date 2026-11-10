@@ -585,3 +585,24 @@ L'inscription ouverte évite de tenir une liste, et laisse n'importe qui créer 
 ### Conséquences
 
 Sans la migration, les actions coûteuses s'arrêtent plutôt que de partir sans compteur. Sans session, elles répondent qu'une connexion est requise. La clé publishable reste côté serveur. Site URL, Redirect URLs et le modèle d'e-mail se règlent sur le projet Auth, pas dans le dépôt.
+
+## ADR-025 — Le badge Linear n'est vert qu'avec une clé personnelle
+
+- **Statut :** acceptée
+- **Date :** 2026-11-10
+
+### Contexte
+
+En production, un visiteur sans compte voyait « Linear connecté » en vert, parce que la clé du serveur répondait, et un second bouton « Connecter » à côté. Les deux états se contredisaient.
+
+### Décision
+
+Le badge n'est vert, « Linear connecté · équipe », que lorsqu'une clé personnelle est dans le navigateur. Le nom vient de l'API. Sans cette clé, le badge lui-même est le bouton neutre « Connecter Linear » : contour, logo blanc, pas de pastille verte, et aucun autre bouton de connexion à côté.
+
+Une session sans clé personnelle ne colore pas le badge. Le clic ouvre directement l'étape 2, la saisie de la clé. C'est plus clair que d'afficher l'équipe du serveur : l'export avec cette clé existe déjà, mais le visiteur est venu pour brancher la sienne. L'export avec la clé du serveur continue d'exiger une session.
+
+Sans session, le même bouton ouvre l'étape 1 (e-mail, lien magique). Le lien revient sur la page avec `?etape=cle` et rouvre l'étape 2. La page `/connexion` reste pour les actions verrouillées.
+
+### Conséquences
+
+Le vert ne dit plus « le serveur a une clé ». Il dit « ce navigateur a la sienne ».

@@ -1,16 +1,9 @@
 import { signOut } from "@/app/actions";
 import { readAccess } from "@/lib/etai/access";
-import Link from "next/link";
 
 export async function SessionMenu() {
   const { email } = await readAccess();
-  if (!email) {
-    return (
-      <Link href="/connexion" className="text-xs text-muted-foreground hover:text-foreground">
-        Se connecter
-      </Link>
-    );
-  }
+  if (!email) return null;
   return (
     <form action={signOut} className="flex items-center gap-2">
       <span className="max-w-48 truncate text-xs text-muted-foreground">{email}</span>
