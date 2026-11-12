@@ -1,4 +1,3 @@
-export const MAGIC_LINK_SENT = "Un lien de connexion a été envoyé.";
 export const SIGN_IN_REQUIRED = "Connexion requise.";
 
 export interface Actor {
@@ -23,12 +22,6 @@ export function authorizeSpend(actor: Actor | null): Gate {
 export function authorizeLinearExport(actor: Actor | null, keySource: "session" | "default" | "aucune"): Gate {
   if (keySource === "session") return { ok: true, id: actor?.id.trim() ?? "", email: actor?.email.trim().toLowerCase() ?? "" };
   return authorizeSpend(actor);
-}
-
-/** Une adresse qui ressemble à un e-mail peut recevoir un lien. */
-export function canRequestMagicLink(email: string): boolean {
-  const trimmed = email.trim().toLowerCase();
-  return trimmed.includes("@") && trimmed.length <= 320 && !trimmed.includes(" ");
 }
 
 export { safeRelativePath as safeNextPath } from "./origin";

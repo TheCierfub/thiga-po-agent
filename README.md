@@ -30,8 +30,8 @@ Le jeudi, un second lot fait bouger les priorités : l'écran « Ce qui a chang�
 - **Badge Linear** dans l'en-tête, affiché seulement si Linear répond (PR #8).
 - **Cycle de vie après export** (PR #9) : le thème exporté passe « Engagé (THI-xx) » et sort de l'arbitrage, sa capacité est réallouée aux autres thèmes ; les feedbacks présents deviennent « Traité · THI-xx » ; un feedback arrivé ensuite sur ce thème est posté en **commentaire sur l'issue**, sans doublon.
 - **Clé Linear personnelle** (PR #10) : vérifiée auprès de l'API, choix de l'équipe, chiffrée en AES-256-GCM dans un cookie httpOnly de 7 jours, jamais en base ni renvoyée au navigateur.
-- **Lien magique et quotas** (PR #11, #13) : n'importe quelle adresse peut se connecter (c'est le mode de connexion du jury) ; les actions qui coûtent (story, ajout de feedback, écoute X, export avec la clé du serveur) exigent une session vérifiée côté serveur et sont plafonnées par compte et par jour (5 stories, 20 feedbacks, 5 exports ; 30 stories et 20 exports tous comptes confondus).
-- **« Connecter Linear » en deux étapes** (PR #12) : sans session, étape 1 = e-mail et lien magique ; au retour, étape 2 = saisie de la clé. Le badge n'est vert qu'avec une clé personnelle.
+- **Code d'accès** : la démo est fermée par un code partagé (`DEMO_ACCESS_CODE`), vérifié côté serveur. Un cookie signé ouvre l'application pendant 7 jours. Sans cette variable, l'accès est refusé.
+- **Quotas globaux** : 30 stories et 200 classifications par jour pour toute la démo, 20 exports avec la clé Linear du serveur. Le badge n'est vert qu'avec une clé personnelle.
 - **Carte Floorplan** de l'architecture servie par l'app (PR #14).
 
 ## Architecture
@@ -40,7 +40,7 @@ Le jeudi, un second lot fait bouger les priorités : l'écran « Ce qui a chang�
 Navigateur ─▶ Next.js 16 (Render) ─┬─▶ OpenRouter ─┬─ Jev (typesafe/jev-1.14) : rattache les cas clairs (confiance ≥ 0,8)
                                    │               └─ Claude Sonnet : tranche les cas ambigus (compare, rattache ou crée le thème) et rédige les US
                                    ├─▶ Code déterministe : RICE, MoSCoW DSDM, citations, invalidation
-                                   ├─▶ Supabase : Postgres (feedbacks, analyses, arbitrages) + Auth (lien magique, pour la connexion du jury) + usage_counters
+                                   ├─▶ Supabase : Postgres (feedbacks, analyses, arbitrages) + usage_counters (plafond global)
                                    ├─▶ Linear SDK : issues, labels, demandes clients, commentaires
                                    └─▶ Treg : écoute X en direct (les autres canaux — e-mail, tickets, G2/Capterra, Reddit — sont la cible)
 ```
@@ -48,7 +48,7 @@ Navigateur ─▶ Next.js 16 (Render) ─┬─▶ OpenRouter ─┬─ Jev (typ
 - **Interface** : Next.js 16, React 19, TypeScript strict, composants shadcn/ui, thème sombre.
 - **Contrats** : chaque réponse de modèle est un objet validé par **Zod**. Le modèle n'a aucun outil : il ne peut que renvoyer ce schéma.
 - **Modèles via OpenRouter** : une seule API pour plusieurs fournisseurs, ce qui simplifie les appels et permet un repli. Profil par défaut B : Jev décide (type, injection, gravité, sentiment, backlog, thème d'un ajout). Si sa confiance sur le thème atteint 0,8 (`ETAI_THEME_CONFIDENCE`), le feedback est rattaché sans autre appel ; sinon Sonnet compare le feedback aux thèmes ouverts et, si besoin, nomme un thème nouveau, puis le code tranche (un « créer » qui contredit sa propre comparaison est forcé en « rattacher »). En cas d'échec de Jev, repli Sonnet. Budget plafonné à 1 $ par ajout. Mesures en production : Jev ≈ 0,9 s et ~0,0001 $ par décision ; une story Sonnet ≈ 50,6 s et ~0,07 $.
-- **Tests** : Vitest, **202 tests sur 38 fichiers, tous verts** sur `main` (`001ba0b`) : règles RICE et MoSCoW, rattachement, export Linear, auth, quotas, sécurité, avec un faux OpenRouter et un faux Linear.
+- **Tests** : Vitest, **199 tests sur 37 fichiers, tous verts** : règles RICE et MoSCoW, rattachement, export Linear, code d'accès, quotas, sécurité, avec un faux OpenRouter et un faux Linear.
 - **Persistance** : Supabase, appelé uniquement depuis le serveur Next ; la clé n'est jamais préfixée `NEXT_PUBLIC_`.
 - **Déploiement** : Render (`render.yaml`), redéploiement à chaque commit sur `main`, contrôle de santé sur `/lundi`.
 - **Carte Floorplan** : 217 fichiers, servie à [`/floorplan.html`](https://thiga-po-agent.onrender.com/floorplan.html).
@@ -62,19 +62,19 @@ Node 22, pnpm 10 (`corepack enable`).
 ```bash
 pnpm install
 pnpm dev          # http://localhost:43217, mode démo sans aucune clé
-pnpm test         # Vitest (202 tests)
+pnpm test         # Vitest (199 tests)
 pnpm typecheck && pnpm lint
 ```
 
 Sans variable d'environnement, l'interface rejoue des réponses déjà écrites (`fixtures/llm/`, rédigées à la main) : aucun appel de modèle, aucun réseau. Un bandeau l'indique.
 
-**Mode direct** (base + modèles) : copier `.env.example` vers `.env` (jamais commité), renseigner `SUPABASE_URL`, `SUPABASE_KEY`, `OPENROUTER_API_KEY`, et pour l'export `LINEAR_API_KEY`, `LINEAR_TEAM_ID`, `LINEAR_KEY_COOKIE_SECRET`. Appliquer les migrations de `supabase/migrations/`, puis :
+**Mode direct** (base + modèles) : copier `.env.example` vers `.env` (jamais commité), renseigner `DEMO_ACCESS_CODE`, `ACCESS_COOKIE_SECRET`, `SUPABASE_URL`, `SUPABASE_KEY`, `OPENROUTER_API_KEY`, et pour l'export `LINEAR_API_KEY`, `LINEAR_TEAM_ID`, `LINEAR_KEY_COOKIE_SECRET`. Sans `DEMO_ACCESS_CODE` ou `ACCESS_COOKIE_SECRET`, l'application refuse l'accès. Appliquer les migrations de `supabase/migrations/`, puis :
 
 ```bash
 pnpm db:seed      # recharge les 52 feedbacks et les analyses lundi/jeudi, retire les ajouts faits dans l'interface
 ```
 
-Pour la démo en ligne, le jury se connecte par **lien magique** (e-mail), puis peut coller une clé Linear personnelle s'il veut exporter vers son équipe.
+Pour la démo en ligne, l'accès se fait avec le **code partagé** (`DEMO_ACCESS_CODE`), puis on peut coller une clé Linear personnelle pour exporter vers sa propre équipe. Le code n'est pas écrit dans ce dépôt.
 
 Autres commandes : `pnpm agent run --batch lundi|jeudi` (pipeline en ligne de commande, sorties dans `out/`), `pnpm export:linear --batch lundi --dry-run`, `pnpm eval` (comparaison à la clé de réponses), `pnpm eval:compare` (profils A, B, C sur de vrais modèles, plafond 5 $).
 
@@ -89,7 +89,7 @@ Le journal complet est [`AI_USAGE.md`](AI_USAGE.md). Règle tenue tout du long :
 5. **Jeu de données** rédigé par Grok 4.7, un modèle volontairement différent de celui qui code, pour limiter la circularité.
 6. **Code et tests** dans Cursor (cloud agent) : Claude Opus 5.5 pour l'architecture, Grok 4.7 pour les modifications. Dans l'outil, Jev classifie les feedbacks, Sonnet rédige les user stories.
 
-**Ce que j'ai vérifié moi-même** : le jeu de données et les seuils (RICE, allocation MoSCoW), relus et validés ; les sorties réelles (un JSON tronqué constaté et corrigé à la main, voir `AI_USAGE.md`) ; les mesures en production (parcours, UX/UI, temps et coût de Jev et des stories) ; le lien magique Supabase (PKCE) et les quotas ; l'export réel vers Linear et les commentaires sur une issue exportée.
+**Ce que j'ai vérifié moi-même** : le jeu de données et les seuils (RICE, allocation MoSCoW), relus et validés ; les sorties réelles (un JSON tronqué constaté et corrigé à la main, voir `AI_USAGE.md`) ; les mesures en production (parcours, UX/UI, temps et coût de Jev et des stories) ; l'accès par code et les quotas ; l'export réel vers Linear et les commentaires sur une issue exportée.
 
 **Difficultés**
 
@@ -107,7 +107,7 @@ Le journal complet est [`AI_USAGE.md`](AI_USAGE.md). Règle tenue tout du long :
 ## Prochaines étapes
 
 - **OAuth Linear** : remplacer la clé API collée par une connexion en un clic.
-- **Vraie page de connexion**, en commençant par un social login (la page `/connexion` actuelle ne sert qu'aux actions verrouillées).
+- **Comptes séparés**, si la démo doit dépasser un code partagé.
 - **Refonte UX** : mieux afficher « Ce qui a changé » depuis la dernière connexion.
 - **Données par compte** : un `workspace_id` sur les tables, des politiques RLS fondées sur `auth.uid()`, plus aucun accès anonyme.
 - Un worker pour l'écoute X, ou un webhook, au lieu d'une page ouverte.

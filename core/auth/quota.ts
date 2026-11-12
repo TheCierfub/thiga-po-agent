@@ -1,5 +1,5 @@
 export const QUOTA_REACHED = "Limite du jour atteinte, réessayez demain.";
-export const MAGIC_LINK_LIMIT = "Trop de liens demandés. Réessayez plus tard.";
+export const GLOBAL_ACTOR = "global";
 
 export const USAGE_ACTIONS = ["story", "feedback", "export"] as const;
 export type UsageAction = (typeof USAGE_ACTIONS)[number];
@@ -12,19 +12,15 @@ export interface UsageCounter {
 }
 
 export interface QuotaLimits {
-  storyUser: number;
-  storyGlobal: number;
-  feedbackUser: number;
-  exportUser: number;
-  exportGlobal: number;
+  story: number;
+  feedback: number;
+  export: number;
 }
 
 export const DEFAULT_QUOTA_LIMITS: QuotaLimits = {
-  storyUser: 5,
-  storyGlobal: 30,
-  feedbackUser: 20,
-  exportUser: 5,
-  exportGlobal: 20,
+  story: 30,
+  feedback: 200,
+  export: 20,
 };
 
 export function readQuotaNumber(raw: string | undefined, fallback: number): number {
@@ -36,18 +32,28 @@ export function readQuotaNumber(raw: string | undefined, fallback: number): numb
 
 export function limitsFor(env: Record<string, string | undefined>): QuotaLimits {
   return {
-    storyUser: readQuotaNumber(env.QUOTA_STORY_PER_USER, DEFAULT_QUOTA_LIMITS.storyUser),
-    storyGlobal: readQuotaNumber(env.QUOTA_STORY_GLOBAL, DEFAULT_QUOTA_LIMITS.storyGlobal),
-    feedbackUser: readQuotaNumber(env.QUOTA_FEEDBACK_PER_USER, DEFAULT_QUOTA_LIMITS.feedbackUser),
-    exportUser: readQuotaNumber(env.QUOTA_EXPORT_PER_USER, DEFAULT_QUOTA_LIMITS.exportUser),
-    exportGlobal: readQuotaNumber(env.QUOTA_EXPORT_GLOBAL, DEFAULT_QUOTA_LIMITS.exportGlobal),
+    story: readQuotaNumber(env.QUOTA_STORY_GLOBAL, DEFAULT_QUOTA_LIMITS.story),
+    feedback: readQuotaNumber(env.QUOTA_FEEDBACK_GLOBAL, DEFAULT_QUOTA_LIMITS.feedback),
+    export: readQuotaNumber(env.QUOTA_EXPORT_GLOBAL, DEFAULT_QUOTA_LIMITS.export),
   };
 }
 
-export function quotaFor(action: UsageAction, limits: QuotaLimits): { user: number; global: number | null } {
-  if (action === "story") return { user: limits.storyUser, global: limits.storyGlobal };
-  if (action === "feedback") return { user: limits.feedbackUser, global: null };
-  return { user: limits.exportUser, global: limits.exportGlobal };
+export function quotaLimit(action: UsageAction, limits: QuotaLimits): number {
+  return limits[action];
+}
+
+/** Un seul compteur pour toute la démo. */
+export function reserveGlobal(
+  counters: readonly UsageCounter[],
+  input: { action: UsageAction; day: string; limit: number },
+): Reservation {
+  return reserveUsage(counters, {
+    userId: GLOBAL_ACTOR,
+    action: input.action,
+    day: input.day,
+    userLimit: input.limit,
+    globalLimit: input.limit,
+  });
 }
 
 /** Jour civil à Paris : le compteur repart à minuit, pas à l'UTC. */
@@ -80,27 +86,3 @@ export function reserveUsage(
   return { ok: true, counters: next };
 }
 
-export interface MagicAttempt {
-  email: string;
-  ip: string;
-  at: number;
-}
-
-/** Fenêtre glissante, en plus du plafond d'envoi de Supabase. */
-export function allowMagicLink(input: {
-  email: string;
-  ip: string;
-  now: number;
-  history: readonly MagicAttempt[];
-  emailLimit: number;
-  ipLimit: number;
-  windowMs: number;
-}): { ok: true; history: MagicAttempt[] } | { ok: false; message: string; history: MagicAttempt[] } {
-  const email = input.email.trim().toLowerCase();
-  const ip = input.ip.trim() || "inconnue";
-  const fresh = input.history.filter((attempt) => input.now - attempt.at < input.windowMs);
-  const byEmail = fresh.filter((attempt) => attempt.email === email).length;
-  const byIp = fresh.filter((attempt) => attempt.ip === ip).length;
-  if (byEmail >= input.emailLimit || byIp >= input.ipLimit) return { ok: false, message: MAGIC_LINK_LIMIT, history: fresh };
-  return { ok: true, history: [...fresh, { email, ip, at: input.now }] };
-}

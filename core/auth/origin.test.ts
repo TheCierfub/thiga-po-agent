@@ -61,10 +61,10 @@ describe("callback du lien magique", () => {
     expect(authCallbackLocation({ origin: publicUrl, next, ok: true })).not.toContain("0.0.0.0");
   });
 
-  it("en cas d'échec, /connexion reste sur l'origine publique et garde next", () => {
+  it("en cas d'échec, /acces reste sur l'origine publique et garde next", () => {
     const next = "/lundi?etape=cle";
     const location = authCallbackLocation({ origin: publicUrl, next, ok: false });
-    expect(location.startsWith(`${publicUrl}/connexion?next=`)).toBe(true);
+    expect(location.startsWith(`${publicUrl}/acces?next=`)).toBe(true);
     expect(decodeURIComponent(location)).toContain(next);
     expect(location).not.toContain("0.0.0.0");
   });

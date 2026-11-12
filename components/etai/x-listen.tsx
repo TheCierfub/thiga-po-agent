@@ -149,7 +149,7 @@ export function XListen({
             {paused ? "Reprendre" : "Pause"}
           </Button>
         ) : (
-          <SignInLink href="/connexion?next=/ops/ecoute">Se connecter pour écouter</SignInLink>
+          <SignInLink href="/acces?next=/ops/ecoute">Code d&apos;accès requis</SignInLink>
         )}
       </div>
       <p className="font-mono text-xs text-muted-foreground">{query}</p>

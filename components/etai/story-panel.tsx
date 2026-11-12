@@ -87,7 +87,7 @@ export function StoryPanel({
             {pending ? "Rédaction en cours" : "Générer la user story"}
           </Button>
         ) : (
-          <SignInLink href={`/connexion?next=/${batch}/themes/${themeKey}`}>Se connecter pour générer</SignInLink>
+          <SignInLink href={`/acces?next=/${batch}/themes/${themeKey}`}>Code d&apos;accès requis</SignInLink>
         )}
         {error ? <p className="text-sm text-warn-fg">{error}</p> : null}
       </div>

@@ -7,7 +7,7 @@ services:
     autoDeployTrigger: commit
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
     startCommand: pnpm exec next start --port $PORT
-    healthCheckPath: /lundi
+    healthCheckPath: /floorplan.html
     envVars:
       - key: NODE_VERSION
         value: "22"
@@ -21,19 +21,15 @@ services:
         sync: false
       - key: SUPABASE_KEY
         sync: false
-      - key: QUOTA_STORY_PER_USER
+      - key: DEMO_ACCESS_CODE
         sync: false
-      - key: QUOTA_FEEDBACK_PER_USER
-        sync: false
-      - key: QUOTA_EXPORT_PER_USER
+      - key: ACCESS_COOKIE_SECRET
         sync: false
       - key: QUOTA_STORY_GLOBAL
         sync: false
+      - key: QUOTA_FEEDBACK_GLOBAL
+        sync: false
       - key: QUOTA_EXPORT_GLOBAL
-        sync: false
-      - key: QUOTA_MAGIC_EMAIL
-        sync: false
-      - key: QUOTA_MAGIC_IP
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
