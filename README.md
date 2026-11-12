@@ -2,7 +2,7 @@
 
 Cas pratique Thiga, poste Product Builder : un agent qui aide Nadia, PO d'un SaaS de pilotage de chantier, à analyser les feedbacks clients, prioriser le backlog et rédiger les user stories, jusqu'à l'issue Linear.
 
-- **Présentation (Google Slides)** : [Thiga · Restitution case study Product Builder](https://docs.google.com/presentation/d/16djw2qlmxY8vSz63ubYyRwfii0mS9yKJVNRM27mkwrM/edit) <!-- TODO Valentin : partager le deck en lecture avant de publier ce README -->
+- **Présentation (Google Slides)** : [Thiga · Restitution case study Product Builder](https://docs.google.com/presentation/d/16djw2qlmxY8vSz63ubYyRwfii0mS9yKJVNRM27mkwrM/edit)
 - **Application en ligne** : [thiga-po-agent.onrender.com](https://thiga-po-agent.onrender.com) (offre gratuite Render : le premier affichage après une pause peut prendre quelques dizaines de secondes)
 - **Carte interactive du code (Floorplan)** : [thiga-po-agent.onrender.com/floorplan.html](https://thiga-po-agent.onrender.com/floorplan.html)
 
@@ -50,7 +50,7 @@ Navigateur ─▶ Next.js 16 (Render) ─┬─▶ OpenRouter ─┬─ Jev (typ
 - **Modèles via OpenRouter** : une seule API pour plusieurs fournisseurs, ce qui simplifie les appels et permet un repli. Profil par défaut B : Jev décide (type, injection, gravité, sentiment, backlog, thème d'un ajout). Si sa confiance sur le thème atteint 0,8 (`ETAI_THEME_CONFIDENCE`), le feedback est rattaché sans autre appel ; sinon Sonnet compare le feedback aux thèmes ouverts et, si besoin, nomme un thème nouveau, puis le code tranche (un « créer » qui contredit sa propre comparaison est forcé en « rattacher »). En cas d'échec de Jev, repli Sonnet. Budget plafonné à 1 $ par ajout. Mesures en production : Jev ≈ 0,9 s et ~0,0001 $ par décision ; une story Sonnet ≈ 50,6 s et ~0,07 $.
 - **Tests** : Vitest, **199 tests sur 37 fichiers, tous verts** : règles RICE et MoSCoW, rattachement, export Linear, code d'accès, quotas, sécurité, avec un faux OpenRouter et un faux Linear.
 - **Persistance** : Supabase, appelé uniquement depuis le serveur Next ; la clé n'est jamais préfixée `NEXT_PUBLIC_`.
-- **Déploiement** : Render (`render.yaml`), redéploiement à chaque commit sur `main`, contrôle de santé sur `/lundi`.
+- **Déploiement** : Render (`render.yaml`), redéploiement à chaque commit sur `main`, contrôle de santé sur `/floorplan.html`.
 - **Carte Floorplan** : 217 fichiers, servie à [`/floorplan.html`](https://thiga-po-agent.onrender.com/floorplan.html).
 
 Le détail des choix est dans [`docs/decisions.md`](docs/decisions.md) (ADR-001 à ADR-025).
