@@ -1,260 +1,113 @@
-# Agent IA pour Product Owner
+# Étai · Agent IA pour Product Owner
 
-Assistant d'un Product Owner de startup SaaS de gestion de projet : analyser les feedbacks clients, éclairer la priorisation du backlog et rédiger les user stories.
+Cas pratique Thiga, poste Product Builder : un agent qui aide Nadia, PO d'un SaaS de pilotage de chantier, à analyser les feedbacks clients, prioriser le backlog et rédiger les user stories, jusqu'à l'issue Linear.
 
-Présentation : [lien Google Slides à venir]
+- **Présentation (Google Slides)** : [Thiga · Restitution case study Product Builder](https://docs.google.com/presentation/d/16djw2qlmxY8vSz63ubYyRwfii0mS9yKJVNRM27mkwrM/edit) <!-- TODO Valentin : partager le deck en lecture avant de publier ce README -->
+- **Application en ligne** : [thiga-po-agent.onrender.com](https://thiga-po-agent.onrender.com) (offre gratuite Render : le premier affichage après une pause peut prendre quelques dizaines de secondes)
+- **Carte interactive du code (Floorplan)** : [thiga-po-agent.onrender.com/floorplan.html](https://thiga-po-agent.onrender.com/floorplan.html)
 
-## Problème et persona
+## Le problème
 
-Nadia Ferri est Product Owner d'**Étai**, un SaaS de pilotage de chantier pour les PME du bâtiment. Les feedbacks arrivent par e-mail, ticket, avis G2 et Capterra, forum, Reddit et X. Elle repriorise le backlog chaque semaine. Son équipe produit tient déjà ce backlog dans Linear.
+Nadia Ferri est Product Owner d'**Étai**, un SaaS de pilotage de chantier pour les PME du bâtiment. Les feedbacks arrivent par plusieurs canaux — e-mail, tickets support, avis G2 / Capterra, X / Reddit. Dans la démo, seul X est écouté en direct (via Treg, depuis `/ops/ecoute`) ; les autres canaux sont la cible, représentés aujourd'hui par le jeu de données et par les feedbacks collés dans l'interface. Elle repriorise le backlog chaque semaine, dans Linear. Le concurrent cité par les clients qui menacent de partir est Vertuoza.
 
-Le cas fictif, les OKR et la capacité du cycle sont dans [`data/context/strategy.md`](data/context/strategy.md).
+Le jeu de démo compte 52 feedbacks fictifs (lot du lundi : 40, lot du jeudi : 12), plus 10 feedbacks de holdout réservés à l'évaluation. Contexte, OKR et capacité du cycle : [`data/context/strategy.md`](data/context/strategy.md).
 
-## Démarrage
+## Ce que fait l'agent
 
-Node 22 et pnpm 10.
-
-```bash
-pnpm install
-pnpm agent run --batch lundi
-pnpm agent run --batch jeudi
-```
-
-Aucune clé n'est nécessaire : par défaut, l'agent rejoue des réponses LLM déjà écrites (`fixtures/llm/`), sans réseau. Ces réponses ont été **rédigées à la main**, pas produites par un modèle : le mode rejoué démontre le pipeline, pas la qualité d'un LLM.
-
-Pour un vrai modèle, voir [Passage réel sur OpenRouter](#passage-réel-sur-openrouter).
-
-Ce que produit chaque lot, dans `out/` (ignoré par git) :
-
-| Fichier | Contenu |
-| --- | --- |
-| `out/<lot>/brief.md` | Brief de la semaine : à décider, tendances, quarantaine, churn, cas flous |
-| `out/<lot>/priorisation.md` | Tableau RICE et MoSCoW, alertes de capacité, détail du Reach |
-| `out/<lot>/story-<thème>.md` | User story, seulement si la rédaction a été demandée explicitement |
-| `out/lundi/investigation-fb-lundi-12.md` | Questions et brouillon de réponse pour le cas flou, non envoyé |
-| `out/jeudi/changements.md` | Ce qui a bougé depuis lundi, et pourquoi |
-| `out/backlog/` | Export local idempotent (`MarkdownSink`), une entrée par clé stable |
-| `out/state/<lot>.json` | État repris par le lot suivant, sans texte brut ni e-mail |
-
-Le lot jeudi reprend l'état de lundi (et lance lundi d'abord s'il n'existe pas). Les décisions du PO (contraintes confirmées, surcharges d'impact ou de taille, libération de quarantaine) sont dans [`data/po-decisions.json`](data/po-decisions.json).
-
-Options : `--reach comptes|volume|arr`, `--decisions <fichier>`, `--out <dossier>`, `--allow-stale-fixtures`. Aide : `pnpm agent --help`.
-
-## Interface
-
-```bash
-pnpm dev   # http://localhost:43217
-```
-
-L'interface (Next.js, shadcn/ui, thème sombre) s'ouvre sur le brief du lundi. Le sélecteur **Lundi / Jeudi** garde l'écran courant ; jeudi affiche ce qui a changé depuis lundi.
-
-| Écran | Contenu |
-| --- | --- |
-| Brief de la semaine | thèmes et tendances, alertes de capacité, signaux de churn, bugs critiques routés, quarantaine avec la raison, changements depuis lundi |
-| Priorisation | tableau RICE et MoSCoW ; une ligne dépliée montre le calcul (comptes du Reach, règle de Confidence, table des tailles). Le PO modifie l'effort ou force une catégorie avec un motif : recalcul immédiat, arbitrages gardés dans le navigateur |
-| Thèmes et stories | feedbacks du plus récent au plus ancien, message complet dans un accordéon (entreprise, nom, sentiment, date, canal) ; user story rédigée à la demande, un seul texte modifiable, puis « Valider et exporter vers Linear » |
-| Recontact | brouillons modifiables (questions d'investigation, demande d'identifiant de compte). « Envoyer » dépose le message dans `out/outbox/` : rien n'est jamais envoyé |
-
-**Mode démo (par défaut, sans `SUPABASE_URL`).** L'interface rejoue lundi puis jeudi depuis `fixtures/llm/`, avec le même pipeline que la CLI : aucun appel LLM, aucun réseau. Un bandeau le dit. Les arbitrages du PO restent dans le navigateur.
-
-**Mode direct.** Avec `SUPABASE_URL` et `SUPABASE_KEY`, et après `pnpm db:seed`, les feedbacks bruts, l'analyse et les arbitrages sont lus et écrits dans Postgres. L'écran de Nadia ne nomme pas la base. L'écran Feedbacks permet de coller un e-mail, un ticket ou un commentaire : OpenRouter classe ce seul texte, le rattache à un thème existant ou en ouvre un, puis le RICE et le MoSCoW sont recalculés. Le temps passé est affiché pendant l'attente et à la fin. Si la base est absente, vide ou injoignable, l'interface revient au mode démo. Sans `OPENROUTER_API_KEY`, l'ajout est refusé et rien n'est enregistré. La page `/ops/ecoute` garde le détail technique quand l'écoute ne peut pas démarrer.
-
-**Mode Linear.** Le badge vert « Linear connecté · nom de l'équipe » n'apparaît qu'avec une clé personnelle dans ce navigateur. Sans elle, le badge est le bouton neutre « Connecter Linear », même si une session existe : un clic ouvre alors directement la saisie de la clé. Le nom, la clé et l'espace viennent de l'API. La clé du serveur (`LINEAR_API_KEY`, équipe `LINEAR_TEAM_ID`) sert à l'export quand une session existe, sans colorer le badge.
-
-Le badge ouvre une modale : chacun peut coller une clé personnelle, choisie dans [Security & access](https://linear.app/settings/account/security). La clé reste dans un cookie httpOnly chiffré (AES-256-GCM, 7 jours), jamais en base, jamais renvoyée au navigateur. Il faut `LINEAR_KEY_COOKIE_SECRET` : 32 octets en base64 (`openssl rand -base64 32`). En production le cookie est marqué Secure.
-
-Pour un essai, limiter la clé : permissions **Read**, **Create issues** et **Create comments**, et une seule équipe. Mettre à jour une issue déjà créée, poser un label ou une demande client demande en plus **Write**, parce que Linear ne couvre pas ces mutations par les permissions étroites. La clé agit comme le compte qui l'a créée : la révoquer dans Linear coupe l'accès. « Déconnecter » oublie la clé du navigateur et revient à la clé du serveur, ou à « déconnecté » s'il n'y en a pas.
-
-Un commentaire n'est posté que sur l'équipe de la connexion en cours. Un thème exporté dans un autre espace reste « En attente ».
-
-**Connexion.** N'importe quelle adresse peut recevoir un lien magique. Le retour du lien utilise `ETAI_PUBLIC_URL` (sinon les en-têtes transmis par le proxy), jamais l'hôte interne du conteneur. La lecture (feedbacks, thèmes, priorisation, stories déjà écrites, sources) reste ouverte. Générer une story, ajouter un feedback, écouter X, et exporter avec `LINEAR_API_KEY` exigent cette session, revérifiée côté serveur. Une clé Linear personnelle, collée dans le navigateur, permet d'exporter sans ce lien. La page est `/connexion`.
-
-Chaque compte a un plafond par jour, heure de Paris : 5 stories, 20 feedbacks ajoutés, 5 exports avec la clé du serveur. Tous comptes confondus : 30 stories et 20 exports. Au-delà, l'interface dit « Limite du jour atteinte, réessayez demain ». Les variables `QUOTA_*` changent ces nombres. L'envoi des liens est aussi limité par adresse et par adresse IP, en plus du plafond de Supabase. Les compteurs sont dans `usage_counters` : appliquer `supabase/migrations/20261110155933_usage_counters.sql` soi-même.
-
-Réglages à faire soi-même sur le projet `ehiujaekbsyoimuqyrpv`, sans les confier au dépôt :
-
-- `SUPABASE_URL` = `https://ehiujaekbsyoimuqyrpv.supabase.co` et `SUPABASE_KEY` = la clé publishable de ce projet, sur Render comme en local. Pas de préfixe `NEXT_PUBLIC_`.
-- Authentication → Providers → Email activé, lien magique. Les inscriptions sont ouvertes : ne pas restreindre les domaines.
-- Authentication → URL Configuration : Site URL `https://thiga-po-agent.onrender.com`. Redirect URLs : `https://thiga-po-agent.onrender.com/auth/callback` et `http://localhost:43217/auth/callback`.
-- Modèle d'e-mail Magic Link : garder `{{ .ConfirmationURL }}`.
-- SQL Editor : exécuter la migration `usage_counters`. Sans elle, les actions coûteuses refusent de partir.
-- Render : les `QUOTA_*` sont facultatives. Vides, les défauts ci-dessus s'appliquent. Retirer `ALLOWED_EMAILS` si elle a été posée.
-
-## Déployer sur Render
-
-`render.yaml` décrit le service web : build `pnpm build`, démarrage `next start` sur le port fourni par Render, contrôle de santé sur `/lundi`, redéploiement à chaque commit sur `main`. Dans Render : *New → Blueprint*, puis choisir ce dépôt. `LINEAR_API_KEY`, `LINEAR_TEAM_ID` et `LINEAR_KEY_COOKIE_SECRET` sont demandées à la création. Sans les deux premières, l'instance reste en mode démo pour l'export. Sans la troisième, une clé personnelle ne peut pas être gardée : 32 octets en base64, par exemple `openssl rand -base64 32`. Les liens vers les feedbacks utilisent l'URL publique du service (`RENDER_EXTERNAL_URL`), sauf si `ETAI_PUBLIC_URL` est défini.
-
-Sur l'offre gratuite, le service s'endort après une période sans visite : le premier affichage prend alors quelques dizaines de secondes. Le dossier `out/` n'y est pas conservé entre deux déploiements. Les feedbacks et les arbitrages, eux, restent dans Supabase une fois la base branchée.
-
-## Brancher Supabase
-
-Le projet Postgres est déjà créé. La migration n'est pas appliquée par le code : il faut la lancer soi-même (SQL Editor du dashboard, ou `supabase db query` une fois le CLI lié).
-
-1. Ouvrir `supabase/migrations/20261109154558_persist_po_cycle.sql` et l'exécuter sur la base.
-2. Copier `.env.example` vers `.env`. Renseigner `SUPABASE_URL` et `SUPABASE_KEY` (clé **publishable**, `sb_publishable_…`, jamais la clé secrète). Ces variables restent côté serveur : ne pas les préfixer par `NEXT_PUBLIC_`.
-3. Charger le corpus de démo, sans appel de modèle :
-
-```bash
-pnpm db:seed
-```
-
-La commande rejoue lundi et jeudi depuis les fixtures, écrit les feedbacks bruts, les analyses et les arbitrages de départ. La relancer remet ce corpus et retire les feedbacks ajoutés dans l'interface.
-
-4. Pour analyser un feedback collé dans l'interface, ajouter aussi `OPENROUTER_API_KEY`. Le profil par défaut est B : Jev décide (type, injection, gravité, thème), Sonnet ne rédige que si le rattachement n'est pas assez sûr ou si le palier de confiance change. `ETAI_LLM_PROFILE=A` revient à Sonnet pour tout. `ETAI_THEME_CONFIDENCE` (défaut 0,8) est le seuil de Jev. Chaque ajout est plafonné à 1 $ (`ETAI_LLM_BUDGET_USD`).
-
-Sur Render, les mêmes variables se déclarent dans le blueprint : `SUPABASE_URL`, `SUPABASE_KEY`, `OPENROUTER_API_KEY`, et pour l'écoute X `TREG_TOKEN`. `ETAI_X_QUERY`, `ETAI_X_POLL_SECONDS`, `ETAI_X_MAX_SESSION_USD` et `ETAI_X_MAX_AGE_DAYS` sont facultatives. Elles sont vides tant qu'on ne les remplit pas, et l'instance reste en mode démo. Le seed se lance en local, pas au démarrage du service.
-
-Le rôle `anon` (celui de la clé publishable) peut lire et écrire les trois tables. C'est un compromis de démo : pas d'auth, pas de séparation entre PO. La marche à suivre pour la production est dans l'ADR-016.
-
-## Social listening (X via Treg)
-
-Nadia ne voit pas l’écoute. Un post X arrive dans ses feedbacks comme les autres, avec l’icône X, le @handle et le lien. La liste du jeudi se rafraîchit seule.
-
-L’interrogation est sur `/ops/ecoute`, absente de la navigation. Cette page appelle une action serveur toutes les 20 secondes tant qu’elle est ouverte. Fermer l’onglet arrête l’écoute. Elle s’arrête aussi au bout de 30 minutes, ou à 0,50 $ de coût Treg cumulé. Treg ne pousse rien, et l’offre gratuite de Render endort le service : il n’y a pas de cron.
-
-Treg plutôt que l’API X officielle : pas de compte développeur, et une recherche routée coûte de 0,00075 $ à 0,015 $ contre 0,005 $ par résultat chez X. L’indexation peut prendre un moment. Plan B, sur `/ops/ecoute` : inclure les dernières heures au lieu du seul point de départ (ouverture de la page, moins 2 minutes).
-
-L’appel préfère AnyAPI en direct (`query` + `queryType: Latest`, environ 0,00054 $). La recherche routée ne sert qu’en repli. `TREG_TOKEN` reste côté serveur. La requête par défaut est `#etai OR @etai` (`ETAI_X_QUERY`). Les posts déjà vus (`fb-x-<id>`) ne sont pas repris. Les trois horodatages (publié, détecté, traité) sont gardés avec le feedback : le tableau des délais de `/ops/ecoute` les relit après un rechargement. Le détail est dans l’ADR-019.
-
-## Brancher Linear
-
-1. Clé : dans Linear, *Settings → Account → Security & access → Personal API keys → New API key*. Elle doit pouvoir écrire dans l'équipe.
-2. Équipe : `LINEAR_TEAM_ID` accepte l'UUID de l'équipe ou sa clé, celle qui préfixe les identifiants d'issues (`THI` pour `THI-12`).
-3. Mettre les deux dans `.env` (voir `.env.example`), jamais commité, ou les passer dans l'environnement.
-
-```bash
-pnpm export:linear --batch lundi --dry-run   # lit Linear, affiche ce qui serait créé ou mis à jour, n'écrit rien
-pnpm export:linear --batch lundi             # export réel
-pnpm export:linear --batch jeudi --theme partage_client --dry-run
-```
-
-L'export à blanc vérifie l'équipe, cherche chaque issue (LIN-xx rattachée, puis clé stable), les labels et les clients, puis liste les écritures qu'il aurait faites. Sans `LINEAR_API_KEY`, il simule hors ligne. L'export réel exige les deux variables.
-
-Ce qui est écrit, pour chaque thème Must, Should ou Could non bloqué :
-
-- une issue : titre, description (problème, score détaillé, citations, story et critères s'il y en a, liens vers les feedbacks), estimation dérivée de la taille (XS 1, S 2, M 4, L 6, XL 10), label `MoSCoW : <classe>` et label de catégorie (`Bug`, `Improvement` ou `Feature`, les labels par défaut de Linear, réutilisés s'ils existent) ;
-- si le thème est rattaché à une issue du backlog qui existe dans l'équipe, cette issue est mise à jour au lieu d'en créer une autre. Seule la section Étai de la description change (entre deux marqueurs) ; le texte écrit à la main et l'estimation de l'équipe restent ;
-- une demande client (Customer Request) par compte qui porte le thème, avec ses citations. Si la fonction Customers n'est pas activée dans l'espace, l'issue est exportée quand même et une note le signale. `LINEAR_CUSTOMER_REQUESTS=0` les désactive.
-
-Relancer l'export ne crée pas de doublon. La CLI exporte le classement de l'agent et `data/po-decisions.json`. Les arbitrages faits dans l'interface partent avec le bouton : en mode démo ils vivent dans le navigateur, en mode direct ils sont relus depuis Supabase. Les liens vers les feedbacks pointent sur `http://localhost:43217` ; `ETAI_PUBLIC_URL` les redirige vers une instance publiée.
-
-## Tests et évaluation
-
-```bash
-pnpm test        # tests unitaires et pipeline rejoué de bout en bout
-pnpm eval        # comparaison à data/answer-key.json, rapport dans out/eval/rapport.md
-pnpm eval:compare  # même évaluation avec de vrais modèles, voir plus bas
-pnpm typecheck
-pnpm lint
-```
-
-`pnpm eval` en mode rejoué évalue lundi et jeudi contre la clé, et le holdout sur les seules couches déterministes (rapprochement, heuristique d'injection). Les fixtures ayant été écrites après lecture de la clé, les scores de type et de thème en mode rejoué ne mesurent pas un modèle. `pnpm eval --provider real` classe aussi le holdout avec le vrai modèle.
-
-## Passage réel sur OpenRouter
-
-Prérequis : Node 22 (au minimum 20.12, pour `process.loadEnvFile`), pnpm 10.33 (`corepack enable` suffit), une clé OpenRouter.
-
-```bash
-pnpm install
-OPENROUTER_API_KEY=sk-or-... pnpm eval:compare
-```
-
-La commande évalue trois profils sur lundi, jeudi et holdout, avec un plafond de 5 $ tous profils confondus, et écrit `out/eval-real/<profil>.json` et `out/eval-real/summary.md`. La clé peut aussi être mise dans `.env` (voir `.env.example`), jamais commitée.
-
-| Profil | Étapes de texte | Décisions (type, injection, gravité, backlog) |
+| Bloc | Ce qui se passe | Qui décide |
 | --- | --- | --- |
-| A | `anthropic/claude-sonnet-5.5` | dans la réponse de classification et de regroupement |
-| B | `anthropic/claude-sonnet-5.5` pour le texte seulement | Jev (`typesafe/jev-1.14`) seul pour le type, l'injection, la gravité, le sentiment (même appel), le backlog et le thème d'un ajout ; repli Sonnet 5.5 si Jev échoue |
-| C | `openai/gpt-5.6-luna` | dans la réponse de classification et de regroupement |
+| **1. Analyser les feedbacks** | Masquage des données personnelles, rapprochement auteur → compte client, classification (type, gravité, sentiment, injection de prompt), regroupement en thèmes avec citations exactes. Un feedback collé dans l'interface ou capté sur X est rattaché à un thème ouvert ou en ouvre un nouveau. | **Jev** (`typesafe/jev-1.14`) rattache les cas clairs (confiance ≥ 0,8). **Sonnet** tranche les cas ambigus : il compare le feedback aux thèmes ouverts, le rattache ou crée et nomme un thème, puis rédige les user stories. Le code a le dernier mot : citations vérifiées (sous-chaîne exacte du texte), RICE et MoSCoW DSDM déterministes. |
+| **2. Prioriser** | **RICE** calculé en code (Reach en comptes distincts sur une fenêtre de 28 jours, Confidence selon l'étendue des preuves), puis **MoSCoW façon DSDM** : remplissage de la capacité du cycle, Must ≤ ~60 %, alerte au-delà de ~80 % pour Must + Should, le reste en Could puis Won't. La PO peut forcer une classe ou changer l'effort, avec un motif. | Code déterministe et testé, jamais le modèle |
+| **3. Rédiger et exporter** | User story générée **à la demande** sur un thème (récit, critères d'acceptation, complexité), éditable en un seul texte, puis « Valider et exporter vers Linear ». | Sonnet rédige ; la PO valide |
 
-Options :
+Le jeudi, un second lot fait bouger les priorités : l'écran « Ce qui a changé » montre le thème touché, le RICE, la Confidence et le MoSCoW avant et après.
 
-- `--profiles A,B` : sous-ensemble de profils, ou chemin vers un `.json` au même format que `config/llm-profiles/`.
-- `--budget 5` : plafond en dollars. L'exécution s'arrête proprement quand il est atteint ; les profils restants sont marqués « non lancé » et le récapitulatif est écrit quand même.
-- `--story-model anthropic/claude-opus-5.5` : modèle de la story pour tous les profils.
-- `--record-fixtures A` : une fois le profil A terminé, remplace `fixtures/llm/` par ses sorties réelles de lundi et jeudi (jamais le holdout), avec un `manifest.json`. Les fichiers ne contiennent que les réponses : la commande refuse de les installer s'ils contiennent la clé ou un en-tête d'autorisation.
+## Fonctionnalités ajoutées pendant la phase de production (PR #1 à #14)
 
-Mesures par profil : les métriques de `pnpm eval`, le nombre d'appels, le coût (`usage.cost`, sinon `GET /api/v1/generation`), la latence moyenne et p95 par appel, le taux de réponses hors schéma, les réponses de décision illisibles et les replis. Les réponses illisibles sont journalisées brutes dans `out/eval-real/raw-responses.jsonl`.
+- **Persistance Supabase** et ajout de feedback en direct (PR #1), rattachement au thème existant (PR #2, #3).
+- **Écoute X via Treg** depuis la page d'exploitation `/ops/ecoute`, hors de la navigation de Nadia (PR #4).
+- **Stories à la demande**, sentiment par feedback, badges Négatif / Frustré (PR #5 à #7).
+- **Badge Linear** dans l'en-tête, affiché seulement si Linear répond (PR #8).
+- **Cycle de vie après export** (PR #9) : le thème exporté passe « Engagé (THI-xx) » et sort de l'arbitrage, sa capacité est réallouée aux autres thèmes ; les feedbacks présents deviennent « Traité · THI-xx » ; un feedback arrivé ensuite sur ce thème est posté en **commentaire sur l'issue**, sans doublon.
+- **Clé Linear personnelle** (PR #10) : vérifiée auprès de l'API, choix de l'équipe, chiffrée en AES-256-GCM dans un cookie httpOnly de 7 jours, jamais en base ni renvoyée au navigateur.
+- **Lien magique et quotas** (PR #11, #13) : n'importe quelle adresse peut se connecter (c'est le mode de connexion du jury) ; les actions qui coûtent (story, ajout de feedback, écoute X, export avec la clé du serveur) exigent une session vérifiée côté serveur et sont plafonnées par compte et par jour (5 stories, 20 feedbacks, 5 exports ; 30 stories et 20 exports tous comptes confondus).
+- **« Connecter Linear » en deux étapes** (PR #12) : sans session, étape 1 = e-mail et lien magique ; au retour, étape 2 = saisie de la clé. Le badge n'est vert qu'avec une clé personnelle.
+- **Carte Floorplan** de l'architecture servie par l'app (PR #14).
 
-Un seul profil sur un seul lot : `pnpm agent run --batch lundi --provider real --profile B --budget 1`. Une éval d'un profil : `pnpm eval --provider real --profile A`.
-
-Volume : contre le faux serveur des tests, un profil fait 79 appels de texte, sans compter les relances ; B y ajoute une requête de décision par feedback classé et une par thème nouveau. Le coût réel n'a pas été mesuré. Si le plafond par défaut ne suffit pas aux trois profils, relancer avec `--budget` plus élevé ou `--profiles` réduit.
-
-## Pipeline
-
-```mermaid
-flowchart TD
-  A[Connecteurs par canal<br/>fichiers data/feedbacks] --> B[Normalisation]
-  B --> C[Masquage e-mail, téléphone, adresse]
-  C --> D[Rapprochement auteur-compte<br/>certaine, probable, faible, anonyme]
-  C --> E[Classification LLM<br/>+ heuristique d'injection]
-  E -->|injection| Q[Quarantaine<br/>hors scoring]
-  E -->|trop flou| I[Brouillon d'investigation LLM]
-  E --> F[Regroupement en thèmes LLM<br/>+ rapprochement backlog]
-  F --> G[Évaluation LLM<br/>impact, taille, contrainte citée]
-  D --> H
-  G --> H[RICE en code<br/>Reach, Confidence, fenêtre 28 j]
-  H --> M[MoSCoW DSDM en code<br/>capacité, alertes 60 / 80 %]
-  M --> S[Story LLM du premier retenu]
-  M --> K[BacklogSink<br/>MarkdownSink, LinearSink]
-  P[(Décisions du PO)] --> M
-  X[(État du lot précédent)] --> V[Invalidation<br/>preuves, hypothèses, confirmations]
-  V --> G
-  V --> M
-```
-
-Les cases « LLM » passent par une interface `LlmProvider` sans aucun outil : le modèle ne peut que renvoyer un objet validé par Zod. Tout ce qui décide (Reach, Confidence, RICE, MoSCoW, tendance, citations exactes, invalidation) est du code testé.
-
-## Démarche et choix techniques
-
-L'énoncé reformulé est dans [`docs/brief.md`](docs/brief.md). Le journal de décisions est dans [`docs/decisions.md`](docs/decisions.md) : ADR-002 à 007 pour l'architecture, ADR-008 à 013 pour les choix de la phase 1 (seuils, allocation, sécurité, fixtures, invalidation), ADR-014 pour le passage réel sur OpenRouter, ADR-015 pour l'interface et l'export Linear, ADR-016 pour Supabase.
-
-## Ce qui a été délégué à l'IA vs vérifié manuellement
-
-Le journal est [`AI_USAGE.md`](AI_USAGE.md). Le code et les fixtures des phases 1 et 2 ont été écrits par Claude Opus 5.5. Les seuils et la règle d'allocation restent à valider par Valentin. L'ADR-016 décrit la persistance Supabase.
-
-## Limites et prochaines étapes
-
-- `LinearSink` est testé contre un faux Linear en mémoire, jamais contre l'API réelle. Premier essai prévu sur l'équipe THI, en commençant par `--dry-run`.
-- Les identifiants LIN-xx du jeu de données sont fictifs : dans un vrai espace, ils sont introuvables et l'issue est créée (une note le dit).
-- Sans `SUPABASE_URL`, ou si la base ne répond pas, l'interface reste en mode démo : fixtures, aucun modèle. Le badge et le bandeau le disent.
-- En mode direct, les arbitrages de l'interface (effort, MoSCoW forcé) sont dans Supabase. En mode démo, ils restent dans le navigateur. Reconfirmer une contrainte « à revoir » se fait encore dans `data/po-decisions.json`, rechargé au seed.
-- L'ajout d'un feedback dans l'interface exige `OPENROUTER_API_KEY`. Ce dépôt ne contient pas de résultat d'un tel appel : le flux est testé avec un faux client.
-- Les fixtures sont rédigées, pas enregistrées. Elles sont à remplacer par `pnpm eval:compare --record-fixtures <profil>` dès qu'une clé est disponible.
-- Le câblage OpenRouter est testé contre un faux serveur local, jamais contre l'API réelle : aucun résultat de modèle réel n'existe encore dans ce dépôt.
-- Une fixture est liée à l'empreinte de ses données : modifier un feedback rend le mode rejoué strict en erreur, jusqu'à réenregistrement.
-- Un feedback en quarantaine sort du scoring jusqu'à ce que le PO le libère. Conséquence visible dans l'éval : le thème « nom du PDF exporté » de la clé n'apparaît pas.
-- Les connecteurs sont des fichiers. L'architecture de production est décrite (ADR-007), pas branchée.
-- `data/feedbacks/holdout.json` ne sert pas à régler les seuils, et n'est pas accepté par `pnpm agent`.
-
-## Arborescence
+## Architecture
 
 ```
-AI_USAGE.md                 journal d'usage des IA
-docs/brief.md               énoncé reformulé
-docs/decisions.md           ADR
-data/context/               stratégie (md + json), comptes, backlog
-data/feedbacks/             lots lundi, jeudi, holdout
-data/answer-key.{md,json}   intention de conception
-data/po-decisions.json      décisions du PO rejouées par la CLI
-core/schemas/               schémas Zod
-core/ingest, privacy, identity, security, evidence
-core/scoring/               fenêtre, tendance, RICE, MoSCoW
-core/llm/                   interface fournisseur, réel, rejoué, prompts, décisions
-core/llm/openrouter/        client, chat, API Decisions (Jev), compteur de coût et budget
-config/llm-profiles/        profils A, B, C : un modèle par étape
-core/steps/                 classification, thèmes, évaluation, story, investigation
-core/pipeline/              orchestration et état
-core/report/, core/sink/    rendus markdown, BacklogSink (Markdown, Linear, export à blanc)
-core/outbox/                brouillons de recontact, boîte de test
-core/cli/, core/eval/       pnpm agent, pnpm export:linear, pnpm eval, pnpm eval:compare
-fixtures/llm/               réponses rejouées
-scripts/author-fixtures.ts  rédaction des fixtures (pnpm fixtures:author)
-app/                        Next.js : écrans par lot, actions serveur (export, boîte de test, ajout, arbitrages)
-components/etai/            composants des écrans ; components/ui/ : shadcn/ui
-lib/etai/                   vues des lots, mode démo ou Supabase, arbitrages du PO, libellés
-core/store/                 persistance (mémoire pour les tests, Supabase)
-supabase/migrations/        schéma et politiques RLS, à appliquer sur la base
-scripts/db-seed.ts          pnpm db:seed
-.agents/skills/             skill emil-design-eng (animations, finitions)
+Navigateur ─▶ Next.js 16 (Render) ─┬─▶ OpenRouter ─┬─ Jev (typesafe/jev-1.14) : rattache les cas clairs (confiance ≥ 0,8)
+                                   │               └─ Claude Sonnet : tranche les cas ambigus (compare, rattache ou crée le thème) et rédige les US
+                                   ├─▶ Code déterministe : RICE, MoSCoW DSDM, citations, invalidation
+                                   ├─▶ Supabase : Postgres (feedbacks, analyses, arbitrages) + Auth (lien magique, pour la connexion du jury) + usage_counters
+                                   ├─▶ Linear SDK : issues, labels, demandes clients, commentaires
+                                   └─▶ Treg : écoute X en direct (les autres canaux — e-mail, tickets, G2/Capterra, Reddit — sont la cible)
 ```
+
+- **Interface** : Next.js 16, React 19, TypeScript strict, composants shadcn/ui, thème sombre.
+- **Contrats** : chaque réponse de modèle est un objet validé par **Zod**. Le modèle n'a aucun outil : il ne peut que renvoyer ce schéma.
+- **Modèles via OpenRouter** : une seule API pour plusieurs fournisseurs, ce qui simplifie les appels et permet un repli. Profil par défaut B : Jev décide (type, injection, gravité, sentiment, backlog, thème d'un ajout). Si sa confiance sur le thème atteint 0,8 (`ETAI_THEME_CONFIDENCE`), le feedback est rattaché sans autre appel ; sinon Sonnet compare le feedback aux thèmes ouverts et, si besoin, nomme un thème nouveau, puis le code tranche (un « créer » qui contredit sa propre comparaison est forcé en « rattacher »). En cas d'échec de Jev, repli Sonnet. Budget plafonné à 1 $ par ajout. Mesures en production : Jev ≈ 0,9 s et ~0,0001 $ par décision ; une story Sonnet ≈ 50,6 s et ~0,07 $.
+- **Tests** : Vitest, **202 tests sur 38 fichiers, tous verts** sur `main` (`001ba0b`) : règles RICE et MoSCoW, rattachement, export Linear, auth, quotas, sécurité, avec un faux OpenRouter et un faux Linear.
+- **Persistance** : Supabase, appelé uniquement depuis le serveur Next ; la clé n'est jamais préfixée `NEXT_PUBLIC_`.
+- **Déploiement** : Render (`render.yaml`), redéploiement à chaque commit sur `main`, contrôle de santé sur `/lundi`.
+- **Carte Floorplan** : 217 fichiers, servie à [`/floorplan.html`](https://thiga-po-agent.onrender.com/floorplan.html).
+
+Le détail des choix est dans [`docs/decisions.md`](docs/decisions.md) (ADR-001 à ADR-025).
+
+## Lancer en local
+
+Node 22, pnpm 10 (`corepack enable`).
+
+```bash
+pnpm install
+pnpm dev          # http://localhost:43217, mode démo sans aucune clé
+pnpm test         # Vitest (202 tests)
+pnpm typecheck && pnpm lint
+```
+
+Sans variable d'environnement, l'interface rejoue des réponses déjà écrites (`fixtures/llm/`, rédigées à la main) : aucun appel de modèle, aucun réseau. Un bandeau l'indique.
+
+**Mode direct** (base + modèles) : copier `.env.example` vers `.env` (jamais commité), renseigner `SUPABASE_URL`, `SUPABASE_KEY`, `OPENROUTER_API_KEY`, et pour l'export `LINEAR_API_KEY`, `LINEAR_TEAM_ID`, `LINEAR_KEY_COOKIE_SECRET`. Appliquer les migrations de `supabase/migrations/`, puis :
+
+```bash
+pnpm db:seed      # recharge les 52 feedbacks et les analyses lundi/jeudi, retire les ajouts faits dans l'interface
+```
+
+Pour la démo en ligne, le jury se connecte par **lien magique** (e-mail), puis peut coller une clé Linear personnelle s'il veut exporter vers son équipe.
+
+Autres commandes : `pnpm agent run --batch lundi|jeudi` (pipeline en ligne de commande, sorties dans `out/`), `pnpm export:linear --batch lundi --dry-run`, `pnpm eval` (comparaison à la clé de réponses), `pnpm eval:compare` (profils A, B, C sur de vrais modèles, plafond 5 $).
+
+## Démarche et usage de l'IA
+
+Le journal complet est [`AI_USAGE.md`](AI_USAGE.md). Règle tenue tout du long : **j'initie, l'IA exécute, je vérifie puis décide**.
+
+1. **Tableau blanc** : cadrage du problème de Nadia et des rituels de la semaine (canaux, sentiment, reformulation, intégration Linear, hiérarchisation, catégorisation).
+2. **Board de modèles frontier** : utilisation croisée d'Opus, Gemini Pro et GPT via OpenRouter pour confronter les premières idées, puis itération avec Grok Bot, qui a l'intégralité du contexte. Retenu : une couche de décision avec preuves traçables, un score auditable, le MoSCoW façon DSDM, le Reach en comptes distincts.
+3. **Première piste abandonnée** : une extension Chrome greffée sur Linear, jugée difficile à maintenir et trop bruyante pour la PO (injection dans le DOM, puis appel à l'API Linear).
+4. **Application dédiée, Linear en destination** : Linear est l'outil le plus répandu chez les équipes produit de startup (Jira conviendrait mieux à une PME plus traditionnelle). Treize itérations produit (PR #1 à #13), chacune testée en ligne, plus la carte Floorplan (PR #14).
+5. **Jeu de données** rédigé par Grok 4.7, un modèle volontairement différent de celui qui code, pour limiter la circularité.
+6. **Code et tests** dans Cursor (cloud agent) : Claude Opus 5.5 pour l'architecture, Grok 4.7 pour les modifications. Dans l'outil, Jev classifie les feedbacks, Sonnet rédige les user stories.
+
+**Ce que j'ai vérifié moi-même** : le jeu de données et les seuils (RICE, allocation MoSCoW), relus et validés ; les sorties réelles (un JSON tronqué constaté et corrigé à la main, voir `AI_USAGE.md`) ; les mesures en production (parcours, UX/UI, temps et coût de Jev et des stories) ; le lien magique Supabase (PKCE) et les quotas ; l'export réel vers Linear et les commentaires sur une issue exportée.
+
+**Difficultés**
+
+- **Brainstorm trop conceptuel** : le board de modèles frontier a sur-intellectualisé la solution. Il a fallu revenir au quotidien du PO, en repartant du tableau de départ.
+- **Assistant IA instable (Grok Bot et Cursor)** : le contexte n'a pas toujours été mémorisé (OpenRouter et Jev oubliés, confusion entre Étai et Vertuoza). Parade : décisions écrites dans les ADR et le journal, relus à chaque reprise.
+- **Sonnet lent et imprécis** : le modèle créait des thèmes trop granulaires et mettait trop de temps à répondre. Parade : Jev rattache les cas clairs (confiance ≥ 0,8), Sonnet tranche les cas ambigus et rédige les US ; le code a le dernier mot (RICE et MoSCoW DSDM déterministes, citations vérifiées).
+
+## Sécurité et limites connues
+
+- **Base de données** : les trois tables de l'application sont lues et écrites avec le rôle `anon` (clé publishable gardée côté serveur, jamais envoyée au navigateur), avec des politiques RLS ouvertes. Compromis de démo documenté dans l'ADR-016 : quiconque obtiendrait cette clé pourrait modifier les données. Correctif prévu : passer le serveur sur la clé secrète et supprimer les politiques `anon`.
+- **Données** : un seul cycle partagé, sans séparation par compte. Le jeu est fictif.
+- **Écoute sociale** : Treg interroge X toutes les 20 s tant que `/ops/ecoute` est ouverte (arrêt après 30 min ou 0,50 $), pas de worker : l'offre gratuite de Render endort le service. Reddit et les autres canaux ne sont pas branchés en direct.
+- **Fixtures** : rédigées à la main, elles démontrent le pipeline, pas la qualité d'un modèle.
+
+## Prochaines étapes
+
+- **OAuth Linear** : remplacer la clé API collée par une connexion en un clic.
+- **Vraie page de connexion**, en commençant par un social login (la page `/connexion` actuelle ne sert qu'aux actions verrouillées).
+- **Refonte UX** : mieux afficher « Ce qui a changé » depuis la dernière connexion.
+- **Données par compte** : un `workspace_id` sur les tables, des politiques RLS fondées sur `auth.uid()`, plus aucun accès anonyme.
+- Un worker pour l'écoute X, ou un webhook, au lieu d'une page ouverte.
