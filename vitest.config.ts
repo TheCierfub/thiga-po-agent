@@ -6,7 +6,7 @@ export default defineConfig({
     alias: { "@": path.resolve(import.meta.dirname, ".") },
   },
   test: {
-    include: ["core/**/*.test.ts", "components/etai/linear-badge.test.tsx", "components/etai/magic-link-sent.test.tsx"],
+    include: ["core/**/*.test.ts", "components/etai/linear-badge.test.tsx"],
     environment: "node",
   },
 });

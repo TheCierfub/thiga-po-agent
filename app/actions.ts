@@ -27,16 +27,24 @@ import { LINEAR_EXPORT_DIR, exportTarget } from "@/core/sink/export-target";
 import { SdkLinearApi } from "@/core/sink/linear-api";
 import { DEMO_BATCHES } from "@/lib/etai/batches";
 import { resolveDataMode } from "@/lib/etai/data-mode";
-import { MAGIC_LINK_SENT, canRequestMagicLink, safeNextPath } from "@/core/auth/gate";
+import {
+  ACCESS_CLOSED,
+  ACCESS_COOKIE,
+  ACCESS_DENIED,
+  ACCESS_LIMIT,
+  ACCESS_MAX_AGE_S,
+  checkAccessCode,
+  signAccessCookie,
+} from "@/core/auth/access-code";
+import { safeNextPath } from "@/core/auth/gate";
 import { getPublicOrigin } from "@/core/auth/origin";
 import { beginLinearConnect, disconnectLinear, finishLinearConnect, inspectLinearAccount } from "@/core/linear/connect";
-import { requireSpend } from "@/lib/etai/access";
-import { takeMagicLink } from "@/lib/etai/magic-limit";
+import { requireAccess } from "@/lib/etai/access";
+import { takeAccessAttempt } from "@/lib/etai/access-limit";
 import { consumeQuota } from "@/lib/etai/quota";
 import { activeLinearKey, readKeySource } from "@/lib/etai/export-mode";
 import { linearCookieJar, readLinearCookieSecret } from "@/lib/etai/linear-cookie";
-import { createSupabaseServer } from "@/lib/etai/supabase-server";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ROOT, feedbackUrl } from "@/lib/etai/runs";
 import { getBatchView } from "@/lib/etai/view";
@@ -45,11 +53,8 @@ import { TregError, runXPoll, type PollPostResult, type TregCallTrace } from "@/
 
 /** Commentaires sur l'équipe de la connexion active (session, sinon défaut). */
 async function linearForIngest(): Promise<{ comments: LinearComments; scope: { workspaceId: string; teamId: string } } | null> {
-  const source = await readKeySource();
-  if (source !== "session") {
-    const gate = await requireSpend();
-    if (!gate.ok) return null;
-  }
+  const gate = await requireAccess();
+  if (!gate.ok) return null;
   const active = await activeLinearKey();
   if (!active) return null;
   const api = SdkLinearApi.fromKey(active.apiKey);
@@ -105,10 +110,10 @@ export async function exportTheme(input: z.input<typeof ExportInput>): Promise<E
   );
   if (!item) return { ok: false, message: "Ce thème n'est ni Must, ni Should, ni Could : il ne part pas vers le backlog." };
 
+  const gate = await requireAccess();
+  if (!gate.ok) return { ok: false, message: gate.message };
   const source = await readKeySource();
   if (source === "default") {
-    const gate = await requireSpend();
-    if (!gate.ok) return { ok: false, message: gate.message };
     const quota = await consumeQuota("export");
     if (!quota.ok) return { ok: false, message: quota.message };
   }
@@ -261,7 +266,7 @@ export type AddFeedbackOutcome =
 export async function addFeedback(input: z.input<typeof DirectFeedbackInputSchema>): Promise<AddFeedbackOutcome> {
   const parsed = DirectFeedbackInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Feedback invalide." };
-  const gate = await requireSpend();
+  const gate = await requireAccess();
   if (!gate.ok) return { ok: false, message: gate.message };
   const mode = await resolveDataMode();
   if (mode.kind !== "live") {
@@ -331,7 +336,7 @@ export type PollXOutcome =
 export async function pollXMentions(input: z.input<typeof PollInput>): Promise<PollXOutcome> {
   const parsed = PollInput.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Demande d'écoute invalide.", stop: false };
-  const gate = await requireSpend();
+  const gate = await requireAccess();
   if (!gate.ok) return { ok: false, message: gate.message, stop: true };
   const token = process.env.TREG_TOKEN?.trim();
   if (!token) return { ok: false, message: "TREG_TOKEN est absent : l'écoute X est désactivée.", stop: true };
@@ -445,7 +450,7 @@ async function persistStory(batch: (typeof DEMO_BATCHES)[number], story: UserSto
 export async function generateThemeStory(input: z.input<typeof ThemeInput>): Promise<StoryOutcome> {
   const parsed = ThemeInput.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Demande de story invalide." };
-  const gate = await requireSpend();
+  const gate = await requireAccess();
   if (!gate.ok) return { ok: false, message: gate.message };
   const { batch, themeKey, overrides } = parsed.data;
   const view = await getBatchView(batch);
@@ -518,35 +523,32 @@ async function publicOrigin(): Promise<string | null> {
   });
 }
 
-/** Toute adresse valide peut recevoir un lien. L'e-mail et l'IP sont plafonnés. */
-export async function requestMagicLink(email: string, nextPath: string): Promise<{ ok: true; message: string } | { ok: false; message: string }> {
-  if (!canRequestMagicLink(email)) return { ok: false, message: "Indiquez une adresse e-mail." };
+export async function unlockAccess(code: string, nextPath: string): Promise<{ ok: false; message: string } | undefined> {
   const headerStore = await headers();
   const ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() || headerStore.get("x-real-ip")?.trim() || "inconnue";
-  const limited = takeMagicLink(email, ip);
-  if (!limited.ok) return limited;
-  const supabase = await createSupabaseServer();
-  if (!supabase) return { ok: false, message: "L'envoi du lien est indisponible pour le moment." };
-  const next = safeNextPath(nextPath);
+  const limited = takeAccessAttempt(ip);
+  if (!limited.ok) return { ok: false, message: limited.message || ACCESS_LIMIT };
+  const secret = process.env.ACCESS_COOKIE_SECRET;
+  const verdict = checkAccessCode(code, process.env.DEMO_ACCESS_CODE);
+  if (verdict === "closed" || !secret?.trim()) return { ok: false, message: ACCESS_CLOSED };
+  if (verdict !== "ok") return { ok: false, message: ACCESS_DENIED };
+  const exp = Math.floor(Date.now() / 1000) + ACCESS_MAX_AGE_S;
+  const secure = headerStore.get("x-forwarded-proto") === "https" || process.env.NODE_ENV === "production";
+  (await cookies()).set(ACCESS_COOKIE, signAccessCookie(secret, exp), {
+    httpOnly: true,
+    secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: ACCESS_MAX_AGE_S,
+  });
   const origin = await publicOrigin();
-  if (!origin) return { ok: false, message: "L'envoi du lien est indisponible pour le moment." };
-  const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
-  try {
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: redirectTo, shouldCreateUser: true },
-    });
-    if (error) return { ok: false, message: "L'envoi du lien est indisponible pour le moment." };
-  } catch {
-    return { ok: false, message: "L'envoi du lien est indisponible pour le moment." };
-  }
-  return { ok: true, message: MAGIC_LINK_SENT };
+  const next = safeNextPath(nextPath);
+  redirect(origin ? `${origin}${next}` : next);
 }
 
-export async function signOut(): Promise<void> {
-  const supabase = await createSupabaseServer();
-  if (supabase) await supabase.auth.signOut();
+export async function leaveAccess(): Promise<void> {
+  (await cookies()).delete(ACCESS_COOKIE);
   const origin = await publicOrigin();
-  redirect(origin ? `${origin}/lundi` : "/lundi");
+  redirect(origin ? `${origin}/acces` : "/acces");
 }
 

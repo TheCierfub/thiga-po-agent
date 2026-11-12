@@ -177,7 +177,7 @@ export function AddFeedbackForm({
             {pending ? `Analyse en cours · ${elapsed.toFixed(1)} s` : "Analyser et enregistrer"}
           </Button>
         ) : (
-          <SignInLink href={`/connexion?next=${returnPath}`}>Se connecter pour ajouter</SignInLink>
+          <SignInLink href={`/acces?next=${returnPath}`}>Code d&apos;accès requis</SignInLink>
         )}
         {pending ? (
           <p className="text-sm text-muted-foreground">

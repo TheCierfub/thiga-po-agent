@@ -29,7 +29,7 @@ export function authCallbackLocation(input: {
   ok: boolean;
 }): string {
   const next = safeRelativePath(input.next);
-  const path = input.ok ? next : `/connexion?next=${encodeURIComponent(next)}`;
+  const path = input.ok ? next : `/acces?next=${encodeURIComponent(next)}`;
   if (!input.origin) return path;
   return new URL(path, input.origin).toString();
 }

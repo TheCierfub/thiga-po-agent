@@ -601,7 +601,16 @@ Le badge n'est vert, « Linear connecté · équipe », que lorsqu'une clé pers
 
 Une session sans clé personnelle ne colore pas le badge. Le clic ouvre directement l'étape 2, la saisie de la clé. C'est plus clair que d'afficher l'équipe du serveur : l'export avec cette clé existe déjà, mais le visiteur est venu pour brancher la sienne. L'export avec la clé du serveur continue d'exiger une session.
 
-Sans session, le même bouton ouvre l'étape 1 (e-mail, lien magique). Le lien revient sur la page avec `?etape=cle` et rouvre l'étape 2. La page `/connexion` reste pour les actions verrouillées.
+Sans clé personnelle, le bouton « Connecter Linear » ouvre la saisie de la clé. L'accès à l'application elle-même se fait par le code partagé (`DEMO_ACCESS_CODE`), pas par un lien magique.
+
+## ADR-026 — Un code d'accès à la place du lien magique
+
+- **Statut :** acceptée
+- **Date :** 2026-11-12
+
+### Décision
+
+La démo n'a plus de comptes. Un code partagé, comparé côté serveur à `DEMO_ACCESS_CODE` (temps constant), pose un cookie httpOnly signé avec `ACCESS_COOKIE_SECRET` pour 7 jours. Sans ces variables, l'accès est refusé. `/floorplan.html` reste public. Les plafonds ne sont plus par compte : 30 stories, 200 classifications et 20 exports Linear partagés par jour, sur la ligne `global` de `usage_counters`.
 
 ### Conséquences
 

@@ -55,8 +55,8 @@ export function ExportPanel({
   return (
     <div className="w-full min-w-0">
       {sharedKeyLocked ? (
-        <SignInLink href={`/connexion?next=/${batch}/themes/${themeKey}`} className="h-auto w-full whitespace-normal py-2">
-          Se connecter pour exporter
+        <SignInLink href={`/acces?next=/${batch}/themes/${themeKey}`} className="h-auto w-full whitespace-normal py-2">
+          Code d&apos;accès requis
         </SignInLink>
       ) : (
         <Button className="h-auto w-full whitespace-normal py-2" size="lg" disabled={block !== null || pending || !hasStory || !linear} onClick={run}>

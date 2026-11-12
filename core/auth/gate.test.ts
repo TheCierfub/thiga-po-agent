@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SIGN_IN_REQUIRED, authorizeLinearExport, authorizeSpend, canRequestMagicLink, safeNextPath } from "./gate";
+import { SIGN_IN_REQUIRED, authorizeLinearExport, authorizeSpend, safeNextPath } from "./gate";
 
 const ada = { id: "user-ada", email: "ADA@acme.example" };
 
@@ -21,12 +21,8 @@ describe("session", () => {
   });
 });
 
-describe("lien de connexion", () => {
-  it("envoie à toute adresse qui en a la forme", () => {
-    expect(canRequestMagicLink("ada@acme.example")).toBe(true);
-    expect(canRequestMagicLink("  Beau@Example.com ")).toBe(true);
-    expect(canRequestMagicLink("pas-une-adresse")).toBe(false);
-    expect(canRequestMagicLink("")).toBe(false);
+describe("retour après l'accès", () => {
+  it("n'accepte qu'un chemin relatif", () => {
     expect(safeNextPath("https://example.com")).toBe("/lundi");
     expect(safeNextPath("/jeudi/themes/partage_client")).toBe("/jeudi/themes/partage_client");
   });

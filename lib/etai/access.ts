@@ -1,23 +1,16 @@
-import { authorizeSpend, type Actor, type Gate } from "@/core/auth/gate";
-import { createSupabaseServer } from "@/lib/etai/supabase-server";
+import { cookies } from "next/headers";
+import { ACCESS_COOKIE, ACCESS_REQUIRED, verifyAccessCookie } from "@/core/auth/access-code";
 
-/** Identité vérifiée par la signature du jeton. Jamais le cookie lu tel quel. */
-export async function readActor(): Promise<Actor | null> {
-  const supabase = await createSupabaseServer();
-  if (!supabase) return null;
-  const { data, error } = await supabase.auth.getClaims();
-  if (error || !data?.claims) return null;
-  const id = data.claims.sub;
-  if (typeof id !== "string" || !id.trim()) return null;
-  const email = typeof data.claims.email === "string" ? data.claims.email : "";
-  return { id, email };
+export async function hasAccess(): Promise<boolean> {
+  const token = (await cookies()).get(ACCESS_COOKIE)?.value;
+  return verifyAccessCookie(token, process.env.ACCESS_COOKIE_SECRET);
 }
 
-export async function requireSpend(): Promise<Gate> {
-  return authorizeSpend(await readActor());
+export async function requireAccess(): Promise<{ ok: true } | { ok: false; status: 401; message: string }> {
+  if (await hasAccess()) return { ok: true };
+  return { ok: false, status: 401, message: ACCESS_REQUIRED };
 }
 
-export async function readAccess(): Promise<{ email: string | null; canSpend: boolean }> {
-  const gate = await requireSpend();
-  return { email: gate.ok ? gate.email : null, canSpend: gate.ok };
+export async function readAccess(): Promise<{ canSpend: boolean }> {
+  return { canSpend: await hasAccess() };
 }
